@@ -1,1 +1,1 @@
-export const API_URL = 'http://192.168.137.5:3000'; //poner ip del computador 
+export const API_URL = 'http://192.02.003.5:3000'; //poner ip del computador3

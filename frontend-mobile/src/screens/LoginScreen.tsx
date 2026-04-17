@@ -12,6 +12,7 @@ import { loginRequest } from "../services/authServices";
 
 type Props = NativeStackScreenProps<RootStackParamList, typeof ROUTES.Login>;
 
+//login con conexion al bakend y manejo de errores basico, validacion de email y password
 export function LoginScreen({ navigation }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
