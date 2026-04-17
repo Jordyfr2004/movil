@@ -19,19 +19,40 @@ export interface LoginSuccessResponse {
 export async function loginRequest(
   payload: LoginPayload
 ): Promise<LoginSuccessResponse> {
-  const response = await fetch(`${API_URL}/auth/login`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
 
-  const result = await response.json();
+  try {
+    const response = await fetch(`${API_URL}/auth/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
 
-  if (!response.ok) {
-    throw new Error(result.message || "Error al iniciar sesion");
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message || "No se pudo iniciar sesión");
+    }
+
+    return result;
+  } catch (error: any) {
+    if (error?.name === "AbortError") {
+      throw new Error("El servidor tardó demasiado en responder");
+    }
+
+    if (
+      error?.message?.includes("Network request failed") ||
+      error?.message?.includes("network")
+    ) {
+      throw new Error("No se pudo conectar con el servidor");
+    }
+
+    throw new Error(error?.message || "Ocurrió un error inesperado");
+  } finally {
+    clearTimeout(timeout);
   }
-
-  return result;
 }

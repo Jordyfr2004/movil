@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Alert, StyleSheet, Text, View } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/types";
 import { ROUTES } from "../navigation/routes";
@@ -8,19 +8,78 @@ import { AppInput } from "../components/AppInput";
 import { AppButton } from "../components/AppButton";
 import { colors, typography } from "../theme";
 import { spacing } from "../constants/spacing";
+import { loginRequest } from "../services/authServices";
 
 type Props = NativeStackScreenProps<RootStackParamList, typeof ROUTES.Login>;
 
 export function LoginScreen({ navigation }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const isValidEmail = (value: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  };
+
+  const handleLogin = async () => {
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedPassword = password.trim();
+
+    if (!normalizedEmail) {
+      Alert.alert("Validación", "Debes ingresar tu correo");
+      return;
+    }
+
+    if (!isValidEmail(normalizedEmail)) {
+      Alert.alert("Validación", "Ingresa un correo válido");
+      return;
+    }
+
+    if (!normalizedPassword) {
+      Alert.alert("Validación", "Debes ingresar tu contraseña");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const result = await loginRequest({
+        email: normalizedEmail,
+        password: normalizedPassword,
+      });
+
+      const token = result.access_token || result.data?.access_token;
+
+      console.log("LOGIN RESPONSE:", result);
+      console.log("TOKEN:", token);
+
+      if (!token) {
+        Alert.alert(
+          "Error",
+          "El servidor respondió correctamente, pero no devolvió el token"
+        );
+        return;
+      }
+
+      Alert.alert("Éxito", "Inicio de sesión correcto");
+      navigation.replace(ROUTES.Home);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Error al iniciar sesión";
+
+      Alert.alert("Error", message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Screen style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Inicia sesión</Text>
         <Text style={styles.subtitle}>
-          Accede con tu correo institucional o personal para gestionar tus reservas.
+          Accede con tu correo institucional o personal para gestionar tus
+          reservas.
         </Text>
       </View>
 
@@ -33,6 +92,7 @@ export function LoginScreen({ navigation }: Props) {
           keyboardType="email-address"
           autoCapitalize="none"
         />
+
         <AppInput
           label="Contraseña"
           value={password}
@@ -43,14 +103,15 @@ export function LoginScreen({ navigation }: Props) {
 
         <View style={styles.actions}>
           <AppButton
-            label="Entrar"
-            onPress={() => navigation.replace(ROUTES.Home)}
+            label={loading ? "Ingresando..." : "Entrar"}
+            onPress={handleLogin}
           />
         </View>
       </View>
 
       <Text style={styles.helperText}>
-        Si tienes problemas para acceder, verifica que el correo esté escrito correctamente.
+        Si tienes problemas para acceder, verifica que el correo esté escrito
+        correctamente.
       </Text>
     </Screen>
   );
