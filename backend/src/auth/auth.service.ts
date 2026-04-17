@@ -110,7 +110,7 @@ export class AuthService {
         user_id: authAccount.user_id,
         email: authAccount.email,
         provider: authAccount.provider,
-        acces_token: token,
+        access_token: token,
       },
     };
   }
