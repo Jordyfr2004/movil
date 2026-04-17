@@ -13,5 +13,6 @@ export const appTheme = {
     card: colors.surface,
     text: colors.textPrimary,
     border: colors.border,
+    notification: colors.primary,
   },
 };

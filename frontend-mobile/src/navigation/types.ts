@@ -3,6 +3,7 @@ import { Restaurant } from "../types/models";
 
 export type RootStackParamList = {
   [ROUTES.Welcome]: undefined;
+  [ROUTES.StudentAccess]: undefined;
   [ROUTES.Login]: undefined;
   [ROUTES.Home]: undefined;
   [ROUTES.RestaurantDetail]: { restaurant: Restaurant };

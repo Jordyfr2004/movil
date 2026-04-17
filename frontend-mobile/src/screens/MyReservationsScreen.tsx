@@ -1,11 +1,12 @@
-import React, { useCallback, useState } from "react";
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import React, { useCallback, useMemo, useState } from "react";
+import { Alert, FlatList, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/types";
 import { ROUTES } from "../navigation/routes";
 import { Screen } from "../components/Screen";
 import { StatusBadge } from "../components/StatusBadge";
+import { AppButton } from "../components/AppButton";
 import { useReservations } from "../hooks/useReservations";
 import { cancelReservation } from "../services/reservationService";
 import { formatReservationDate } from "../utils/date";
@@ -28,6 +29,11 @@ export function MyReservationsScreen({ route }: Props) {
     }, [reload])
   );
 
+  const confirmedCount = useMemo(
+    () => reservations.filter((r) => r.status === "confirmed").length,
+    [reservations]
+  );
+
   const handleCancel = async (reservationId: number) => {
     if (isCancelling) {
       return;
@@ -45,19 +51,29 @@ export function MyReservationsScreen({ route }: Props) {
   const confirmCancel = (reservationId: number) => {
     Alert.alert(
       "Cancelar reserva",
-      "Esta accion liberara tu cupo. Deseas continuar?",
+      "Esta acción liberará tu cupo. ¿Deseas continuar?",
       [
         { text: "Volver", style: "cancel" },
-        { text: "Cancelar reserva", style: "destructive", onPress: () => handleCancel(reservationId) },
+        {
+          text: "Cancelar",
+          style: "destructive",
+          onPress: () => handleCancel(reservationId),
+        },
       ]
     );
   };
 
   return (
-    <Screen>
+    <Screen style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Mis reservas</Text>
-        <Text style={styles.subtitle}>Consulta tus reservas activas.</Text>
+        <Text style={styles.subtitle}>
+          {loading
+            ? "Cargando tus reservas…"
+            : confirmedCount > 0
+              ? `Tienes ${confirmedCount} reserva${confirmedCount === 1 ? "" : "s"} activa${confirmedCount === 1 ? "" : "s"}.`
+              : "No tienes reservas activas por ahora."}
+        </Text>
       </View>
 
       <FlatList
@@ -67,37 +83,46 @@ export function MyReservationsScreen({ route }: Props) {
         renderItem={({ item }) => (
           <View style={styles.card}>
             <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>{item.menuTitle}</Text>
+              <Text style={styles.cardTitle} numberOfLines={1}>
+                {item.menuTitle}
+              </Text>
               <StatusBadge
                 label={item.status === "confirmed" ? "Confirmada" : "Cancelada"}
                 tone={item.status === "confirmed" ? "success" : "danger"}
               />
             </View>
-            <Text style={styles.cardSubtitle}>{item.restaurantName}</Text>
+
+            <Text style={styles.cardSubtitle} numberOfLines={1}>
+              {item.restaurantName}
+            </Text>
             <Text style={styles.cardDate}>
               {formatReservationDate(item.reservationDate)}
             </Text>
+
             {item.status === "confirmed" ? (
-              <Pressable
-                onPress={() => confirmCancel(item.id)}
-                style={({ pressed }) => [
-                  styles.cancelButton,
-                  pressed && styles.cancelButtonPressed,
-                ]}
-              >
-                <Text style={styles.cancelButtonText}>Cancelar</Text>
-              </Pressable>
+              <View style={styles.cardFooter}>
+                <AppButton
+                  label={isCancelling ? "Cancelando…" : "Cancelar"}
+                  onPress={() => confirmCancel(item.id)}
+                  variant="danger"
+                  size="sm"
+                  disabled={isCancelling}
+                />
+              </View>
             ) : null}
           </View>
         )}
         ListEmptyComponent={
-          loading ? (
-            <Text style={styles.helperText}>Cargando reservas...</Text>
-          ) : (
-            <Text style={styles.helperText}>
-              Aun no tienes reservas registradas.
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyTitle}>
+              {loading ? "Cargando reservas…" : "Aún no tienes reservas"}
             </Text>
-          )
+            <Text style={styles.emptySubtitle}>
+              {loading
+                ? "Espera un momento mientras actualizamos la información."
+                : "Cuando reserves un menú, aparecerá aquí."}
+            </Text>
+          </View>
         }
       />
     </Screen>
@@ -105,18 +130,23 @@ export function MyReservationsScreen({ route }: Props) {
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   header: {
     gap: spacing.xs,
     marginBottom: spacing.lg,
   },
   title: {
-    fontSize: typography.sizes.lg,
+    fontSize: typography.sizes.xl,
     fontWeight: typography.weights.bold,
     color: colors.textPrimary,
+    lineHeight: typography.lineHeights.xl,
   },
   subtitle: {
-    fontSize: typography.sizes.sm,
+    fontSize: typography.sizes.md,
     color: colors.textSecondary,
+    lineHeight: typography.lineHeights.md,
   },
   listContent: {
     gap: spacing.md,
@@ -124,21 +154,29 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: spacing.md,
+    borderRadius: 18,
+    padding: spacing.lg,
     borderWidth: 1,
     borderColor: colors.border,
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 1,
   },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: spacing.xs,
+    gap: spacing.md,
+    marginBottom: spacing.sm,
   },
   cardTitle: {
+    flex: 1,
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.bold,
     color: colors.textPrimary,
+    lineHeight: typography.lineHeights.md,
   },
   cardSubtitle: {
     fontSize: typography.sizes.sm,
@@ -149,27 +187,28 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.sm,
     color: colors.textMuted,
   },
-  cancelButton: {
-    alignSelf: "flex-start",
-    marginTop: spacing.sm,
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.md,
-    borderRadius: 999,
-    backgroundColor: colors.background,
+  cardFooter: {
+    marginTop: spacing.lg,
+    flexDirection: "row",
+    justifyContent: "flex-end",
+  },
+  emptyCard: {
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: colors.border,
+    padding: spacing.lg,
+    marginTop: spacing.sm,
   },
-  cancelButtonPressed: {
-    opacity: 0.8,
+  emptyTitle: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.bold,
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
   },
-  cancelButtonText: {
+  emptySubtitle: {
     fontSize: typography.sizes.sm,
-    color: colors.error,
-    fontWeight: typography.weights.semiBold,
-  },
-  helperText: {
-    textAlign: "center",
     color: colors.textSecondary,
-    marginTop: spacing.lg,
+    lineHeight: typography.lineHeights.sm,
   },
 });

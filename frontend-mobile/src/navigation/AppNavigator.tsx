@@ -3,13 +3,14 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ROUTES } from "./routes";
 import { RootStackParamList } from "./types";
 import { WelcomeScreen } from "../screens/WelcomeScreen";
+import { StudentAccessScreen } from "../screens/StudentAccessScreen";
 import { LoginScreen } from "../screens/LoginScreen";
 import { HomeScreen } from "../screens/HomeScreen";
 import { RestaurantDetailScreen } from "../screens/RestaurantDetailScreen";
 import { MenuScreen } from "../screens/MenuScreen";
 import { MyReservationsScreen } from "../screens/MyReservationsScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
-import { colors } from "../theme";
+import { colors, typography } from "../theme";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -17,8 +18,15 @@ export function AppNavigator() {
   return (
     <Stack.Navigator
       screenOptions={{
+        contentStyle: { backgroundColor: colors.background },
         headerStyle: { backgroundColor: colors.background },
-        headerTitleStyle: { color: colors.textPrimary },
+        headerTintColor: colors.textPrimary,
+        headerTitleStyle: {
+          color: colors.textPrimary,
+          fontWeight: typography.weights.semiBold,
+          fontSize: typography.sizes.md,
+        },
+        headerBackTitleVisible: false,
         headerShadowVisible: false,
       }}
     >
@@ -28,9 +36,14 @@ export function AppNavigator() {
         options={{ headerShown: false }}
       />
       <Stack.Screen
+        name={ROUTES.StudentAccess}
+        component={StudentAccessScreen}
+        options={{ title: "Acceso estudiante" }}
+      />
+      <Stack.Screen
         name={ROUTES.Login}
         component={LoginScreen}
-        options={{ title: "Iniciar sesion" }}
+        options={{ title: "Iniciar sesión" }}
       />
       <Stack.Screen
         name={ROUTES.Home}
@@ -45,7 +58,7 @@ export function AppNavigator() {
       <Stack.Screen
         name={ROUTES.Menu}
         component={MenuScreen}
-        options={{ title: "Menu del dia" }}
+        options={{ title: "Menú del día" }}
       />
       <Stack.Screen
         name={ROUTES.MyReservations}

@@ -2,8 +2,8 @@ import React, { ReactNode } from "react";
 import {
   SafeAreaView,
   StatusBar,
-  StyleSheet,
   StyleProp,
+  StyleSheet,
   ViewStyle,
 } from "react-native";
 import { colors } from "../theme";
@@ -28,6 +28,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
     paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
     paddingBottom: spacing.lg,
   },
 });

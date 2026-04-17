@@ -9,14 +9,19 @@ type StatusBadgeProps = {
 };
 
 export function StatusBadge({ label, tone }: StatusBadgeProps) {
+  const isSuccess = tone === "success";
+
   return (
     <View
       style={[
         styles.badge,
-        tone === "success" ? styles.success : styles.danger,
+        isSuccess ? styles.success : styles.danger,
+        isSuccess ? styles.successBorder : styles.dangerBorder,
       ]}
     >
-      <Text style={styles.text}>{label}</Text>
+      <Text style={[styles.text, isSuccess ? styles.textSuccess : styles.textDanger]}>
+        {label}
+      </Text>
     </View>
   );
 }
@@ -25,7 +30,7 @@ const styles = StyleSheet.create({
   badge: {
     borderRadius: 999,
     paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: 6,
   },
   success: {
     backgroundColor: colors.successSoft,
@@ -33,9 +38,22 @@ const styles = StyleSheet.create({
   danger: {
     backgroundColor: colors.errorSoft,
   },
+  successBorder: {
+    borderWidth: 1,
+    borderColor: "rgba(46, 125, 79, 0.20)",
+  },
+  dangerBorder: {
+    borderWidth: 1,
+    borderColor: "rgba(214, 69, 80, 0.20)",
+  },
   text: {
-    fontSize: typography.sizes.sm,
+    fontSize: typography.sizes.xs,
     fontWeight: typography.weights.semiBold,
-    color: colors.textPrimary,
+  },
+  textSuccess: {
+    color: colors.success,
+  },
+  textDanger: {
+    color: colors.error,
   },
 });
