@@ -9,7 +9,7 @@ export enum UserStatus {
 }
 
 export enum UserRole {
-    STUDENTS = 'STUDENTS',
+    STUDENT = 'STUDENT',
     MANAGER = 'MANAGER',
 }
 
@@ -18,34 +18,37 @@ export enum UserRole {
 @Entity('users')
 export class User {
     @PrimaryGeneratedColumn('uuid')
-    id: string;
+    id!: string;
 
     @Column({
         type: 'enum',
         enum: UserRole,
-        default: UserRole.STUDENTS,
+        default: UserRole.STUDENT,
     })
-    role: UserRole;
+    role!: UserRole;
 
     @Column({type: 'varchar', length: 255})
-    full_name: string;
+    full_name!: string;
 
     @Column({
         type: 'enum',
         enum: UserStatus,
         default: UserStatus.ACTIVE,
     })
-    status: UserStatus;
+    status!: UserStatus;
 
     @Column({ type: 'boolean', default: true})
-    is_active: boolean;
+    is_active!: boolean;
+
+    @Column({ type: 'uuid', nullable: true})
+    restaurant_id!: string | null;
 
     @CreateDateColumn()
-    created_at: Date;
+    created_at!: Date;
 
     @UpdateDateColumn()
-    updated_at: Date;
+    updated_at!: Date;
 
     @OneToMany(() => AuthAccount, (authAccount) => authAccount.user)
-    auth_accounts: AuthAccount[];
+    auth_accounts!: AuthAccount[];
 }

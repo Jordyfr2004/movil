@@ -1,26 +1,103 @@
-import { Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+
+import { Restaurant } from './entities/restaurant.entity';
 import { CreateRestaurantDto } from './dto/create-restaurant.dto';
 import { UpdateRestaurantDto } from './dto/update-restaurant.dto';
+import { User, UserRole } from '../users/entities/user.entity';
 
 @Injectable()
 export class RestaurantsService {
-  create(createRestaurantDto: CreateRestaurantDto) {
-    return 'This action adds a new restaurant';
+  constructor(
+    @InjectRepository(Restaurant)
+    private readonly restaurantRepo: Repository<Restaurant>,
+
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
+  ) {}
+
+  async create(createRestaurantDto: CreateRestaurantDto, user_id: string) {
+    let { name, is_active } = createRestaurantDto;
+
+    name = name.trim();
+
+    const user = await this.userRepo.findOne({
+      where: { id: user_id },
+    });
+
+    if (!user || user.role !== UserRole.MANAGER) {
+      throw new ForbiddenException('No tienes permisos para esta acción');
+    }
+
+    if (user.restaurant_id) {
+      throw new ConflictException('El manager ya tiene un restaurante asignado');
+    }
+
+    const existingRestaurant = await this.restaurantRepo.findOne({
+      where: { name },
+    });
+
+    if (existingRestaurant) {
+      throw new ConflictException('El restaurante ya existe');
+    }
+
+    const restaurant = this.restaurantRepo.create({
+      name,
+      is_active,
+    });
+
+    const savedRestaurant = await this.restaurantRepo.save(restaurant);
+
+    user.restaurant_id = savedRestaurant.id;
+    await this.userRepo.save(user);
+
+    return {
+      message: 'Restaurante creado y asignado correctamente',
+      data: savedRestaurant,
+    };
   }
 
-  findAll() {
-    return `This action returns all restaurants`;
+  async findAll() {
+    return await this.restaurantRepo.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} restaurant`;
+  async findOne(id: string) {
+    const restaurant = await this.restaurantRepo.findOne({
+      where: { id },
+    });
+
+    if (!restaurant) {
+      throw new NotFoundException('Restaurante no encontrado');
+    }
+
+    return restaurant;
   }
 
-  update(id: number, updateRestaurantDto: UpdateRestaurantDto) {
-    return `This action updates a #${id} restaurant`;
+  async update(id: string, updateRestaurantDto: UpdateRestaurantDto) {
+    const restaurant = await this.findOne(id);
+
+    if (updateRestaurantDto.name) {
+      updateRestaurantDto.name = updateRestaurantDto.name.trim();
+    }
+
+    Object.assign(restaurant, updateRestaurantDto);
+
+    return await this.restaurantRepo.save(restaurant);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} restaurant`;
+  async remove(id: string) {
+    const restaurant = await this.findOne(id);
+
+    await this.restaurantRepo.remove(restaurant);
+
+    return {
+      message: 'Restaurante eliminado correctamente',
+    };
   }
 }

@@ -11,6 +11,7 @@ import { AuthAccount, AuthProvider } from './entities/auth-account.entity';
 import { RegisterAuthDto } from './dto/register-auth.dto';
 import { LoginDto } from './dto/login.dto';
 import { User, UserRole } from '../users/entities/user.entity';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
@@ -20,6 +21,8 @@ export class AuthService {
 
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+
+    private readonly jwtService: JwtService,
   ) {}
 
   async register(registerAuthDto: RegisterAuthDto) {
@@ -38,7 +41,7 @@ export class AuthService {
 
     const newUser = this.userRepo.create({
       full_name,
-      role: UserRole.STUDENTS,
+      role: UserRole.STUDENT,
     });
 
     const savedUser = await this.userRepo.save(newUser);
@@ -94,12 +97,20 @@ export class AuthService {
     authAccount.last_login_at = new Date();
     await this.authRepo.save(authAccount);
 
+    const payload = {
+      sub: authAccount.user_id,
+      email: authAccount.email,
+    };
+
+    const token = await this.jwtService.signAsync(payload);
+
     return {
       message: 'Inicio de sesión exitoso',
       data: {
         user_id: authAccount.user_id,
         email: authAccount.email,
         provider: authAccount.provider,
+        acces_token: token,
       },
     };
   }

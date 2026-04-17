@@ -11,37 +11,37 @@ export enum AuthProvider {
 export class AuthAccount {
 
     @PrimaryGeneratedColumn('uuid')
-    id: string;
+    id!: string;
 
     @Column({ type: 'uuid'})
-    user_id: string;
+    user_id!: string;
 
     @Column({
         type: 'enum',
         enum: AuthProvider,
         default: AuthProvider.LOCAL,
     })
-    provider: AuthProvider;
+    provider!: AuthProvider;
 
     @Column({ type: 'varchar', length: 255, unique: true })
-    email: string;
+    email!: string;
 
     @Column({ type:'varchar'})
-    password_hash: string;
+    password_hash!: string;
 
     @Column({ type: 'boolean', default: false})
-    is_verified: boolean;
+    is_verified!: boolean;
 
     @Column({ type: 'timestamp', nullable: true})
-    last_login_at: Date;
+    last_login_at!: Date | null;
 
     @CreateDateColumn()
-    created_at: Date;
+    created_at!: Date;
 
     @UpdateDateColumn()
-    updated_at: Date;
+    updated_at!: Date;
 
     @ManyToOne(() => User, (user) => user.auth_accounts, { nullable: false })
     @JoinColumn({ name: 'user_id'})
-    user: User;
+    user!: User;
 }
