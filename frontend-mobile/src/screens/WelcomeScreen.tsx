@@ -1,5 +1,5 @@
 import React from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/types";
 import { ROUTES } from "../navigation/routes";
@@ -37,7 +37,7 @@ export function WelcomeScreen({ navigation }: Props) {
 
           <Pressable
             accessibilityRole="button"
-            onPress={() => Alert.alert("Próximamente", "Acceso disponible en una próxima versión.")}
+            onPress={() => navigation.navigate(ROUTES.Login)}
             style={({ pressed }) => [styles.optionCard, pressed && styles.optionPressed]}
           >
             <View style={[styles.optionIcon, styles.optionIconMuted]}>

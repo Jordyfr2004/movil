@@ -12,7 +12,6 @@ import { loginRequest } from "../services/authServices";
 
 type Props = NativeStackScreenProps<RootStackParamList, typeof ROUTES.Login>;
 
-//login con conexion al bakend y manejo de errores basico, validacion de email y password
 export function LoginScreen({ navigation }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -49,10 +48,10 @@ export function LoginScreen({ navigation }: Props) {
         password: normalizedPassword,
       });
 
-      const token = result.access_token || result.data?.access_token;
-
-      console.log("LOGIN RESPONSE:", result);
-      console.log("TOKEN:", token);
+      const token =
+        result.access_token ||
+        result.data?.access_token ||
+        result.data?.data?.access_token;
 
       if (!token) {
         Alert.alert(
@@ -76,11 +75,18 @@ export function LoginScreen({ navigation }: Props) {
 
   return (
     <Screen style={styles.container}>
+      <View style={styles.brandBlock}>
+        <View style={styles.mark}>
+          <Text style={styles.markText}>U</Text>
+        </View>
+        <Text style={styles.brandTitle}>Comedor ULEAM</Text>
+        <Text style={styles.brandSubtitle}>Acceso seguro</Text>
+      </View>
+
       <View style={styles.header}>
         <Text style={styles.title}>Inicia sesión</Text>
         <Text style={styles.subtitle}>
-          Accede con tu correo institucional o personal para gestionar tus
-          reservas.
+          Accede con tu correo y contraseña para continuar.
         </Text>
       </View>
 
@@ -89,7 +95,7 @@ export function LoginScreen({ navigation }: Props) {
           label="Correo"
           value={email}
           onChangeText={setEmail}
-          placeholder="nombre@uleam.edu.ec"
+          placeholder="correo@dominio.com"
           keyboardType="email-address"
           autoCapitalize="none"
         />
@@ -106,13 +112,13 @@ export function LoginScreen({ navigation }: Props) {
           <AppButton
             label={loading ? "Ingresando..." : "Entrar"}
             onPress={handleLogin}
+            disabled={loading}
           />
         </View>
       </View>
 
       <Text style={styles.helperText}>
-        Si tienes problemas para acceder, verifica que el correo esté escrito
-        correctamente.
+        Si necesitas ayuda, contacta a Bienestar Universitario.
       </Text>
     </Screen>
   );
@@ -123,20 +129,57 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
   },
+  brandBlock: {
+    alignItems: "center",
+    gap: spacing.xs,
+    marginBottom: spacing.xl,
+  },
+  mark: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    backgroundColor: colors.surface,
+    borderWidth: 2,
+    borderColor: colors.borderStrong,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  markText: {
+    color: colors.textPrimary,
+    fontSize: typography.sizes.xl + 2,
+    fontWeight: typography.weights.bold,
+    letterSpacing: 1,
+  },
+  brandTitle: {
+    fontSize: typography.sizes.lg,
+    fontWeight: typography.weights.bold,
+    color: colors.textPrimary,
+    lineHeight: typography.lineHeights.lg,
+    textAlign: "center",
+  },
+  brandSubtitle: {
+    fontSize: typography.sizes.sm,
+    color: colors.textSecondary,
+    lineHeight: typography.lineHeights.sm,
+    textAlign: "center",
+  },
   header: {
     gap: spacing.sm,
     marginBottom: spacing.xl,
+    alignItems: "center",
   },
   title: {
     fontSize: typography.sizes.xl,
     fontWeight: typography.weights.bold,
     color: colors.textPrimary,
     lineHeight: typography.lineHeights.xl,
+    textAlign: "center",
   },
   subtitle: {
     fontSize: typography.sizes.md,
     color: colors.textSecondary,
     lineHeight: typography.lineHeights.md,
+    textAlign: "center",
   },
   card: {
     backgroundColor: colors.surface,
@@ -159,5 +202,6 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.sm,
     color: colors.textMuted,
     lineHeight: typography.lineHeights.sm,
+    textAlign: "center",
   },
 });
