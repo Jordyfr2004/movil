@@ -79,11 +79,31 @@ export class RestaurantsService {
     return restaurant;
   }
 
-  async update(id: string, updateRestaurantDto: UpdateRestaurantDto) {
+  async update(
+    id: string,
+    updateRestaurantDto: UpdateRestaurantDto,
+    user_id: string,
+  ) {
+    const user = await this.userRepo.findOne({
+      where: { id: user_id },
+    });
+
+    if (!user || user.role !== UserRole.MANAGER || user.restaurant_id !== id) {
+      throw new ForbiddenException('No tienes permisos para esta acción');
+    }
+
     const restaurant = await this.findOne(id);
 
     if (updateRestaurantDto.name) {
       updateRestaurantDto.name = updateRestaurantDto.name.trim();
+
+      const existingRestaurant = await this.restaurantRepo.findOne({
+        where: { name: updateRestaurantDto.name },
+      });
+
+      if (existingRestaurant && existingRestaurant.id !== id) {
+        throw new ConflictException('El restaurante ya existe');
+      }
     }
 
     Object.assign(restaurant, updateRestaurantDto);
@@ -91,10 +111,21 @@ export class RestaurantsService {
     return await this.restaurantRepo.save(restaurant);
   }
 
-  async remove(id: string) {
+  async remove(id: string, user_id: string) {
+    const user = await this.userRepo.findOne({
+      where: { id: user_id },
+    });
+
+    if (!user || user.role !== UserRole.MANAGER || user.restaurant_id !== id) {
+      throw new ForbiddenException('No tienes permisos para esta acción');
+    }
+
     const restaurant = await this.findOne(id);
 
     await this.restaurantRepo.remove(restaurant);
+
+    user.restaurant_id = null;
+    await this.userRepo.save(user);
 
     return {
       message: 'Restaurante eliminado correctamente',

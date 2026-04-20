@@ -29,7 +29,11 @@ export class JwtAuthGuard implements CanActivate {
         secret: 'your-secret-key',
       });
 
-      request.user = payload;
+      request.user = {
+        user_id: payload.sub,
+        email: payload.email,
+      };
+
       return true;
     } catch {
       throw new UnauthorizedException('Token inválido o expirado');

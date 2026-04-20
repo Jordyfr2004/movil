@@ -38,11 +38,39 @@ export class DishesService {
     return await this.dishRepo.save(dish);
   }
 
-  async findAll() {
-    return await this.dishRepo.find();
+  async findAllByManager(user_id: string) {
+    const user = await this.userRepo.findOne({
+      where: { id: user_id },
+    });
+
+    if (!user || user.role !== UserRole.MANAGER || !user.restaurant_id) {
+      throw new ForbiddenException('No tienes permisos para esta acción');
+    }
+
+    return await this.dishRepo.find({
+      where: { restaurant_id: user.restaurant_id },
+    });
   }
 
-  async findOne(id: string) {
+  async findPublicByRestaurant(restaurant_id: string) {
+    return await this.dishRepo.find({
+      where: {
+        restaurant_id,
+        is_active: true,
+        is_available: true,
+      },
+    });
+  }
+
+  async findOneForManager(id: string, user_id: string) {
+    const user = await this.userRepo.findOne({
+      where: { id: user_id },
+    });
+
+    if (!user || user.role !== UserRole.MANAGER || !user.restaurant_id) {
+      throw new ForbiddenException('No tienes permisos para esta acción');
+    }
+
     const dish = await this.dishRepo.findOne({
       where: { id },
     });
@@ -51,19 +79,23 @@ export class DishesService {
       throw new NotFoundException('Plato no encontrado');
     }
 
+    if (dish.restaurant_id !== user.restaurant_id) {
+      throw new ForbiddenException('No tienes permisos para ver este plato');
+    }
+
     return dish;
   }
 
-  async update(id: string, updateDishDto: UpdateDishDto) {
-    const dish = await this.findOne(id);
+  async update(id: string, updateDishDto: UpdateDishDto, user_id: string) {
+    const dish = await this.findOneForManager(id, user_id);
 
     Object.assign(dish, updateDishDto);
 
     return await this.dishRepo.save(dish);
   }
 
-  async remove(id: string) {
-    const dish = await this.findOne(id);
+  async remove(id: string, user_id: string) {
+    const dish = await this.findOneForManager(id, user_id);
 
     await this.dishRepo.remove(dish);
 

@@ -35,15 +35,22 @@ export class RestaurantsController {
   }
 
   @Patch(':id')
+  @UseGuards(JwtAuthGuard)
   update(
     @Param('id') id: string,
     @Body() updateRestaurantDto: UpdateRestaurantDto,
+    @Req() req: any,
   ) {
-    return this.restaurantsService.update(id, updateRestaurantDto);
+    return this.restaurantsService.update(
+      id,
+      updateRestaurantDto,
+      req.user.user_id,
+    );
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.restaurantsService.remove(id);
+  @UseGuards(JwtAuthGuard)
+  remove(@Param('id') id: string, @Req() req: any) {
+    return this.restaurantsService.remove(id, req.user.user_id);
   }
 }

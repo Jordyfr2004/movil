@@ -13,38 +13,47 @@ import { DishesService } from './dishes.service';
 import { CreateDishDto } from './dto/create-dish.dto';
 import { UpdateDishDto } from './dto/update-dish.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { Request } from 'express';
 
 @Controller('dishes')
-@UseGuards(JwtAuthGuard) // proteger todo el controller
 export class DishesController {
   constructor(private readonly dishesService: DishesService) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard)
   create(@Body() createDishDto: CreateDishDto, @Req() req: any) {
-    return this.dishesService.create(createDishDto, req.user_id);
+    return this.dishesService.create(createDishDto, req.user.user_id);
   }
 
   @Get()
-  findAll() {
-    return this.dishesService.findAll();
+  @UseGuards(JwtAuthGuard)
+  findAll(@Req() req: any) {
+    return this.dishesService.findAllByManager(req.user.user_id);
+  }
+
+  @Get('restaurant/:restaurantId')
+  findPublicByRestaurant(@Param('restaurantId') restaurantId: string) {
+    return this.dishesService.findPublicByRestaurant(restaurantId);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.dishesService.findOne(id);
+  @UseGuards(JwtAuthGuard)
+  findOne(@Param('id') id: string, @Req() req: any) {
+    return this.dishesService.findOneForManager(id, req.user.user_id);
   }
 
   @Patch(':id')
+  @UseGuards(JwtAuthGuard)
   update(
     @Param('id') id: string,
     @Body() updateDishDto: UpdateDishDto,
+    @Req() req: any,
   ) {
-    return this.dishesService.update(id, updateDishDto);
+    return this.dishesService.update(id, updateDishDto, req.user.user_id);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.dishesService.remove(id);
+  @UseGuards(JwtAuthGuard)
+  remove(@Param('id') id: string, @Req() req: any) {
+    return this.dishesService.remove(id, req.user.user_id);
   }
 }
