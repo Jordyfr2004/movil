@@ -1,7 +1,9 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import {
+  Animated,
+  Easing,
   Pressable,
   StatusBar,
   StyleSheet,
@@ -18,6 +20,9 @@ import { colors, typography } from "../theme";
 type Props = NativeStackScreenProps<RootStackParamList, typeof ROUTES.Welcome>;
 
 const SCREEN_BACKGROUND = "#F6EFE8";
+const ENTRANCE_DURATION = 420;
+const ENTRANCE_OFFSET = 10;
+const ENTRANCE_EASING = Easing.out(Easing.cubic);
 
 const decorativeIcons = [
   {
@@ -51,7 +56,7 @@ const decorativeIcons = [
     style: { top: "41%", left: 22, transform: [{ rotate: "-8deg" }] },
   },
   {
-    name: "cupcake-outline",
+    name: "cupcake",
     size: 46,
     color: "rgba(201, 168, 149, 0.11)",
     style: { top: "45%", right: 24, transform: [{ rotate: "10deg" }] },
@@ -82,6 +87,45 @@ const decorativeIcons = [
   },
 ] as const;
 
+function useEntranceAnimation(delay: number) {
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(ENTRANCE_OFFSET)).current;
+
+  useEffect(() => {
+    opacity.setValue(0);
+    translateY.setValue(ENTRANCE_OFFSET);
+
+    const animation = Animated.sequence([
+      Animated.delay(delay),
+      Animated.parallel([
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: ENTRANCE_DURATION,
+          easing: ENTRANCE_EASING,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateY, {
+          toValue: 0,
+          duration: ENTRANCE_DURATION,
+          easing: ENTRANCE_EASING,
+          useNativeDriver: true,
+        }),
+      ]),
+    ]);
+
+    animation.start();
+
+    return () => {
+      animation.stop();
+    };
+  }, [delay, opacity, translateY]);
+
+  return {
+    opacity,
+    transform: [{ translateY }],
+  };
+}
+
 export function WelcomeScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { height, width } = useWindowDimensions();
@@ -89,6 +133,10 @@ export function WelcomeScreen({ navigation }: Props) {
   const backgroundScale = isCompact ? 0.9 : 1;
   const cardMinHeight = isCompact ? 148 : 156;
   const iconSize = isCompact ? 34 : 38;
+  const logoEntrance = useEntranceAnimation(40);
+  const textEntrance = useEntranceAnimation(130);
+  const cardsEntrance = useEntranceAnimation(220);
+  const footerEntrance = useEntranceAnimation(300);
 
   return (
     <SafeAreaView edges={["top"]} style={styles.safeArea}>
@@ -109,29 +157,38 @@ export function WelcomeScreen({ navigation }: Props) {
 
         <View style={styles.layout}>
           <View style={styles.centerContent}>
-            <View style={[styles.isotype, isCompact && styles.isotypeCompact]}>
+            <Animated.View style={logoEntrance}>
+              <View style={[styles.isotype, isCompact && styles.isotypeCompact]}>
+                <Text
+                  style={[
+                    styles.isotypeText,
+                    isCompact && styles.isotypeTextCompact,
+                  ]}
+                >
+                  U
+                </Text>
+              </View>
+            </Animated.View>
+
+            <Animated.View style={[styles.textBlock, textEntrance]}>
               <Text
-                style={[
-                  styles.isotypeText,
-                  isCompact && styles.isotypeTextCompact,
-                ]}
+                style={[styles.title, isCompact && styles.titleCompact]}
               >
-                U
+                Comedor ULEAM
               </Text>
-            </View>
 
-            <Text style={[styles.title, isCompact && styles.titleCompact]}>
-              Comedor ULEAM
-            </Text>
+              <Text
+                style={[styles.subtitle, isCompact && styles.subtitleCompact]}
+              >
+                Selecciona tu tipo de usuario para continuar
+              </Text>
+            </Animated.View>
 
-            <Text style={[styles.subtitle, isCompact && styles.subtitleCompact]}>
-              Selecciona tu tipo de usuario para continuar
-            </Text>
-
-            <View
+            <Animated.View
               style={[
                 styles.optionsRow,
                 { marginTop: isCompact ? spacing.lg : spacing.xl },
+                cardsEntrance,
               ]}
             >
               <Pressable
@@ -171,19 +228,20 @@ export function WelcomeScreen({ navigation }: Props) {
                 <Text style={styles.optionTitle}>Comunidad</Text>
                 <Text style={styles.optionSubtitle}>Personal y usuarios</Text>
               </Pressable>
-            </View>
+            </Animated.View>
           </View>
 
-          <Text
+          <Animated.Text
             style={[
               styles.footerNote,
+              footerEntrance,
               {
                 paddingBottom: Math.max(insets.bottom, spacing.md),
               },
             ]}
           >
             {"Direcci\u00f3n de Bienestar Universitario \u2022 ULEAM"}
-          </Text>
+          </Animated.Text>
         </View>
       </View>
     </SafeAreaView>
@@ -218,6 +276,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingTop: spacing.md,
+  },
+  textBlock: {
+    width: "100%",
+    alignItems: "center",
   },
   isotype: {
     width: 86,
@@ -296,8 +358,8 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   optionPressed: {
-    transform: [{ translateY: 1 }],
-    opacity: 0.98,
+    opacity: 0.96,
+    transform: [{ translateY: 1 }, { scale: 0.985 }],
   },
   optionIcon: {
     marginBottom: spacing.sm,
