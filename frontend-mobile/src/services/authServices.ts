@@ -23,6 +23,9 @@ export async function loginRequest(
   const timeout = setTimeout(() => controller.abort(), 8000);
 
   try {
+    console.log("API_URL:", API_URL);
+    console.log("LOGIN REQUEST -> email:", payload.email);
+
     const response = await fetch(`${API_URL}/auth/login`, {
       method: "POST",
       headers: {
@@ -32,7 +35,11 @@ export async function loginRequest(
       signal: controller.signal,
     });
 
+    console.log("STATUS:", response.status);
+
     const result = await response.json();
+
+    console.log("LOGIN RESPONSE:", result);
 
     if (!response.ok) {
       throw new Error(result.message || "No se pudo iniciar sesión");
@@ -40,6 +47,8 @@ export async function loginRequest(
 
     return result;
   } catch (error: any) {
+    console.log("ERROR:", error);
+
     if (error?.name === "AbortError") {
       throw new Error("El servidor tardó demasiado en responder");
     }

@@ -5,6 +5,7 @@ import {
   Alert,
   Animated,
   Easing,
+  Image,
   Pressable,
   ScrollView,
   StatusBar,
@@ -30,6 +31,7 @@ const INPUT_BORDER = "rgba(231, 225, 218, 0.96)";
 const ENTRANCE_DURATION = 420;
 const ENTRANCE_OFFSET = 10;
 const ENTRANCE_EASING = Easing.out(Easing.cubic);
+const LOGIN_LOGO = require("../assets/images/logo_proyect.jpeg");
 
 const decorativeIcons = [
   {
@@ -273,10 +275,10 @@ export function LoginScreen({ navigation }: Props) {
                       isCompact && styles.avatarCircleCompact,
                     ]}
                   >
-                    <MaterialCommunityIcons
-                      name="account"
-                      size={isCompact ? 46 : 52}
-                      color="rgba(255, 255, 255, 0.98)"
+                    <Image
+                      source={LOGIN_LOGO}
+                      style={[styles.logoImage, isCompact && styles.logoImageCompact]}
+                      resizeMode="cover"
                     />
                   </View>
                 </Animated.View>
@@ -498,6 +500,16 @@ const styles = StyleSheet.create({
     width: 92,
     height: 92,
     borderRadius: 46,
+  },
+  logoImage: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+  },
+  logoImageCompact: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
   },
   titleBlock: {
     marginTop: spacing.lg,

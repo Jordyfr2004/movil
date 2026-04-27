@@ -2,6 +2,7 @@ import {
   ConflictException,
   Injectable,
   UnauthorizedException,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -10,8 +11,10 @@ import * as argon2 from 'argon2';
 import { AuthAccount, AuthProvider } from './entities/auth-account.entity';
 import { RegisterAuthDto } from './dto/register-auth.dto';
 import { LoginDto } from './dto/login.dto';
+import { LogoutDto } from './dto/logout.dto';
 import { User, UserRole } from '../users/entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
+import { RefreshToken } from './entities/refresh-token.entity';
 
 @Injectable()
 export class AuthService {
@@ -21,6 +24,9 @@ export class AuthService {
 
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+
+    @InjectRepository(RefreshToken)
+    private readonly refreshTokenRepo: Repository<RefreshToken>,
 
     private readonly jwtService: JwtService,
   ) {}
@@ -102,7 +108,27 @@ export class AuthService {
       email: authAccount.email,
     };
 
-    const token = await this.jwtService.signAsync(payload);
+    const accessToken = await this.jwtService.signAsync(payload, {
+      expiresIn: '15m',
+    });
+
+    const refreshToken = await this.jwtService.signAsync(payload, {
+      expiresIn: '7d',
+    });
+
+    const refreshTokenHash = await argon2.hash(refreshToken);
+
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
+    const refreshTokenEntity = this.refreshTokenRepo.create({
+      user_id: authAccount.user_id,
+      token_hash: refreshTokenHash,
+      is_revoked: false,
+      expires_at: expiresAt,
+    });
+
+    await this.refreshTokenRepo.save(refreshTokenEntity);
 
     return {
       message: 'Inicio de sesión exitoso',
@@ -110,8 +136,35 @@ export class AuthService {
         user_id: authAccount.user_id,
         email: authAccount.email,
         provider: authAccount.provider,
-        access_token: token,
+        access_token: accessToken,
+        refresh_token: refreshToken,
       },
     };
+  }
+
+  async logout(logoutDto: LogoutDto) {
+    const { refresh_token } = logoutDto;
+
+    const activeTokens = await this.refreshTokenRepo.find({
+      where: { is_revoked: false },
+    });
+
+    for (const tokenRecord of activeTokens) {
+      const isMatch = await argon2.verify(
+        tokenRecord.token_hash,
+        refresh_token,
+      );
+
+      if (isMatch) {
+        tokenRecord.is_revoked = true;
+        await this.refreshTokenRepo.save(tokenRecord);
+
+        return {
+          message: 'Sesión cerrada correctamente',
+        };
+      }
+    }
+
+    throw new NotFoundException('Token de sesión no encontrado');
   }
 }
