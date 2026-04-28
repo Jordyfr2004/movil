@@ -20,79 +20,51 @@ import { spacing } from "../constants/spacing";
 import { ROUTES } from "../navigation/routes";
 import { RootStackParamList } from "../navigation/types";
 import { loginRequest } from "../services/authServices";
-import { colors, typography } from "../theme";
+import { typography } from "../theme";
 
 type Props = NativeStackScreenProps<RootStackParamList, typeof ROUTES.Login>;
 
-const SCREEN_BACKGROUND = "#F6EFE8";
-const AVATAR_BACKGROUND = "rgba(191, 156, 141, 0.28)";
-const INPUT_BACKGROUND = "rgba(255, 255, 255, 0.98)";
-const INPUT_BORDER = "rgba(231, 225, 218, 0.96)";
+const SCREEN_BACKGROUND = "#F8E6CF";
+const ACCENT_ORANGE = "#F97316";
+const BUTTON_ORANGE = "#FF6500";
+const LINK_ORANGE = "#E85D2A";
+const TEXT_PRIMARY = "#2F241E";
+const TEXT_SECONDARY = "#5A4B42";
+const TEXT_MUTED = "#7B6F67";
+const AVATAR_BACKGROUND = "#FFFFFF";
+const INPUT_BACKGROUND = "#FFFFFF";
+const INPUT_BORDER = "#F0D8C2";
+const WAVE_ICON_COLOR = "rgba(249, 115, 22, 0.24)";
 const ENTRANCE_DURATION = 420;
 const ENTRANCE_OFFSET = 10;
 const ENTRANCE_EASING = Easing.out(Easing.cubic);
 const LOGIN_LOGO = require("../assets/images/logo_proyect.jpeg");
 
-const decorativeIcons = [
+const bottomWaveIcons = [
   {
-    name: "silverware-fork-knife",
-    size: 70,
-    color: "rgba(191, 156, 141, 0.13)",
-    style: { top: 34, left: 6, transform: [{ rotate: "-14deg" }] },
+    name: "bowl-mix-outline",
+    size: 58,
+    style: { top: 52, left: 72 },
   },
   {
-    name: "food-apple-outline",
-    size: 62,
-    color: "rgba(201, 168, 149, 0.12)",
-    style: { top: 96, right: 8, transform: [{ rotate: "12deg" }] },
-  },
-  {
-    name: "coffee-outline",
+    name: "cup-outline",
     size: 54,
-    color: "rgba(191, 156, 141, 0.11)",
-    style: { top: 226, left: 2, transform: [{ rotate: "-10deg" }] },
+    style: { top: 66, left: "50%", marginLeft: -27 },
   },
   {
-    name: "bread-slice-outline",
-    size: 56,
-    color: "rgba(201, 168, 149, 0.12)",
-    style: { top: 286, right: 18, transform: [{ rotate: "-10deg" }] },
-  },
-  {
-    name: "food-croissant",
-    size: 48,
-    color: "rgba(191, 156, 141, 0.1)",
-    style: { top: "41%", left: 22, transform: [{ rotate: "-8deg" }] },
-  },
-  {
-    name: "cupcake",
-    size: 46,
-    color: "rgba(201, 168, 149, 0.11)",
-    style: { top: "45%", right: 24, transform: [{ rotate: "10deg" }] },
-  },
-  {
-    name: "chef-hat",
+    name: "leaf",
     size: 52,
-    color: "rgba(191, 156, 141, 0.11)",
-    style: { bottom: 178, left: 22, transform: [{ rotate: "-8deg" }] },
+    style: { top: 70, right: 74 },
   },
   {
-    name: "hamburger",
-    size: 66,
-    color: "rgba(201, 168, 149, 0.14)",
-    style: { bottom: 122, right: 2, transform: [{ rotate: "9deg" }] },
+    name: "circle-small",
+    size: 24,
+    style: { top: 84, left: 26 },
   },
   {
-    name: "pizza",
-    size: 60,
-    color: "rgba(191, 156, 141, 0.11)",
-    style: { bottom: 40, left: 8, transform: [{ rotate: "-12deg" }] },
-  },
-  {
-    name: "ice-cream",
-    size: 52,
-    color: "rgba(201, 168, 149, 0.12)",
-    style: { bottom: 38, right: 32, transform: [{ rotate: "12deg" }] },
+    name: "star-four-points-outline",
+    size: 24,
+    style: { top: 54, right: 34 },
   },
 ] as const;
 
@@ -139,7 +111,8 @@ export function LoginScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { height, width } = useWindowDimensions();
   const isCompact = height < 760 || width < 360;
-  const backgroundScale = isCompact ? 0.9 : 1;
+  const whiteAreaHeight = isCompact ? 245 : 270;
+  const waveCurveBottom = isCompact ? 182 : 205;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -157,7 +130,7 @@ export function LoginScreen({ navigation }: Props) {
     navigation.setOptions({
       title: "Iniciar sesión",
       headerShadowVisible: false,
-      headerTintColor: colors.textPrimary,
+      headerTintColor: TEXT_PRIMARY,
       headerStyle: {
         backgroundColor: SCREEN_BACKGROUND,
       },
@@ -241,16 +214,21 @@ export function LoginScreen({ navigation }: Props) {
       <StatusBar barStyle="dark-content" backgroundColor={SCREEN_BACKGROUND} />
 
       <View style={styles.container}>
-        <View style={styles.background} pointerEvents="none">
-          {decorativeIcons.map((icon, index) => (
-            <MaterialCommunityIcons
-              key={`${icon.name}-${index}`}
-              name={icon.name}
-              size={icon.size * backgroundScale}
-              color={icon.color}
-              style={[styles.backgroundIcon, icon.style]}
-            />
-          ))}
+        <View pointerEvents="none" style={styles.bottomDecorLayer}>
+          <View style={[styles.whiteArea, { height: whiteAreaHeight }]} />
+          <View style={[styles.whiteWave, { bottom: waveCurveBottom }]} />
+
+          <View style={[styles.bottomIconsLayer, { height: whiteAreaHeight }]}>
+            {bottomWaveIcons.map((icon, index) => (
+              <MaterialCommunityIcons
+                key={`${icon.name}-${index}`}
+                name={icon.name}
+                size={icon.size}
+                color={WAVE_ICON_COLOR}
+                style={[styles.bottomWaveIcon, icon.style]}
+              />
+            ))}
+          </View>
         </View>
 
         <View style={styles.layout}>
@@ -261,8 +239,7 @@ export function LoginScreen({ navigation }: Props) {
             contentContainerStyle={[
               styles.scrollContent,
               {
-                paddingBottom: Math.max(insets.bottom, spacing.lg),
-                paddingTop: isCompact ? spacing.md : spacing.lg,
+                paddingTop: isCompact ? 44 : 58,
               },
             ]}
           >
@@ -278,7 +255,7 @@ export function LoginScreen({ navigation }: Props) {
                     <Image
                       source={LOGIN_LOGO}
                       style={[styles.logoImage, isCompact && styles.logoImageCompact]}
-                      resizeMode="cover"
+                      resizeMode="contain"
                     />
                   </View>
                 </Animated.View>
@@ -289,9 +266,7 @@ export function LoginScreen({ navigation }: Props) {
                   </Text>
                 </Animated.View>
 
-                <Animated.View
-                  style={[styles.formSection, isCompact && styles.formCompact, formEntrance]}
-                >
+                <Animated.View style={[styles.formSection, formEntrance]}>
                   <View
                     style={[
                       styles.inputShell,
@@ -301,21 +276,17 @@ export function LoginScreen({ navigation }: Props) {
                     <MaterialCommunityIcons
                       name="email-outline"
                       size={20}
-                      color={
-                        focusedField === "email"
-                          ? colors.primary
-                          : colors.textMuted
-                      }
+                      color={ACCENT_ORANGE}
                     />
                     <TextInput
                       value={email}
                       onChangeText={setEmail}
                       placeholder="Correo"
-                      placeholderTextColor={colors.textMuted}
+                      placeholderTextColor={TEXT_MUTED}
                       keyboardType="email-address"
                       autoCapitalize="none"
                       autoCorrect={false}
-                      selectionColor={colors.primary}
+                      selectionColor={ACCENT_ORANGE}
                       style={styles.input}
                       onFocus={() => setFocusedField("email")}
                       onBlur={() => setFocusedField(null)}
@@ -332,21 +303,17 @@ export function LoginScreen({ navigation }: Props) {
                     <MaterialCommunityIcons
                       name="lock-outline"
                       size={20}
-                      color={
-                        focusedField === "password"
-                          ? colors.primary
-                          : colors.textMuted
-                      }
+                      color={ACCENT_ORANGE}
                     />
                     <TextInput
                       value={password}
                       onChangeText={setPassword}
                       placeholder="Contraseña"
-                      placeholderTextColor={colors.textMuted}
+                      placeholderTextColor={TEXT_MUTED}
                       secureTextEntry={!showPassword}
                       autoCapitalize="none"
                       autoCorrect={false}
-                      selectionColor={colors.primary}
+                      selectionColor={ACCENT_ORANGE}
                       style={styles.input}
                       onFocus={() => setFocusedField("password")}
                       onBlur={() => setFocusedField(null)}
@@ -369,7 +336,7 @@ export function LoginScreen({ navigation }: Props) {
                       <MaterialCommunityIcons
                         name={showPassword ? "eye-off-outline" : "eye-outline"}
                         size={20}
-                        color={colors.textMuted}
+                        color={ACCENT_ORANGE}
                       />
                     </Pressable>
                   </View>
@@ -394,7 +361,7 @@ export function LoginScreen({ navigation }: Props) {
                           <MaterialCommunityIcons
                             name="check"
                             size={14}
-                            color={colors.onPrimary}
+                            color="#FFFFFF"
                           />
                         ) : null}
                       </View>
@@ -432,10 +399,15 @@ export function LoginScreen({ navigation }: Props) {
                 </Animated.View>
               </View>
 
-              <Animated.Text style={[styles.footerText, footerEntrance]}>
+              <Animated.Text
+                style={[
+                  styles.footerText,
+                  { paddingBottom: insets.bottom + 30 },
+                  footerEntrance,
+                ]}
+              >
                 {"Si necesitas ayuda, contacta a "}
-                <Text style={styles.footerAccent}>Bienestar Universitario</Text>
-                .
+                <Text style={styles.footerAccent}>Bienestar Universitario.</Text>
               </Animated.Text>
             </View>
           </ScrollView>
@@ -455,15 +427,10 @@ const styles = StyleSheet.create({
     backgroundColor: SCREEN_BACKGROUND,
     overflow: "hidden",
   },
-  background: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  backgroundIcon: {
-    position: "absolute",
-  },
   layout: {
     flex: 1,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: 24,
+    zIndex: 1,
   },
   scrollContent: {
     flexGrow: 1,
@@ -477,46 +444,46 @@ const styles = StyleSheet.create({
   },
   mainContent: {
     flex: 1,
-    justifyContent: "center",
+    justifyContent: "flex-start",
     alignItems: "center",
   },
   avatarBlock: {
     alignItems: "center",
   },
   avatarCircle: {
-    width: 104,
-    height: 104,
-    borderRadius: 52,
+    width: 116,
+    height: 116,
+    borderRadius: 58,
     backgroundColor: AVATAR_BACKGROUND,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#3A281F",
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
+    shadowColor: "#A68A75",
+    shadowOpacity: 0.14,
+    shadowRadius: 14,
     shadowOffset: { width: 0, height: 8 },
-    elevation: 1,
+    elevation: 4,
   },
   avatarCircleCompact: {
-    width: 92,
-    height: 92,
-    borderRadius: 46,
+    width: 116,
+    height: 116,
+    borderRadius: 58,
   },
   logoImage: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+    width: 98,
+    height: 98,
+    borderRadius: 49,
   },
   logoImageCompact: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
+    width: 98,
+    height: 98,
+    borderRadius: 49,
   },
   titleBlock: {
-    marginTop: spacing.lg,
+    marginTop: 32,
     alignItems: "center",
   },
   title: {
-    color: colors.textPrimary,
+    color: TEXT_PRIMARY,
     fontSize: 32,
     fontWeight: typography.weights.bold,
     lineHeight: 38,
@@ -530,48 +497,44 @@ const styles = StyleSheet.create({
   formSection: {
     width: "100%",
     maxWidth: 360,
-    marginTop: 18,
-    paddingHorizontal: spacing.xs,
-    gap: spacing.md,
-  },
-  formCompact: {
-    marginTop: spacing.md,
+    marginTop: 28,
+    paddingHorizontal: 0,
+    gap: 16,
   },
   inputShell: {
     height: 58,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: INPUT_BORDER,
     backgroundColor: INPUT_BACKGROUND,
-    paddingLeft: spacing.md,
-    paddingRight: spacing.xs,
+    paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
-    shadowColor: "#34241C",
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 1,
+    gap: 12,
+    shadowColor: "#A68A75",
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 3,
   },
   inputShellFocused: {
-    borderColor: colors.primary,
-    shadowColor: colors.primary,
-    shadowOpacity: 0.08,
+    borderColor: ACCENT_ORANGE,
+    shadowColor: ACCENT_ORANGE,
+    shadowOpacity: 0.12,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
   },
   input: {
     flex: 1,
     height: 58,
-    color: colors.textPrimary,
+    color: TEXT_PRIMARY,
     fontSize: typography.sizes.md,
     paddingVertical: 0,
   },
   trailingIconButton: {
     width: 36,
     height: 36,
-    borderRadius: 10,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -589,21 +552,21 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   checkbox: {
-    width: 18,
-    height: 18,
-    borderRadius: 5,
+    width: 20,
+    height: 20,
+    borderRadius: 6,
     borderWidth: 1,
-    borderColor: colors.borderStrong,
-    backgroundColor: "rgba(255, 255, 255, 0.92)",
+    borderColor: "#D7C5B8",
+    backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
   },
   checkboxChecked: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: ACCENT_ORANGE,
+    borderColor: ACCENT_ORANGE,
   },
   rememberText: {
-    color: colors.textSecondary,
+    color: TEXT_SECONDARY,
     fontSize: typography.sizes.sm,
     lineHeight: typography.lineHeights.sm,
   },
@@ -612,8 +575,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
   },
   forgotText: {
-    color: colors.primary,
-    fontSize: typography.sizes.sm,
+    color: LINK_ORANGE,
+    fontSize: 13,
     fontWeight: typography.weights.semiBold,
     lineHeight: typography.lineHeights.sm,
     textAlign: "right",
@@ -621,40 +584,73 @@ const styles = StyleSheet.create({
   primaryButton: {
     height: 58,
     marginTop: spacing.xs,
-    borderRadius: 10,
-    backgroundColor: colors.primary,
+    borderRadius: 16,
+    backgroundColor: BUTTON_ORANGE,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#2E2018",
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 2,
+    shadowColor: BUTTON_ORANGE,
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
   },
   primaryButtonDisabled: {
     opacity: 0.7,
   },
   primaryButtonLabel: {
-    color: colors.onPrimary,
+    color: "#FFFFFF",
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.bold,
     lineHeight: typography.lineHeights.md,
-    letterSpacing: 0.6,
+    letterSpacing: 0.3,
   },
   footerText: {
-    marginTop: spacing.xl,
-    paddingHorizontal: spacing.md,
-    color: colors.textMuted,
+    marginTop: 0,
+    paddingTop: 146,
+    paddingHorizontal: 28,
+    width: "100%",
+    color: TEXT_MUTED,
     fontSize: typography.sizes.sm,
     lineHeight: typography.lineHeights.sm,
     textAlign: "center",
+    zIndex: 3,
   },
   footerAccent: {
-    color: colors.primary,
+    color: ACCENT_ORANGE,
     fontWeight: typography.weights.semiBold,
+  },
+  bottomDecorLayer: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 0,
+  },
+  whiteArea: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "#FFFFFF",
+  },
+  whiteWave: {
+    position: "absolute",
+    left: -95,
+    right: -95,
+    height: 150,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 999,
+    transform: [{ rotate: "-7deg" }],
+  },
+  bottomIconsLayer: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 2,
+  },
+  bottomWaveIcon: {
+    position: "absolute",
   },
   pressablePressed: {
     opacity: 0.96,
-    transform: [{ translateY: 1 }, { scale: 0.985 }],
+    transform: [{ scale: 0.98 }],
   },
 });
