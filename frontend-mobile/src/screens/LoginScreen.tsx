@@ -1,7 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import Svg, { Circle, Line, Path } from "react-native-svg";
+import Svg, { Path } from "react-native-svg";
 import {
   Alert,
   Animated,
@@ -156,7 +156,7 @@ function DecorCupIcon({ color, size }: DecorIconProps) {
         strokeLinecap="round"
       />
       <Path
-        d="M38 14 L43 23"
+        d="M33 14 V23"
         stroke={color}
         strokeWidth={2.8}
         fill="none"
@@ -185,7 +185,7 @@ function DecorLeafIcon({ color, size }: DecorIconProps) {
         strokeLinecap="round"
       />
       <Path
-        d="M19 43 L13 50"
+        d="M19 43 L12 52"
         stroke={color}
         strokeWidth={2.6}
         fill="none"
@@ -199,7 +199,6 @@ export function LoginScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { height, width } = useWindowDimensions();
   const bodyHeight = Math.max(height - 96, 560);
-  const isCompact = bodyHeight < 690 || width < 360;
   const sizeProgress = clamp((bodyHeight - 560) / 160, 0, 1);
 
   const horizontalPadding = 24;
@@ -216,7 +215,7 @@ export function LoginScreen({ navigation }: Props) {
   const buttonCurveGap = interpolate(8, 10, sizeProgress);
   const waveHeight = interpolate(230, 242, sizeProgress);
   const contentBottomPadding = waveHeight + buttonCurveGap;
-  const footerBottomOffset = Math.max(insets.bottom + 38, 48);
+  const footerBottomOffset = Math.max(insets.bottom + 24, 34);
 
   const waveWidth = Math.max(width, 320);
   const waveLeftY = Math.round(clamp(waveHeight * 0.09, 20, 24));
@@ -231,38 +230,14 @@ export function LoginScreen({ navigation }: Props) {
     "Z",
   ].join(" ");
 
-  const iconBandTop = Math.round(clamp(waveHeight * 0.34, 78, 88));
-  const bottomIcons = [
-    {
-      name: "bowl-mix-outline" as const,
-      size: 52,
-      style: {
-        top: iconBandTop,
-        left: Math.round(width * 0.16),
-      },
-    },
-    {
-      name: "cup-outline" as const,
-      size: 52,
-      style: {
-        top: iconBandTop - 2,
-        left: Math.round(width / 2 - 27),
-      },
-    },
-    {
-      name: "leaf" as const,
-      size: 50,
-      style: {
-        top: iconBandTop,
-        right: Math.round(width * 0.16),
-      },
-    },
+  const iconBandTop = Math.round(clamp(waveHeight * 0.32, 74, 84));
+  const accentIcons = [
     {
       name: "circle-medium" as const,
       size: 18,
       style: {
         top: iconBandTop + 24,
-        left: Math.round(width * 0.055),
+        left: "5.5%",
       },
     },
     {
@@ -270,7 +245,7 @@ export function LoginScreen({ navigation }: Props) {
       size: 18,
       style: {
         top: iconBandTop + 48,
-        left: Math.round(width * 0.625),
+        left: "62.5%",
       },
     },
     {
@@ -278,7 +253,7 @@ export function LoginScreen({ navigation }: Props) {
       size: 18,
       style: {
         top: iconBandTop + 64,
-        left: Math.round(width * 0.105),
+        left: "10.5%",
       },
     },
     {
@@ -286,7 +261,7 @@ export function LoginScreen({ navigation }: Props) {
       size: 18,
       style: {
         top: iconBandTop - 4,
-        right: Math.round(width * 0.065),
+        right: "6.5%",
       },
     },
   ];
@@ -616,39 +591,15 @@ export function LoginScreen({ navigation }: Props) {
             </Svg>
 
             <View style={styles.bottomIconsLayer}>
-              <View
-                style={[
-                  styles.bottomWaveSvgIcon,
-                  bottomIcons[0].style,
-                  { width: bottomIcons[0].size, height: bottomIcons[0].size },
-                ]}
-              >
-                <DecorBowlIcon color={WAVE_ICON_COLOR} size={bottomIcons[0].size} />
+              <View style={styles.iconsRow}>
+                <DecorBowlIcon color={WAVE_ICON_COLOR} size={50} />
+                <DecorCupIcon color={WAVE_ICON_COLOR} size={50} />
+                <DecorLeafIcon color={WAVE_ICON_COLOR} size={48} />
               </View>
 
-              <View
-                style={[
-                  styles.bottomWaveSvgIcon,
-                  bottomIcons[1].style,
-                  { width: bottomIcons[1].size, height: bottomIcons[1].size },
-                ]}
-              >
-                <DecorCupIcon color={WAVE_ICON_COLOR} size={bottomIcons[1].size} />
-              </View>
-
-              <View
-                style={[
-                  styles.bottomWaveSvgIcon,
-                  bottomIcons[2].style,
-                  { width: bottomIcons[2].size, height: bottomIcons[2].size },
-                ]}
-              >
-                <DecorLeafIcon color={WAVE_ICON_COLOR} size={bottomIcons[2].size} />
-              </View>
-
-              {bottomIcons.slice(3).map((icon, index) => (
+              {accentIcons.map((icon, index) => (
                 <MaterialCommunityIcons
-                  key={`${icon.name}-${index + 3}`}
+                  key={`${icon.name}-${index}`}
                   name={icon.name}
                   size={icon.size}
                   color={WAVE_ICON_COLOR}
@@ -858,8 +809,14 @@ const styles = StyleSheet.create({
   bottomWaveIcon: {
     position: "absolute",
   },
-  bottomWaveSvgIcon: {
+  iconsRow: {
     position: "absolute",
+    bottom: 82,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    justifyContent: "space-evenly",
+    alignItems: "center",
   },
   footerCopy: {
     position: "absolute",
