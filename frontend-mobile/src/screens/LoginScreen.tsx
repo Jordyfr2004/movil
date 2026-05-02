@@ -1,14 +1,15 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import Svg, { Path } from "react-native-svg";
+import Svg, { Circle, Line, Path } from "react-native-svg";
 import {
   Alert,
   Animated,
   Easing,
   Image,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
-  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -35,39 +36,24 @@ const TEXT_MUTED = "#7B6F67";
 const AVATAR_BACKGROUND = "#FFFFFF";
 const INPUT_BACKGROUND = "#FFFFFF";
 const INPUT_BORDER = "#F0D8C2";
-const WAVE_ICON_COLOR = "rgba(249, 115, 22, 0.24)";
+const WAVE_ICON_COLOR = "rgba(249, 115, 22, 0.26)";
 const ENTRANCE_DURATION = 420;
 const ENTRANCE_OFFSET = 10;
 const ENTRANCE_EASING = Easing.out(Easing.cubic);
 const LOGIN_LOGO = require("../assets/images/logo_proyect.jpeg");
 
-const bottomWaveIcons = [
-  {
-    name: "bowl-mix-outline",
-    size: 54,
-    style: { top: 8, left: 72 },
-  },
-  {
-    name: "cup-outline",
-    size: 52,
-    style: { top: 20, left: "50%", marginLeft: -26 },
-  },
-  {
-    name: "leaf",
-    size: 50,
-    style: { top: 22, right: 74 },
-  },
-  {
-    name: "circle-small",
-    size: 22,
-    style: { top: 42, left: 26 },
-  },
-  {
-    name: "star-four-points-outline",
-    size: 22,
-    style: { top: 14, right: 34 },
-  },
-] as const;
+type DecorIconProps = {
+  color: string;
+  size: number;
+};
+
+const clamp = (value: number, min: number, max: number) => {
+  return Math.min(Math.max(value, min), max);
+};
+
+const interpolate = (min: number, max: number, progress: number) => {
+  return Math.round(min + (max - min) * progress);
+};
 
 function useEntranceAnimation(delay: number) {
   const opacity = useRef(new Animated.Value(0)).current;
@@ -108,10 +94,203 @@ function useEntranceAnimation(delay: number) {
   };
 }
 
+function DecorBowlIcon({ color, size }: DecorIconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 64 64">
+      <Path
+        d="M16 37 H48"
+        stroke={color}
+        strokeWidth={3.4}
+        fill="none"
+        strokeLinecap="round"
+      />
+      <Path
+        d="M20 37 C22 47 42 47 44 37"
+        stroke={color}
+        strokeWidth={3.4}
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M26 28 C22 24 30 21 26 17"
+        stroke={color}
+        strokeWidth={2.8}
+        fill="none"
+        strokeLinecap="round"
+      />
+      <Path
+        d="M36 28 C32 24 40 21 36 17"
+        stroke={color}
+        strokeWidth={2.8}
+        fill="none"
+        strokeLinecap="round"
+      />
+      <Path
+        d="M46 28 L53 21"
+        stroke={color}
+        strokeWidth={2.8}
+        fill="none"
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
+function DecorCupIcon({ color, size }: DecorIconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 64 64">
+      <Path
+        d="M23 23 H43 L40 51 H26 Z"
+        stroke={color}
+        strokeWidth={3.4}
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M28 32 H38"
+        stroke={color}
+        strokeWidth={2.5}
+        fill="none"
+        strokeLinecap="round"
+      />
+      <Path
+        d="M38 14 L43 23"
+        stroke={color}
+        strokeWidth={2.8}
+        fill="none"
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
+function DecorLeafIcon({ color, size }: DecorIconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 64 64">
+      <Path
+        d="M16 39 C24 22 42 17 51 20 C47 35 35 45 20 43 C18 42 17 41 16 39 Z"
+        stroke={color}
+        strokeWidth={3}
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M20 40 C30 35 39 28 49 21"
+        stroke={color}
+        strokeWidth={2.3}
+        fill="none"
+        strokeLinecap="round"
+      />
+      <Path
+        d="M19 43 L13 50"
+        stroke={color}
+        strokeWidth={2.6}
+        fill="none"
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
 export function LoginScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { height, width } = useWindowDimensions();
-  const isCompact = height < 760 || width < 360;
+  const bodyHeight = Math.max(height - 96, 560);
+  const isCompact = bodyHeight < 690 || width < 360;
+  const sizeProgress = clamp((bodyHeight - 560) / 160, 0, 1);
+
+  const horizontalPadding = 24;
+  const topPadding = interpolate(14, 18, sizeProgress);
+  const logoTopSpacing = interpolate(8, 12, sizeProgress);
+  const logoContainerSize = interpolate(108, 116, sizeProgress);
+  const logoSize = interpolate(96, 104, sizeProgress);
+  const logoTitleSpacing = interpolate(12, 14, sizeProgress);
+  const titleSize = interpolate(31, 33, sizeProgress);
+  const titleLineHeight = titleSize + 4;
+  const inputHeight = interpolate(60, 62, sizeProgress);
+  const buttonHeight = interpolate(58, 60, sizeProgress);
+  const buttonTopSpacing = interpolate(12, 14, sizeProgress);
+  const buttonCurveGap = interpolate(8, 10, sizeProgress);
+  const waveHeight = interpolate(230, 242, sizeProgress);
+  const contentBottomPadding = waveHeight + buttonCurveGap;
+  const footerBottomOffset = Math.max(insets.bottom + 38, 48);
+
+  const waveWidth = Math.max(width, 320);
+  const waveLeftY = Math.round(clamp(waveHeight * 0.09, 20, 24));
+  const waveCenterY = Math.round(clamp(waveHeight * 0.29, 66, 72));
+  const waveRightY = Math.round(clamp(waveHeight * 0.08, 18, 22));
+  const wavePath = [
+    `M 0 ${waveLeftY}`,
+    `C ${waveWidth * 0.14} ${waveLeftY - 10}, ${waveWidth * 0.31} ${waveCenterY - 4}, ${waveWidth * 0.52} ${waveCenterY}`,
+    `C ${waveWidth * 0.71} ${waveCenterY + 3}, ${waveWidth * 0.87} ${waveRightY - 8}, ${waveWidth} ${waveRightY}`,
+    `L ${waveWidth} ${waveHeight}`,
+    `L 0 ${waveHeight}`,
+    "Z",
+  ].join(" ");
+
+  const iconBandTop = Math.round(clamp(waveHeight * 0.34, 78, 88));
+  const bottomIcons = [
+    {
+      name: "bowl-mix-outline" as const,
+      size: 52,
+      style: {
+        top: iconBandTop,
+        left: Math.round(width * 0.16),
+      },
+    },
+    {
+      name: "cup-outline" as const,
+      size: 52,
+      style: {
+        top: iconBandTop - 2,
+        left: Math.round(width / 2 - 27),
+      },
+    },
+    {
+      name: "leaf" as const,
+      size: 50,
+      style: {
+        top: iconBandTop,
+        right: Math.round(width * 0.16),
+      },
+    },
+    {
+      name: "circle-medium" as const,
+      size: 18,
+      style: {
+        top: iconBandTop + 24,
+        left: Math.round(width * 0.055),
+      },
+    },
+    {
+      name: "circle-medium" as const,
+      size: 18,
+      style: {
+        top: iconBandTop + 48,
+        left: Math.round(width * 0.625),
+      },
+    },
+    {
+      name: "star-four-points-outline" as const,
+      size: 18,
+      style: {
+        top: iconBandTop + 64,
+        left: Math.round(width * 0.105),
+      },
+    },
+    {
+      name: "star-four-points-outline" as const,
+      size: 18,
+      style: {
+        top: iconBandTop - 4,
+        right: Math.round(width * 0.065),
+      },
+    },
+  ];
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -212,216 +391,289 @@ export function LoginScreen({ navigation }: Props) {
     <SafeAreaView edges={["bottom"]} style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={SCREEN_BACKGROUND} />
 
-      <View style={styles.container}>
-        <View pointerEvents="none" style={styles.bottomDecorLayer}>
-          <Svg
-            width="100%"
-            height={260}
-            viewBox="0 0 390 260"
-            preserveAspectRatio="none"
-            style={styles.waveSvg}
-          >
-            <Path
-              d="M0 58 C70 18 128 26 192 50 C260 76 320 58 390 12 L390 260 L0 260 Z"
-              fill="#FFFFFF"
-            />
-          </Svg>
-
-          <View style={styles.bottomIconsLayer}>
-            {bottomWaveIcons.map((icon, index) => (
-              <MaterialCommunityIcons
-                key={`${icon.name}-${index}`}
-                name={icon.name}
-                size={icon.size}
-                color={WAVE_ICON_COLOR}
-                style={[styles.bottomWaveIcon, icon.style]}
-              />
-            ))}
-          </View>
-        </View>
-
-        <View style={styles.layout}>
-          <ScrollView
-            bounces={false}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={[
-              styles.scrollContent,
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 12 : 0}
+        style={styles.keyboardAvoiding}
+      >
+        <View style={styles.container}>
+          <View
+            style={[
+              styles.contentLayer,
               {
-                paddingTop: isCompact ? 44 : 58,
+                paddingTop: topPadding,
+                paddingHorizontal: horizontalPadding,
+                paddingBottom: contentBottomPadding,
               },
             ]}
           >
-            <View style={styles.scrollInner}>
-              <View style={styles.mainContent}>
-                <Animated.View style={[styles.avatarBlock, avatarEntrance]}>
-                  <View
-                    style={[
-                      styles.avatarCircle,
-                      isCompact && styles.avatarCircleCompact,
-                    ]}
-                  >
-                    <Image
-                      source={LOGIN_LOGO}
-                      style={[styles.logoImage, isCompact && styles.logoImageCompact]}
-                      resizeMode="contain"
-                    />
-                  </View>
-                </Animated.View>
-
-                <Animated.View style={[styles.titleBlock, titleEntrance]}>
-                  <Text style={[styles.title, isCompact && styles.titleCompact]}>
-                    Inicia sesión
-                  </Text>
-                </Animated.View>
-
-                <Animated.View style={[styles.formSection, formEntrance]}>
-                  <View
-                    style={[
-                      styles.inputShell,
-                      focusedField === "email" && styles.inputShellFocused,
-                    ]}
-                  >
-                    <MaterialCommunityIcons
-                      name="email-outline"
-                      size={20}
-                      color={ACCENT_ORANGE}
-                    />
-                    <TextInput
-                      value={email}
-                      onChangeText={setEmail}
-                      placeholder="Correo"
-                      placeholderTextColor={TEXT_MUTED}
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      selectionColor={ACCENT_ORANGE}
-                      style={styles.input}
-                      onFocus={() => setFocusedField("email")}
-                      onBlur={() => setFocusedField(null)}
-                      returnKeyType="next"
-                    />
-                  </View>
-
-                  <View
-                    style={[
-                      styles.inputShell,
-                      focusedField === "password" && styles.inputShellFocused,
-                    ]}
-                  >
-                    <MaterialCommunityIcons
-                      name="lock-outline"
-                      size={20}
-                      color={ACCENT_ORANGE}
-                    />
-                    <TextInput
-                      value={password}
-                      onChangeText={setPassword}
-                      placeholder="Contraseña"
-                      placeholderTextColor={TEXT_MUTED}
-                      secureTextEntry={!showPassword}
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      selectionColor={ACCENT_ORANGE}
-                      style={styles.input}
-                      onFocus={() => setFocusedField("password")}
-                      onBlur={() => setFocusedField(null)}
-                      returnKeyType="done"
-                      onSubmitEditing={handleLogin}
-                    />
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={
-                        showPassword
-                          ? "Ocultar contraseña"
-                          : "Mostrar contraseña"
-                      }
-                      onPress={() => setShowPassword((current) => !current)}
-                      style={({ pressed }) => [
-                        styles.trailingIconButton,
-                        pressed && styles.pressablePressed,
-                      ]}
-                    >
-                      <MaterialCommunityIcons
-                        name={showPassword ? "eye-off-outline" : "eye-outline"}
-                        size={20}
-                        color={ACCENT_ORANGE}
-                      />
-                    </Pressable>
-                  </View>
-
-                  <View style={styles.optionsRow}>
-                    <Pressable
-                      accessibilityRole="checkbox"
-                      accessibilityState={{ checked: rememberMe }}
-                      onPress={() => setRememberMe((current) => !current)}
-                      style={({ pressed }) => [
-                        styles.rememberButton,
-                        pressed && styles.pressablePressed,
-                      ]}
-                    >
-                      <View
-                        style={[
-                          styles.checkbox,
-                          rememberMe && styles.checkboxChecked,
-                        ]}
-                      >
-                        {rememberMe ? (
-                          <MaterialCommunityIcons
-                            name="check"
-                            size={14}
-                            color="#FFFFFF"
-                          />
-                        ) : null}
-                      </View>
-                      <Text style={styles.rememberText}>Recordarme</Text>
-                    </Pressable>
-
-                    <Pressable
-                      accessibilityRole="button"
-                      onPress={handleForgotPassword}
-                      style={({ pressed }) => [
-                        styles.forgotButton,
-                        pressed && styles.pressablePressed,
-                      ]}
-                    >
-                      <Text style={styles.forgotText}>
-                        ¿Olvidaste tu contraseña?
-                      </Text>
-                    </Pressable>
-                  </View>
-
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={handleLogin}
-                    disabled={loading}
-                    style={({ pressed }) => [
-                      styles.primaryButton,
-                      loading && styles.primaryButtonDisabled,
-                      pressed && !loading && styles.pressablePressed,
-                    ]}
-                  >
-                    <Text style={styles.primaryButtonLabel}>
-                      {loading ? "INGRESANDO..." : "INICIAR SESIÓN"}
-                    </Text>
-                  </Pressable>
-                </Animated.View>
-              </View>
-
-              <Animated.Text
+            <View style={styles.topSection}>
+              <Animated.View
                 style={[
-                  styles.footerText,
-                  { paddingBottom: insets.bottom + 30 },
-                  footerEntrance,
+                  styles.avatarBlock,
+                  { marginTop: logoTopSpacing },
+                  avatarEntrance,
                 ]}
               >
-                {"Si necesitas ayuda, contacta a "}
-                <Text style={styles.footerAccent}>Bienestar Universitario.</Text>
-              </Animated.Text>
+                <View
+                  style={[
+                    styles.avatarCircle,
+                    {
+                      width: logoContainerSize,
+                      height: logoContainerSize,
+                      borderRadius: logoContainerSize / 2,
+                    },
+                  ]}
+                >
+                  <Image
+                    source={LOGIN_LOGO}
+                    style={[
+                      styles.logoImage,
+                      {
+                        width: logoSize,
+                        height: logoSize,
+                      },
+                    ]}
+                    resizeMode="contain"
+                  />
+                </View>
+              </Animated.View>
+
+              <Animated.View
+                style={[
+                  styles.titleBlock,
+                  { marginTop: logoTitleSpacing },
+                  titleEntrance,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.title,
+                    {
+                      fontSize: titleSize,
+                      lineHeight: titleLineHeight,
+                    },
+                  ]}
+                >
+                  Inicia sesión
+                </Text>
+              </Animated.View>
             </View>
-          </ScrollView>
+
+            <Animated.View style={[styles.formSection, formEntrance]}>
+              <View style={styles.fieldsGroup}>
+                <View
+                  style={[
+                    styles.inputShell,
+                    { height: inputHeight },
+                    focusedField === "email" && styles.inputShellFocused,
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name="email-outline"
+                    size={22}
+                    color={ACCENT_ORANGE}
+                  />
+                  <TextInput
+                    value={email}
+                    onChangeText={setEmail}
+                    placeholder="Correo"
+                    placeholderTextColor={TEXT_MUTED}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    selectionColor={ACCENT_ORANGE}
+                    style={[styles.input, { height: inputHeight }]}
+                    onFocus={() => setFocusedField("email")}
+                    onBlur={() => setFocusedField(null)}
+                    returnKeyType="next"
+                  />
+                </View>
+
+                <View
+                  style={[
+                    styles.inputShell,
+                    { height: inputHeight },
+                    focusedField === "password" && styles.inputShellFocused,
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name="lock-outline"
+                    size={22}
+                    color={ACCENT_ORANGE}
+                  />
+                  <TextInput
+                    value={password}
+                    onChangeText={setPassword}
+                    placeholder="Contraseña"
+                    placeholderTextColor={TEXT_MUTED}
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    selectionColor={ACCENT_ORANGE}
+                    style={[styles.input, { height: inputHeight }]}
+                    onFocus={() => setFocusedField("password")}
+                    onBlur={() => setFocusedField(null)}
+                    returnKeyType="done"
+                    onSubmitEditing={handleLogin}
+                  />
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      showPassword
+                        ? "Ocultar contraseña"
+                        : "Mostrar contraseña"
+                    }
+                    onPress={() => setShowPassword((current) => !current)}
+                    style={({ pressed }) => [
+                      styles.trailingIconButton,
+                      pressed && styles.pressablePressed,
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name={showPassword ? "eye-off-outline" : "eye-outline"}
+                      size={22}
+                      color={ACCENT_ORANGE}
+                    />
+                  </Pressable>
+                </View>
+              </View>
+
+              <View style={styles.optionsRow}>
+                <Pressable
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: rememberMe }}
+                  onPress={() => setRememberMe((current) => !current)}
+                  style={({ pressed }) => [
+                    styles.rememberButton,
+                    pressed && styles.pressablePressed,
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.checkbox,
+                      rememberMe && styles.checkboxChecked,
+                    ]}
+                  >
+                    {rememberMe ? (
+                      <MaterialCommunityIcons
+                        name="check"
+                        size={14}
+                        color="#FFFFFF"
+                      />
+                    ) : null}
+                  </View>
+                  <Text style={styles.rememberText}>Recordarme</Text>
+                </Pressable>
+
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={handleForgotPassword}
+                  style={({ pressed }) => [
+                    styles.forgotButton,
+                    pressed && styles.pressablePressed,
+                  ]}
+                >
+                  <Text style={styles.forgotText}>
+                    ¿Olvidaste tu contraseña?
+                  </Text>
+                </Pressable>
+              </View>
+
+              <Pressable
+                accessibilityRole="button"
+                onPress={handleLogin}
+                disabled={loading}
+                style={({ pressed }) => [
+                  styles.primaryButton,
+                  {
+                    height: buttonHeight,
+                    marginTop: buttonTopSpacing,
+                  },
+                  loading && styles.primaryButtonDisabled,
+                  pressed && !loading && styles.pressablePressed,
+                ]}
+              >
+                <Text style={styles.primaryButtonLabel}>
+                  {loading ? "INGRESANDO..." : "INICIAR SESIÓN"}
+                </Text>
+              </Pressable>
+            </Animated.View>
+          </View>
+
+          <View
+            pointerEvents="none"
+            style={[styles.waveSection, { height: waveHeight }]}
+          >
+            <Svg
+              width="100%"
+              height="100%"
+              viewBox={`0 0 ${waveWidth} ${waveHeight}`}
+              preserveAspectRatio="none"
+              style={styles.waveSvg}
+            >
+              <Path d={wavePath} fill="#FFFFFF" />
+            </Svg>
+
+            <View style={styles.bottomIconsLayer}>
+              <View
+                style={[
+                  styles.bottomWaveSvgIcon,
+                  bottomIcons[0].style,
+                  { width: bottomIcons[0].size, height: bottomIcons[0].size },
+                ]}
+              >
+                <DecorBowlIcon color={WAVE_ICON_COLOR} size={bottomIcons[0].size} />
+              </View>
+
+              <View
+                style={[
+                  styles.bottomWaveSvgIcon,
+                  bottomIcons[1].style,
+                  { width: bottomIcons[1].size, height: bottomIcons[1].size },
+                ]}
+              >
+                <DecorCupIcon color={WAVE_ICON_COLOR} size={bottomIcons[1].size} />
+              </View>
+
+              <View
+                style={[
+                  styles.bottomWaveSvgIcon,
+                  bottomIcons[2].style,
+                  { width: bottomIcons[2].size, height: bottomIcons[2].size },
+                ]}
+              >
+                <DecorLeafIcon color={WAVE_ICON_COLOR} size={bottomIcons[2].size} />
+              </View>
+
+              {bottomIcons.slice(3).map((icon, index) => (
+                <MaterialCommunityIcons
+                  key={`${icon.name}-${index + 3}`}
+                  name={icon.name}
+                  size={icon.size}
+                  color={WAVE_ICON_COLOR}
+                  style={[styles.bottomWaveIcon, icon.style]}
+                />
+              ))}
+            </View>
+
+            <Animated.View
+              style={[
+                styles.footerCopy,
+                { bottom: footerBottomOffset },
+                footerEntrance,
+              ]}
+            >
+              <Text style={styles.footerText}>
+                Si necesitas ayuda, contacta a
+              </Text>
+              <Text style={styles.footerAccent}>
+                Bienestar Universitario.
+              </Text>
+            </Animated.View>
+          </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -431,128 +683,99 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: SCREEN_BACKGROUND,
   },
+  keyboardAvoiding: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: SCREEN_BACKGROUND,
     overflow: "hidden",
   },
-  layout: {
+  contentLayer: {
     flex: 1,
-    paddingHorizontal: 24,
-    zIndex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  scrollInner: {
-    flex: 1,
-    width: "100%",
-    maxWidth: 420,
-    alignSelf: "center",
     justifyContent: "space-between",
   },
-  mainContent: {
-    flex: 1,
-    justifyContent: "flex-start",
+  topSection: {
+    width: "100%",
     alignItems: "center",
   },
   avatarBlock: {
     alignItems: "center",
   },
   avatarCircle: {
-    width: 116,
-    height: 116,
-    borderRadius: 58,
     backgroundColor: AVATAR_BACKGROUND,
+    borderWidth: 1,
+    borderColor: "rgba(223, 210, 196, 0.78)",
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#A68A75",
-    shadowOpacity: 0.14,
-    shadowRadius: 14,
+    overflow: "hidden",
+    shadowColor: "#C7A77E",
+    shadowOpacity: 0.16,
+    shadowRadius: 18,
     shadowOffset: { width: 0, height: 8 },
-    elevation: 4,
-  },
-  avatarCircleCompact: {
-    width: 116,
-    height: 116,
-    borderRadius: 58,
+    elevation: 5,
   },
   logoImage: {
-    width: 98,
-    height: 98,
-    borderRadius: 49,
-  },
-  logoImageCompact: {
-    width: 98,
-    height: 98,
-    borderRadius: 49,
+    borderRadius: 999,
   },
   titleBlock: {
-    marginTop: 32,
     alignItems: "center",
   },
   title: {
     color: TEXT_PRIMARY,
-    fontSize: 32,
     fontWeight: typography.weights.bold,
-    lineHeight: 38,
     letterSpacing: 0.2,
     textAlign: "center",
   },
-  titleCompact: {
-    fontSize: 28,
-    lineHeight: 34,
-  },
   formSection: {
     width: "100%",
-    maxWidth: 360,
-    marginTop: 28,
-    paddingHorizontal: 0,
-    gap: 16,
+    maxWidth: 388,
+    alignSelf: "center",
+  },
+  fieldsGroup: {
+    gap: 12,
   },
   inputShell: {
-    height: 58,
-    borderRadius: 16,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: INPUT_BORDER,
     backgroundColor: INPUT_BACKGROUND,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    shadowColor: "#A68A75",
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 3,
+    shadowColor: "#D8B48C",
+    shadowOpacity: 0.12,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 7 },
+    elevation: 4,
   },
   inputShellFocused: {
     borderColor: ACCENT_ORANGE,
     shadowColor: ACCENT_ORANGE,
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
+    shadowOpacity: 0.16,
+    shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
   },
   input: {
     flex: 1,
-    height: 58,
     color: TEXT_PRIMARY,
     fontSize: typography.sizes.md,
     paddingVertical: 0,
   },
   trailingIconButton: {
-    width: 36,
-    height: 36,
+    width: 40,
+    height: 40,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },
   optionsRow: {
-    marginTop: 2,
+    marginTop: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: spacing.sm,
+    gap: spacing.md,
   },
   rememberButton: {
     flexDirection: "row",
@@ -576,8 +799,8 @@ const styles = StyleSheet.create({
   },
   rememberText: {
     color: TEXT_SECONDARY,
-    fontSize: typography.sizes.sm,
-    lineHeight: typography.lineHeights.sm,
+    fontSize: 14,
+    lineHeight: 18,
   },
   forgotButton: {
     flex: 1,
@@ -585,23 +808,21 @@ const styles = StyleSheet.create({
   },
   forgotText: {
     color: LINK_ORANGE,
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: typography.weights.semiBold,
-    lineHeight: typography.lineHeights.sm,
+    lineHeight: 18,
     textAlign: "right",
   },
   primaryButton: {
-    height: 58,
-    marginTop: spacing.xs,
     borderRadius: 16,
     backgroundColor: BUTTON_ORANGE,
     alignItems: "center",
     justifyContent: "center",
     shadowColor: BUTTON_ORANGE,
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 3,
+    shadowOpacity: 0.22,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 7 },
+    elevation: 4,
   },
   primaryButtonDisabled: {
     opacity: 0.7,
@@ -613,45 +834,51 @@ const styles = StyleSheet.create({
     lineHeight: typography.lineHeights.md,
     letterSpacing: 0.3,
   },
-  footerText: {
-    marginTop: 0,
-    paddingTop: 132,
-    paddingHorizontal: 28,
-    width: "100%",
-    color: TEXT_MUTED,
-    fontSize: typography.sizes.sm,
-    lineHeight: typography.lineHeights.sm,
-    textAlign: "center",
-    zIndex: 3,
-  },
-  footerAccent: {
-    color: ACCENT_ORANGE,
-    fontWeight: typography.weights.semiBold,
-  },
-  bottomDecorLayer: {
+  waveSection: {
     position: "absolute",
     left: 0,
     right: 0,
     bottom: 0,
-    height: 270,
-    zIndex: 0,
+    overflow: "hidden",
   },
   waveSvg: {
     position: "absolute",
+    top: 0,
     left: 0,
     right: 0,
     bottom: 0,
   },
   bottomIconsLayer: {
     position: "absolute",
+    top: 0,
     left: 0,
     right: 0,
-    bottom: 74,
-    height: 110,
-    zIndex: 2,
+    bottom: 0,
   },
   bottomWaveIcon: {
     position: "absolute",
+  },
+  bottomWaveSvgIcon: {
+    position: "absolute",
+  },
+  footerCopy: {
+    position: "absolute",
+    left: 24,
+    right: 24,
+    alignItems: "center",
+  },
+  footerText: {
+    color: TEXT_MUTED,
+    fontSize: typography.sizes.sm,
+    lineHeight: 20,
+    textAlign: "center",
+  },
+  footerAccent: {
+    color: ACCENT_ORANGE,
+    fontSize: 15,
+    lineHeight: 22,
+    fontWeight: typography.weights.semiBold,
+    textAlign: "center",
   },
   pressablePressed: {
     opacity: 0.96,
