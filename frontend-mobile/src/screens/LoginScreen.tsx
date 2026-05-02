@@ -1,6 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import Svg, { Path } from "react-native-svg";
 import {
   Alert,
   Animated,
@@ -43,28 +44,28 @@ const LOGIN_LOGO = require("../assets/images/logo_proyect.jpeg");
 const bottomWaveIcons = [
   {
     name: "bowl-mix-outline",
-    size: 58,
-    style: { top: 52, left: 72 },
+    size: 54,
+    style: { top: 8, left: 72 },
   },
   {
     name: "cup-outline",
-    size: 54,
-    style: { top: 66, left: "50%", marginLeft: -27 },
+    size: 52,
+    style: { top: 20, left: "50%", marginLeft: -26 },
   },
   {
     name: "leaf",
-    size: 52,
-    style: { top: 70, right: 74 },
+    size: 50,
+    style: { top: 22, right: 74 },
   },
   {
     name: "circle-small",
-    size: 24,
-    style: { top: 84, left: 26 },
+    size: 22,
+    style: { top: 42, left: 26 },
   },
   {
     name: "star-four-points-outline",
-    size: 24,
-    style: { top: 54, right: 34 },
+    size: 22,
+    style: { top: 14, right: 34 },
   },
 ] as const;
 
@@ -111,8 +112,6 @@ export function LoginScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { height, width } = useWindowDimensions();
   const isCompact = height < 760 || width < 360;
-  const whiteAreaHeight = isCompact ? 245 : 270;
-  const waveCurveBottom = isCompact ? 182 : 205;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -215,10 +214,20 @@ export function LoginScreen({ navigation }: Props) {
 
       <View style={styles.container}>
         <View pointerEvents="none" style={styles.bottomDecorLayer}>
-          <View style={[styles.whiteArea, { height: whiteAreaHeight }]} />
-          <View style={[styles.whiteWave, { bottom: waveCurveBottom }]} />
+          <Svg
+            width="100%"
+            height={260}
+            viewBox="0 0 390 260"
+            preserveAspectRatio="none"
+            style={styles.waveSvg}
+          >
+            <Path
+              d="M0 58 C70 18 128 26 192 50 C260 76 320 58 390 12 L390 260 L0 260 Z"
+              fill="#FFFFFF"
+            />
+          </Svg>
 
-          <View style={[styles.bottomIconsLayer, { height: whiteAreaHeight }]}>
+          <View style={styles.bottomIconsLayer}>
             {bottomWaveIcons.map((icon, index) => (
               <MaterialCommunityIcons
                 key={`${icon.name}-${index}`}
@@ -606,7 +615,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     marginTop: 0,
-    paddingTop: 146,
+    paddingTop: 132,
     paddingHorizontal: 28,
     width: "100%",
     color: TEXT_MUTED,
@@ -620,30 +629,25 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.semiBold,
   },
   bottomDecorLayer: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 0,
-  },
-  whiteArea: {
     position: "absolute",
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "#FFFFFF",
+    height: 270,
+    zIndex: 0,
   },
-  whiteWave: {
+  waveSvg: {
     position: "absolute",
-    left: -95,
-    right: -95,
-    height: 150,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 999,
-    transform: [{ rotate: "-7deg" }],
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   bottomIconsLayer: {
     position: "absolute",
     left: 0,
     right: 0,
-    bottom: 0,
+    bottom: 74,
+    height: 110,
     zIndex: 2,
   },
   bottomWaveIcon: {
