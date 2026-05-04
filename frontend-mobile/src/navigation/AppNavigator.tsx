@@ -26,7 +26,6 @@ export function AppNavigator() {
           fontWeight: typography.weights.semiBold,
           fontSize: typography.sizes.md,
         },
-        headerBackTitleVisible: false,
         headerShadowVisible: false,
       }}
     >
