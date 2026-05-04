@@ -434,7 +434,10 @@ export function LoginScreen({ navigation }: Props) {
       >
         <View style={styles.container}>
           <ScrollView
+            scrollEnabled={false}
             bounces={false}
+            alwaysBounceVertical={false}
+            overScrollMode="never"
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
