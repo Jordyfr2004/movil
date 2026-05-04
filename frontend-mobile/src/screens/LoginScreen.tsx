@@ -41,7 +41,7 @@ const DECOR_ORANGE_SOFT = "rgba(249, 115, 22, 0.20)";
 const ENTRANCE_DURATION = 420;
 const ENTRANCE_OFFSET = 10;
 const ENTRANCE_EASING = Easing.out(Easing.cubic);
-const LOGIN_LOGO = require("../assets/images/logo_proyect.jpeg");
+const LOGIN_LOGO = require("../assets/images/logo_comedor_uleam_institucional_final.png");
 
 type DecorIconProps = {
   color: string;
@@ -51,8 +51,6 @@ type DecorIconProps = {
 type LoginLayoutMetrics = {
   horizontalPadding: number;
   contentTopPadding: number;
-  logoShellSize: number;
-  logoCropSize: number;
   logoImageSize: number;
   titleTopMargin: number;
   titleSize: number;
@@ -90,9 +88,7 @@ const getLayoutMetrics = (
   return {
     horizontalPadding: clamp(Math.round(width * 0.06), 22, 28),
     contentTopPadding: clamp(Math.round(height * 0.025), 18, 26),
-    logoShellSize: clamp(Math.round(width * 0.31), 120, 138),
-    logoCropSize: clamp(Math.round(width * 0.285), 110, 128),
-    logoImageSize: clamp(Math.round(width * 0.35), 136, 164),
+    logoImageSize: clamp(Math.round(width * 0.42), 156, 176),
     titleTopMargin: clamp(Math.round(width * 0.06), 22, 28),
     titleSize: clamp(Math.round(width * 0.09), 34, 38),
     titleLineHeight: clamp(Math.round(width * 0.1), 40, 44),
@@ -109,12 +105,12 @@ const getLayoutMetrics = (
       24
     ),
     waveHeight: clamp(Math.round(width * 0.155), 58, 68),
-    footerPanelTopPadding: clamp(Math.round(width * 0.012), 2, 6),
-    footerPanelBottomPadding: Math.max(bottomInset + 12, 20),
+    footerPanelTopPadding: clamp(Math.round(width * 0.006), 0, 3),
+    footerPanelBottomPadding: Math.max(bottomInset + 20, 30),
     footerArtHeight: clamp(Math.round(width * 0.24), 84, 98),
-    footerArtLift: clamp(Math.round(width * 0.058), 18, 24),
+    footerArtLift: clamp(Math.round(width * 0.074), 26, 30),
     footerIconSize: clamp(Math.round(width * 0.15), 54, 64),
-    footerTextGap: clamp(Math.round(width * 0.026), 8, 12),
+    footerTextGap: clamp(Math.round(width * 0.024), 8, 10),
     footerPrimaryFontSize: clamp(Math.round(width * 0.036), 15, 16),
     footerAccentFontSize: clamp(Math.round(width * 0.041), 17, 18),
   };
@@ -270,16 +266,16 @@ export function LoginScreen({ navigation }: Props) {
   const glassSize = metrics.footerIconSize - 2;
   const leafSize = metrics.footerIconSize - 4;
   const wavePath = [
-    `M 0 ${Math.round(metrics.waveHeight * 0.5)}`,
-    `C ${Math.round(waveWidth * 0.14)} ${Math.round(metrics.waveHeight * 0.28)}, ${Math.round(
+    `M 0 ${Math.round(metrics.waveHeight * 0.44)}`,
+    `C ${Math.round(waveWidth * 0.15)} ${Math.round(metrics.waveHeight * 0.18)}, ${Math.round(
       waveWidth * 0.34
-    )} ${Math.round(metrics.waveHeight * 0.96)}, ${Math.round(waveWidth * 0.52)} ${Math.round(
-      metrics.waveHeight * 0.74
+    )} ${Math.round(metrics.waveHeight * 0.82)}, ${Math.round(waveWidth * 0.52)} ${Math.round(
+      metrics.waveHeight * 0.68
     )}`,
-    `C ${Math.round(waveWidth * 0.71)} ${Math.round(metrics.waveHeight * 0.46)}, ${Math.round(
-      waveWidth * 0.88
-    )} ${Math.round(metrics.waveHeight * 0.08)}, ${waveWidth} ${Math.round(
-      metrics.waveHeight * 0.34
+    `C ${Math.round(waveWidth * 0.7)} ${Math.round(metrics.waveHeight * 0.54)}, ${Math.round(
+      waveWidth * 0.86
+    )} ${Math.round(metrics.waveHeight * 0.14)}, ${waveWidth} ${Math.round(
+      metrics.waveHeight * 0.3
     )}`,
     `L ${waveWidth} ${metrics.waveHeight}`,
     `L 0 ${metrics.waveHeight}`,
@@ -337,7 +333,8 @@ export function LoginScreen({ navigation }: Props) {
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      title: "Iniciar sesión",
+      title: "",
+      headerTitle: "",
       headerShadowVisible: false,
       headerTintColor: TEXT_PRIMARY,
       headerStyle: {
@@ -453,40 +450,27 @@ export function LoginScreen({ navigation }: Props) {
                   },
                 ]}
               >
-                <Animated.View style={[styles.logoBlock, logoEntrance]}>
-                  <View
+                <Animated.View
+                  style={[
+                    styles.logoBlock,
+                    {
+                      width: metrics.logoImageSize,
+                      height: metrics.logoImageSize,
+                    },
+                    logoEntrance,
+                  ]}
+                >
+                  <Image
+                    source={LOGIN_LOGO}
+                    resizeMode="contain"
                     style={[
-                      styles.logoShell,
+                      styles.logoImage,
                       {
-                        width: metrics.logoShellSize,
-                        height: metrics.logoShellSize,
-                        borderRadius: metrics.logoShellSize / 2,
+                        width: metrics.logoImageSize,
+                        height: metrics.logoImageSize,
                       },
                     ]}
-                  >
-                    <View
-                      style={[
-                        styles.logoCrop,
-                        {
-                          width: metrics.logoCropSize,
-                          height: metrics.logoCropSize,
-                          borderRadius: metrics.logoCropSize / 2,
-                        },
-                      ]}
-                    >
-                      <Image
-                        source={LOGIN_LOGO}
-                        resizeMode="cover"
-                        style={[
-                          styles.logoImage,
-                          {
-                            width: metrics.logoImageSize,
-                            height: metrics.logoImageSize,
-                          },
-                        ]}
-                      />
-                    </View>
-                  </View>
+                  />
                 </Animated.View>
 
                 <Animated.View
@@ -665,7 +649,7 @@ export function LoginScreen({ navigation }: Props) {
                     ]}
                   >
                     <Text style={styles.primaryButtonLabel}>
-                      {loading ? "INGRESANDO..." : "INICIAR SESIÓN"}
+                      {loading ? "INGRESANDO..." : "INGRESAR"}
                     </Text>
                   </Pressable>
                 </Animated.View>
@@ -814,25 +798,13 @@ const styles = StyleSheet.create({
   },
   logoBlock: {
     alignItems: "center",
-  },
-  logoShell: {
-    backgroundColor: SURFACE,
-    alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#D5B18B",
-    shadowOpacity: 0.18,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 6,
-  },
-  logoCrop: {
-    overflow: "hidden",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: SURFACE,
+    alignSelf: "center",
+    backgroundColor: "transparent",
   },
   logoImage: {
-    transform: [{ scale: 1.12 }],
+    alignSelf: "center",
+    backgroundColor: "transparent",
   },
   titleBlock: {
     alignItems: "center",
