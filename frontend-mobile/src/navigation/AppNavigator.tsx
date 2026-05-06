@@ -11,12 +11,20 @@ import { MenuScreen } from "../screens/MenuScreen";
 import { MyReservationsScreen } from "../screens/MyReservationsScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
 import { colors, typography } from "../theme";
+import { useAuth } from "../context/AuthContex";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export function AppNavigator() {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return null;
+  }
+
   return (
     <Stack.Navigator
+      initialRouteName={isAuthenticated ? ROUTES.Home : ROUTES.Welcome}
       screenOptions={{
         contentStyle: { backgroundColor: colors.background },
         headerStyle: { backgroundColor: colors.background },

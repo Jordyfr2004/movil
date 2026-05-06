@@ -1,19 +1,86 @@
-import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import { Alert, StyleSheet, Text, View } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/types";
 import { ROUTES } from "../navigation/routes";
 import { Screen } from "../components/Screen";
 import { AppButton } from "../components/AppButton";
 import { StatusBadge } from "../components/StatusBadge";
-import { mockUser } from "../constants/mockUser";
 import { colors, typography } from "../theme";
 import { spacing } from "../constants/spacing";
+import { useAuth } from "../context/AuthContex";
+import { getProfileBestEffort, UserProfile } from "../services/userService";
 
 type Props = NativeStackScreenProps<RootStackParamList, typeof ROUTES.Profile>;
 
 export function ProfileScreen({ navigation }: Props) {
-  const initial = mockUser.fullName?.trim()?.charAt(0)?.toUpperCase() ?? "U";
+  const { logout, accessToken, user } = useAuth();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadProfile = async () => {
+      if (!accessToken) {
+        setProfile(null);
+        return;
+      }
+
+      try {
+        const data = await getProfileBestEffort(accessToken, user?.user_id);
+        if (isActive) setProfile(data);
+      } catch {
+        if (isActive) setProfile(null);
+      }
+    };
+
+    loadProfile();
+
+    return () => {
+      isActive = false;
+    };
+  }, [accessToken, user?.user_id]);
+
+  const displayName = useMemo(() => {
+    return profile?.fullName?.trim() || user?.email || "Usuario";
+  }, [profile?.fullName, user?.email]);
+
+  const displayEmail = useMemo(() => {
+    return profile?.email?.trim() || user?.email || "";
+  }, [profile?.email, user?.email]);
+
+  const roleLabel = useMemo(() => {
+    if (profile?.role === "student") return "Estudiante";
+    if (profile?.role === "admin") return "Administrador";
+    return "Usuario";
+  }, [profile?.role]);
+
+  const initial = useMemo(() => {
+    const source = displayName || displayEmail;
+    return source?.trim()?.charAt(0)?.toUpperCase() ?? "U";
+  }, [displayName, displayEmail]);
+
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+
+    try {
+      setIsLoggingOut(true);
+      await logout();
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "No se pudo cerrar sesión";
+      Alert.alert("Error", message);
+    } finally {
+      setIsLoggingOut(false);
+      navigation.reset({
+        index: 0,
+        routes: [{ name: ROUTES.Welcome }],
+      });
+    }
+  };
 
   return (
     <Screen style={styles.container}>
@@ -31,33 +98,29 @@ export function ProfileScreen({ navigation }: Props) {
           </View>
           <View style={styles.profileText}>
             <Text style={styles.name} numberOfLines={1}>
-              {mockUser.fullName}
+              {displayName}
             </Text>
             <Text style={styles.email} numberOfLines={1}>
-              {mockUser.email}
+              {displayEmail}
             </Text>
           </View>
-          <StatusBadge
-            label={mockUser.role === "student" ? "Estudiante" : "Administrador"}
-            tone="success"
-          />
+          <StatusBadge label={roleLabel} tone="success" />
         </View>
 
         <View style={styles.divider} />
 
         <View style={styles.field}>
           <Text style={styles.label}>Rol</Text>
-          <Text style={styles.value}>
-            {mockUser.role === "student" ? "Estudiante" : "Administrador"}
-          </Text>
+          <Text style={styles.value}>{roleLabel}</Text>
         </View>
       </View>
 
       <View style={styles.footer}>
         <AppButton
           label="Cerrar sesión"
-          onPress={() => navigation.replace(ROUTES.Welcome)}
+          onPress={handleLogout}
           variant="danger"
+          disabled={isLoggingOut}
         />
       </View>
     </Screen>

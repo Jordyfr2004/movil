@@ -15,6 +15,7 @@ import { LogoutDto } from './dto/logout.dto';
 import { User, UserRole } from '../users/entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import { RefreshToken } from './entities/refresh-token.entity';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 
 @Injectable()
 export class AuthService {
@@ -166,5 +167,61 @@ export class AuthService {
     }
 
     throw new NotFoundException('Token de sesión no encontrado');
+  }
+
+
+  async refreshToken(refreshTokenDto: RefreshTokenDto) {
+    const { refresh_token } = refreshTokenDto;
+
+    let payload: any;
+
+    try {
+      payload = await this.jwtService.verifyAsync(refresh_token);
+    } catch {
+      throw new UnauthorizedException('Refresh token inválido o expirado');
+    }
+
+    const activeTokens = await this.refreshTokenRepo.find({
+      where: {
+        user_id: payload.sub,
+        is_revoked: false,
+      },
+    });
+
+    for (const tokenRecord of activeTokens) {
+      const isMatch = await argon2.verify(
+        tokenRecord.token_hash,
+        refresh_token,
+      );
+
+      if (!isMatch) {
+        continue;
+      }
+
+      if (tokenRecord.expires_at < new Date()) {
+        tokenRecord.is_revoked = true;
+        await this.refreshTokenRepo.save(tokenRecord);
+
+        throw new UnauthorizedException('Refresh token expirado');
+      }
+
+      const newPayload = {
+        sub: payload.sub,
+        email: payload.email,
+      };
+
+      const accessToken = await this.jwtService.signAsync(newPayload, {
+        expiresIn: '15m',
+      });
+
+      return {
+        message: 'Access token renovado correctamente',
+        data: {
+          access_token: accessToken,
+        },
+      };
+    }
+
+    throw new UnauthorizedException('Refresh token no válido');
   }
 }

@@ -22,7 +22,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { spacing } from "../constants/spacing";
 import { ROUTES } from "../navigation/routes";
 import { RootStackParamList } from "../navigation/types";
-import { loginRequest } from "../services/authServices";
+import { useAuth } from "../context/AuthContex";
 import { typography } from "../theme";
 
 type Props = NativeStackScreenProps<RootStackParamList, typeof ROUTES.Login>;
@@ -257,6 +257,7 @@ function DecorLeafIcon({ color, size }: DecorIconProps) {
 }
 
 export function LoginScreen({ navigation }: Props) {
+  const { login} = useAuth();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const metrics = getLayoutMetrics(width, height, insets.bottom);
@@ -352,66 +353,44 @@ export function LoginScreen({ navigation }: Props) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
   };
 
-  const handleLogin = async () => {
-    const normalizedEmail = email.trim().toLowerCase();
-    const normalizedPassword = password.trim();
+    const handleLogin = async () => {
+      const normalizedEmail = email.trim().toLowerCase();
+      const normalizedPassword = password.trim();
 
-    if (!normalizedEmail) {
-      Alert.alert("Validación", "Debes ingresar tu correo");
-      return;
-    }
-
-    if (!isValidEmail(normalizedEmail)) {
-      Alert.alert("Validación", "Ingresa un correo válido");
-      return;
-    }
-
-    if (!normalizedPassword) {
-      Alert.alert("Validación", "Debes ingresar tu contraseña");
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      const result = await loginRequest({
-        email: normalizedEmail,
-        password: normalizedPassword,
-      });
-
-      const authResult = result as typeof result & {
-        data?: {
-          access_token?: string;
-          data?: {
-            access_token?: string;
-          };
-        };
-      };
-
-      const token =
-        authResult.access_token ||
-        authResult.data?.access_token ||
-        authResult.data?.data?.access_token;
-
-      if (!token) {
-        Alert.alert(
-          "Error",
-          "El servidor respondió correctamente, pero no devolvió el token"
-        );
+      if (!normalizedEmail) {
+        Alert.alert("Validación", "Debes ingresar tu correo");
         return;
       }
 
-      Alert.alert("Éxito", "Inicio de sesión correcto");
-      navigation.replace(ROUTES.Home);
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Error al iniciar sesión";
+      if (!isValidEmail(normalizedEmail)) {
+        Alert.alert("Validación", "Ingresa un correo válido");
+        return;
+      }
 
-      Alert.alert("Error", message);
-    } finally {
-      setLoading(false);
-    }
-  };
+      if (!normalizedPassword) {
+        Alert.alert("Validación", "Debes ingresar tu contraseña");
+        return;
+      }
+
+      try {
+        setLoading(true);
+
+        await login({
+          email: normalizedEmail,
+          password: normalizedPassword,
+        });
+
+        Alert.alert("Éxito", "Inicio de sesión correcto");
+        navigation.replace(ROUTES.Home);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Error al iniciar sesión";
+
+        Alert.alert("Error", message);
+      } finally {
+        setLoading(false);
+      }
+    };
 
   const handleForgotPassword = () => {
     Alert.alert(

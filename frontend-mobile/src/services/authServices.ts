@@ -1,5 +1,7 @@
 import { API_URL } from "../constants/api";
 
+const REQUEST_TIMEOUT = 8000;
+
 export interface LoginPayload {
   email: string;
   password: string;
@@ -7,55 +9,56 @@ export interface LoginPayload {
 
 export interface LoginSuccessResponse {
   message: string;
-  access_token?: string;
-  data?: {
-    access_token?: string;
-    user_id?: string;
-    email?: string;
-    provider?: string;
+  data: {
+    access_token: string;
+    refresh_token: string;
+    user_id: string;
+    email: string;
+    provider: string;
   };
 }
 
-export async function loginRequest(
-  payload: LoginPayload
-): Promise<LoginSuccessResponse> {
+export interface RefreshTokenResponse {
+  message: string;
+  data: {
+    access_token: string;
+  };
+}
+
+export interface LogoutResponse {
+  message: string;
+}
+
+async function requestWithTimeout<T>(
+  endpoint: string,
+  options: RequestInit
+): Promise<T> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000);
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
 
   try {
-    console.log("API_URL:", API_URL);
-    console.log("LOGIN REQUEST -> email:", payload.email);
-
-    const response = await fetch(`${API_URL}/auth/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
+    const response = await fetch(`${API_URL}${endpoint}`, {
+      ...options,
       signal: controller.signal,
     });
 
-    console.log("STATUS:", response.status);
-
     const result = await response.json();
 
-    console.log("LOGIN RESPONSE:", result);
-
     if (!response.ok) {
-      throw new Error(result.message || "No se pudo iniciar sesión");
+      const error: any = new Error(result?.message || "Error en la solicitud");
+      error.status = response.status;
+      throw error;
     }
 
     return result;
   } catch (error: any) {
-    console.log("ERROR:", error);
-
     if (error?.name === "AbortError") {
       throw new Error("El servidor tardó demasiado en responder");
     }
 
     if (
       error?.message?.includes("Network request failed") ||
-      error?.message?.includes("network")
+      error?.message?.toLowerCase?.().includes("network")
     ) {
       throw new Error("No se pudo conectar con el servidor");
     }
@@ -64,4 +67,44 @@ export async function loginRequest(
   } finally {
     clearTimeout(timeout);
   }
+}
+
+export async function loginRequest(
+  payload: LoginPayload
+): Promise<LoginSuccessResponse> {
+  return requestWithTimeout<LoginSuccessResponse>("/auth/login", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function refreshTokenRequest(
+  refreshToken: string
+): Promise<RefreshTokenResponse> {
+  return requestWithTimeout<RefreshTokenResponse>("/auth/refresh", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      refresh_token: refreshToken,
+    }),
+  });
+}
+
+export async function logoutRequest(
+  refreshToken: string
+): Promise<LogoutResponse> {
+  return requestWithTimeout<LogoutResponse>("/auth/logout", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      refresh_token: refreshToken,
+    }),
+  });
 }

@@ -15,10 +15,13 @@
       "package": "com.anonymous.comedoruleam"
     },
     "web": {
-      "output": "static"
+      "output": "single"
     },
     "experiments": {
       "reactCompiler": true
-    }
+    },
+    "plugins": [
+      "expo-secure-store"
+    ]
   }
 }
