@@ -8,6 +8,7 @@ export type UserProfile = {
   fullName?: string;
   email?: string;
   role?: UserRole | string;
+  restaurantId?: string | null;
 };
 
 export interface UserProfileResponse {
@@ -46,6 +47,8 @@ function normalizeUserProfile(payload: any): UserProfile {
       typeof fullNameCandidate === "string" ? fullNameCandidate : undefined,
     email: typeof payload.email === "string" ? payload.email : undefined,
     role: normalizeRole(payload.role ?? payload.user_role),
+    restaurantId:
+      payload.restaurantId ?? payload.restaurant_id ?? payload.restaurant ?? null,
   };
 }
 

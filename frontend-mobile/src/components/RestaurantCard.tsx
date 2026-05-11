@@ -38,9 +38,11 @@ export function RestaurantCard({
           <Text style={styles.name} numberOfLines={1}>
             {restaurant.name}
           </Text>
-          <Text style={styles.location} numberOfLines={1}>
-            {restaurant.location}
-          </Text>
+          {restaurant.location ? (
+            <Text style={styles.location} numberOfLines={1}>
+              {restaurant.location}
+            </Text>
+          ) : null}
         </View>
 
         <StatusBadge
@@ -55,12 +57,14 @@ export function RestaurantCard({
         </Text>
       ) : null}
 
-      <View style={styles.footer}>
-        <Text style={styles.timeLabel}>Horario</Text>
-        <Text style={styles.timeValue}>
-          {restaurant.openingTime} - {restaurant.closingTime}
-        </Text>
-      </View>
+      {restaurant.openingTime && restaurant.closingTime ? (
+        <View style={styles.footer}>
+          <Text style={styles.timeLabel}>Horario</Text>
+          <Text style={styles.timeValue}>
+            {restaurant.openingTime} - {restaurant.closingTime}
+          </Text>
+        </View>
+      ) : null}
     </Pressable>
   );
 }

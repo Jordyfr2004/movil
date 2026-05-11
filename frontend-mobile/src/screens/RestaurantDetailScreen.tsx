@@ -4,10 +4,10 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/types";
 import { ROUTES } from "../navigation/routes";
 import { Screen } from "../components/Screen";
-import { AppButton } from "../components/AppButton";
 import { StatusBadge } from "../components/StatusBadge";
 import { colors, typography } from "../theme";
 import { spacing } from "../constants/spacing";
+import { useDishesByRestaurant } from "../hooks/useDishesByRestaurant";
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
@@ -17,6 +17,8 @@ type Props = NativeStackScreenProps<
 export function RestaurantDetailScreen({ navigation, route }: Props) {
   const { restaurant } = route.params;
   const initial = restaurant.name?.trim()?.charAt(0)?.toUpperCase() ?? "R";
+  const restaurantId = String(restaurant.id);
+  const { dishes, loading } = useDishesByRestaurant(restaurantId);
 
   return (
     <Screen style={styles.container}>
@@ -30,9 +32,11 @@ export function RestaurantDetailScreen({ navigation, route }: Props) {
             <Text style={styles.name} numberOfLines={2}>
               {restaurant.name}
             </Text>
-            <Text style={styles.location} numberOfLines={1}>
-              {restaurant.location}
-            </Text>
+            {restaurant.location ? (
+              <Text style={styles.location} numberOfLines={1}>
+                {restaurant.location}
+              </Text>
+            ) : null}
           </View>
 
           <StatusBadge
@@ -41,14 +45,16 @@ export function RestaurantDetailScreen({ navigation, route }: Props) {
           />
         </View>
 
-        <View style={styles.metaRow}>
-          <View style={styles.metaItem}>
-            <Text style={styles.metaLabel}>Horario</Text>
-            <Text style={styles.metaValue}>
-              {restaurant.openingTime} - {restaurant.closingTime}
-            </Text>
+        {restaurant.openingTime && restaurant.closingTime ? (
+          <View style={styles.metaRow}>
+            <View style={styles.metaItem}>
+              <Text style={styles.metaLabel}>Horario</Text>
+              <Text style={styles.metaValue}>
+                {restaurant.openingTime} - {restaurant.closingTime}
+              </Text>
+            </View>
           </View>
-        </View>
+        ) : null}
       </View>
 
       {restaurant.description ? (
@@ -58,16 +64,44 @@ export function RestaurantDetailScreen({ navigation, route }: Props) {
         </View>
       ) : null}
 
-      <View style={styles.footer}>
-        <AppButton
-          label="Ver menú del día"
-          onPress={() =>
-            navigation.navigate(ROUTES.Menu, {
-              restaurantId: restaurant.id,
-              restaurantName: restaurant.name,
-            })
-          }
-        />
+      <View style={styles.menuCard}>
+        <Text style={styles.menuTitle}>Menú del día</Text>
+        <Text style={styles.menuSubtitle}>
+          Platos disponibles para reservar.
+        </Text>
+
+        {loading ? (
+          <View style={styles.menuLoading}>
+            <View style={styles.skeletonLineLg} />
+            <View style={styles.skeletonLineSm} />
+            <View style={styles.skeletonLineLg} />
+          </View>
+        ) : dishes.length > 0 ? (
+          <View style={styles.menuList}>
+            {dishes.map((dish) => (
+              <View key={dish.id} style={styles.dishRow}>
+                <View style={styles.dishText}>
+                  <Text style={styles.dishName} numberOfLines={1}>
+                    {dish.name}
+                  </Text>
+                  <Text style={styles.dishMeta} numberOfLines={1}>
+                    Disponible hoy
+                  </Text>
+                </View>
+                <Text style={styles.dishPrice} numberOfLines={1}>
+                  ${dish.price}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyTitle}>No hay platos disponibles</Text>
+            <Text style={styles.emptySubtitle}>
+              Vuelve más tarde para ver el menú.
+            </Text>
+          </View>
+        )}
       </View>
     </Screen>
   );
@@ -161,7 +195,91 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     lineHeight: typography.lineHeights.md,
   },
-  footer: {
-    marginTop: "auto",
+  menuCard: {
+    marginTop: spacing.lg,
+    backgroundColor: colors.surface,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.lg,
+  },
+  menuTitle: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.bold,
+    color: colors.textPrimary,
+  },
+  menuSubtitle: {
+    marginTop: spacing.xs,
+    fontSize: typography.sizes.sm,
+    color: colors.textSecondary,
+    lineHeight: typography.lineHeights.sm,
+  },
+  menuLoading: {
+    marginTop: spacing.lg,
+    gap: spacing.sm,
+  },
+  skeletonLineLg: {
+    height: 14,
+    borderRadius: 10,
+    backgroundColor: colors.surfaceMuted,
+    width: "70%",
+  },
+  skeletonLineSm: {
+    height: 12,
+    borderRadius: 10,
+    backgroundColor: colors.surfaceMuted,
+    width: "45%",
+  },
+  menuList: {
+    marginTop: spacing.lg,
+    gap: spacing.md,
+  },
+  dishRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.md,
+    paddingVertical: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  dishText: {
+    flex: 1,
+    gap: 2,
+  },
+  dishName: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.semiBold,
+    color: colors.textPrimary,
+    lineHeight: typography.lineHeights.md,
+  },
+  dishMeta: {
+    fontSize: typography.sizes.sm,
+    color: colors.textMuted,
+    lineHeight: typography.lineHeights.sm,
+  },
+  dishPrice: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.bold,
+    color: colors.textPrimary,
+  },
+  emptyCard: {
+    marginTop: spacing.lg,
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.lg,
+  },
+  emptyTitle: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.bold,
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
+  },
+  emptySubtitle: {
+    fontSize: typography.sizes.sm,
+    color: colors.textSecondary,
+    lineHeight: typography.lineHeights.sm,
   },
 });

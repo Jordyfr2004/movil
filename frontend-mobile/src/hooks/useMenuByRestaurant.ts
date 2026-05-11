@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Menu } from "../types/models";
 import { getMenuByRestaurant } from "../services/menuService";
 
-export function useMenuByRestaurant(restaurantId: number) {
+export function useMenuByRestaurant(restaurantId: string | number) {
   const [menu, setMenu] = useState<Menu | null>(null);
   const [loading, setLoading] = useState(true);
 

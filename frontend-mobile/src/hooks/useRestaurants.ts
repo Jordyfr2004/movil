@@ -12,7 +12,12 @@ export function useRestaurants() {
     getRestaurants()
       .then((data) => {
         if (isMounted) {
-          setRestaurants(data);
+          setRestaurants(data.filter((item) => item.isActive));
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setRestaurants([]);
         }
       })
       .finally(() => {

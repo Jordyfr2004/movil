@@ -1,11 +1,11 @@
 import React, { ReactNode } from "react";
 import {
-  SafeAreaView,
   StatusBar,
   StyleProp,
   StyleSheet,
   ViewStyle,
 } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../theme";
 import { spacing } from "../constants/spacing";
 
@@ -15,8 +15,17 @@ type ScreenProps = {
 };
 
 export function Screen({ children, style }: ScreenProps) {
+  const insets = useSafeAreaInsets();
+
   return (
-    <SafeAreaView style={[styles.container, style]}>
+    <SafeAreaView
+      edges={["bottom"]}
+      style={[
+        styles.container,
+        { paddingBottom: spacing.lg + Math.max(insets.bottom, 0) },
+        style,
+      ]}
+    >
       <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
       {children}
     </SafeAreaView>

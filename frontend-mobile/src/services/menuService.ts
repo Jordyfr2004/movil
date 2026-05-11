@@ -2,10 +2,10 @@ import { menusMock } from "../mocks/menus";
 import { Menu } from "../types/models";
 
 export async function getMenuByRestaurant(
-  restaurantId: number
+  restaurantId: string | number
 ): Promise<Menu | null> {
   const activeMenu = menusMock.find(
-    (menu) => menu.restaurantId === restaurantId && menu.isActive
+    (menu) => String(menu.restaurantId) === String(restaurantId) && menu.isActive
   );
 
   return Promise.resolve(activeMenu ?? null);

@@ -10,18 +10,20 @@ export type User = {
 };
 
 export type Restaurant = {
-  id: number;
+  id: string | number;
   name: string;
-  location: string;
-  description?: string;
-  openingTime: string;
-  closingTime: string;
   isActive: boolean;
+  location?: string;
+  description?: string;
+  openingTime?: string;
+  closingTime?: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type Menu = {
   id: number;
-  restaurantId: number;
+  restaurantId: string | number;
   menuDate: string;
   title: string;
   description: string;
