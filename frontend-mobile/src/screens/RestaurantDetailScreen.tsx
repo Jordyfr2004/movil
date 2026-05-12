@@ -1,13 +1,17 @@
-import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import React, { useCallback, useMemo, useState } from "react";
+import { Alert, StyleSheet, Text, View } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/types";
 import { ROUTES } from "../navigation/routes";
 import { Screen } from "../components/Screen";
 import { StatusBadge } from "../components/StatusBadge";
+import { AppButton } from "../components/AppButton";
 import { colors, typography } from "../theme";
 import { spacing } from "../constants/spacing";
 import { useDishesByRestaurant } from "../hooks/useDishesByRestaurant";
+import { createReservation, getMyReservations } from "../services/reservationService";
+import { useAuth } from "../context/AuthContex";
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
@@ -19,6 +23,94 @@ export function RestaurantDetailScreen({ navigation, route }: Props) {
   const initial = restaurant.name?.trim()?.charAt(0)?.toUpperCase() ?? "R";
   const restaurantId = String(restaurant.id);
   const { dishes, loading } = useDishesByRestaurant(restaurantId);
+  const { accessToken, isAuthenticated } = useAuth();
+  const [isReservingDishId, setIsReservingDishId] = useState<string | null>(null);
+  const [reservedDishIds, setReservedDishIds] = useState<string[]>([]);
+  const [isCheckingReservation, setIsCheckingReservation] = useState(false);
+
+  const canReserve = useMemo(() => Boolean(isAuthenticated && accessToken), [isAuthenticated, accessToken]);
+
+  const reservedDishIdSet = useMemo(() => new Set(reservedDishIds), [reservedDishIds]);
+
+  const refreshReservedDishes = useCallback(async () => {
+    if (!accessToken) {
+      setReservedDishIds([]);
+      return;
+    }
+
+    try {
+      setIsCheckingReservation(true);
+      const list = await getMyReservations(accessToken);
+      const confirmedDishIds = list
+        .filter((r) => r.status === "confirmed")
+        .map((r) => r.items?.[0]?.dishId)
+        .filter((id): id is string => Boolean(id));
+
+      setReservedDishIds(Array.from(new Set(confirmedDishIds)));
+    } catch {
+      setReservedDishIds([]);
+    } finally {
+      setIsCheckingReservation(false);
+    }
+  }, [accessToken]);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshReservedDishes();
+    }, [refreshReservedDishes])
+  );
+
+  const handleReserve = async (dishId: string) => {
+    if (!canReserve || !accessToken) {
+      Alert.alert(
+        "Sesión requerida",
+        "Inicia sesión para poder reservar.",
+        [
+          { text: "Cancelar", style: "cancel" },
+          { text: "Iniciar sesión", onPress: () => navigation.navigate(ROUTES.Login) },
+        ]
+      );
+      return;
+    }
+
+    if (isReservingDishId) {
+      return;
+    }
+
+    if (reservedDishIdSet.has(dishId)) {
+      return;
+    }
+
+    try {
+      setIsReservingDishId(dishId);
+      await createReservation(accessToken, {
+        items: [{ dish_id: dishId }],
+      });
+
+      setReservedDishIds((previous) =>
+        previous.includes(dishId) ? previous : [...previous, dishId]
+      );
+    } catch (error: any) {
+      const message = error?.message || "No se pudo crear la reserva";
+
+      const status = error?.status;
+
+      if (
+        status === 400 &&
+        typeof message === "string" &&
+        message.toLowerCase().includes("ya reservaste")
+      ) {
+        setReservedDishIds((previous) =>
+          previous.includes(dishId) ? previous : [...previous, dishId]
+        );
+        return;
+      }
+
+      Alert.alert("Error", message);
+    } finally {
+      setIsReservingDishId(null);
+    }
+  };
 
   return (
     <Screen style={styles.container}>
@@ -84,13 +176,36 @@ export function RestaurantDetailScreen({ navigation, route }: Props) {
                   <Text style={styles.dishName} numberOfLines={1}>
                     {dish.name}
                   </Text>
-                  <Text style={styles.dishMeta} numberOfLines={1}>
-                    Disponible hoy
-                  </Text>
+                  {dish.description ? (
+                    <Text style={styles.dishMeta} numberOfLines={2}>
+                      {dish.description}
+                    </Text>
+                  ) : null}
                 </View>
-                <Text style={styles.dishPrice} numberOfLines={1}>
-                  ${dish.price}
-                </Text>
+
+                <View style={styles.dishActions}>
+                  <Text style={styles.dishPrice} numberOfLines={1}>
+                    ${dish.price}
+                  </Text>
+
+                  <AppButton
+                    label={
+                      isReservingDishId === dish.id
+                        ? "Reservando…"
+                        : reservedDishIdSet.has(String(dish.id))
+                          ? "Ya reservaste"
+                          : "Reservar"
+                    }
+                    variant="secondary"
+                    size="sm"
+                    disabled={
+                      Boolean(isReservingDishId) ||
+                      reservedDishIdSet.has(String(dish.id)) ||
+                      isCheckingReservation
+                    }
+                    onPress={() => handleReserve(dish.id)}
+                  />
+                </View>
               </View>
             ))}
           </View>
@@ -246,12 +361,18 @@ const styles = StyleSheet.create({
   dishText: {
     flex: 1,
     gap: 2,
+    lineHeight: typography.lineHeights.sm,
   },
   dishName: {
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.semiBold,
     color: colors.textPrimary,
     lineHeight: typography.lineHeights.md,
+  },
+  dishActions: {
+    alignItems: "flex-end",
+    justifyContent: "center",
+    gap: spacing.xs,
   },
   dishMeta: {
     fontSize: typography.sizes.sm,

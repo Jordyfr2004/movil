@@ -24,6 +24,7 @@ export function AddDishScreen({ navigation, route }: Props) {
   const isEditMode = Boolean(dish?.id);
 
   const [name, setName] = useState(dish?.name ?? "");
+  const [description, setDescription] = useState(dish?.description ?? "");
   const [price, setPrice] = useState(dish?.price ?? "");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -47,6 +48,7 @@ export function AddDishScreen({ navigation, route }: Props) {
     }
 
     const trimmedName = name.trim();
+    const trimmedDescription = description.trim();
     const safePrice = normalizePriceInput(price).trim();
 
     if (trimmedName.length < 3) {
@@ -66,6 +68,7 @@ export function AddDishScreen({ navigation, route }: Props) {
       if (isEditMode && dish?.id) {
         await updateDish(accessToken, dish.id, {
           name: trimmedName,
+          description: trimmedDescription.length ? trimmedDescription : undefined,
           price: safePrice,
         });
 
@@ -78,6 +81,7 @@ export function AddDishScreen({ navigation, route }: Props) {
       } else {
         await createDish(accessToken, {
           name: trimmedName,
+          description: trimmedDescription.length ? trimmedDescription : undefined,
           price: safePrice,
           is_available: true,
           is_active: true,
@@ -121,6 +125,17 @@ export function AddDishScreen({ navigation, route }: Props) {
           onChangeText={setName}
           placeholder="Ej: Arroz con pollo"
           autoCapitalize="words"
+        />
+
+        <AppInput
+          label="Descripción (opcional)"
+          value={description}
+          onChangeText={setDescription}
+          placeholder="Ej: Incluye ensalada y bebida"
+          autoCapitalize="sentences"
+          multiline
+          numberOfLines={3}
+          maxLength={500}
         />
 
         <AppInput

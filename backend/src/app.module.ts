@@ -8,6 +8,7 @@ import { RestaurantsModule } from './restaurants/restaurants.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DishesModule } from './dishes/dishes.module';
+import { ReservationsModule } from './reservations/reservations.module';
 
 @Module({
   imports: [
@@ -25,9 +26,15 @@ import { DishesModule } from './dishes/dishes.module';
         database: configService.get<string>('DB_NAME'),
         autoLoadEntities: true,
         synchronize: true,
-      })
+      }),
     }),
-    UsersModule, RolesModule, AuthModule, RestaurantsModule, DishesModule],
+    UsersModule,
+    RolesModule,
+    AuthModule,
+    RestaurantsModule,
+    DishesModule,
+    ReservationsModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

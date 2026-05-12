@@ -34,9 +34,17 @@ export type Menu = {
 };
 
 export type Reservation = {
-  id: number;
-  userId: number;
-  menuId: number;
+  id: string;
   status: ReservationStatus;
-  reservationDate: string;
+  createdAt: string;
+  items: ReservationItem[];
+};
+
+export type ReservationItem = {
+  id: string;
+  dishId: string;
+  dishName: string;
+  dishDescription?: string | null;
+  restaurantId: string;
+  unitPrice: number;
 };

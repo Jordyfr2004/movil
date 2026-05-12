@@ -21,6 +21,12 @@ export class DishesService {
     private readonly userRepo: Repository<User>,
   ) {}
 
+  private normalizeDescription(value: unknown): string | null {
+    if (typeof value !== 'string') return null;
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+
   async create(createDishDto: CreateDishDto, user_id: string) {
     const user = await this.userRepo.findOne({
       where: { id: user_id },
@@ -32,6 +38,7 @@ export class DishesService {
 
     const dish = this.dishRepo.create({
       ...createDishDto,
+      description: this.normalizeDescription(createDishDto.description),
       restaurant_id: user.restaurant_id,
     });
 
@@ -90,6 +97,10 @@ export class DishesService {
     const dish = await this.findOneForManager(id, user_id);
 
     Object.assign(dish, updateDishDto);
+
+    if (updateDishDto.description !== undefined) {
+      dish.description = this.normalizeDescription(updateDishDto.description);
+    }
 
     return await this.dishRepo.save(dish);
   }

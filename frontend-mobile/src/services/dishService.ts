@@ -6,6 +6,7 @@ export type Dish = {
   id: string;
   restaurantId: string;
   name: string;
+  description?: string;
   price: string;
   isAvailable: boolean;
   isActive: boolean;
@@ -15,17 +16,20 @@ type DishApi = {
   id: string;
   restaurant_id: string;
   name: string;
+  description?: string | null;
   price: string;
   is_available: boolean;
   is_active: boolean;
   // algunos backends/frontends devuelven camelCase
   restaurantId?: string;
+  descriptionText?: string | null;
   isAvailable?: boolean;
   isActive?: boolean;
 };
 
 type CreateDishPayload = {
   name: string;
+  description?: string;
   price: string;
   is_available?: boolean;
   is_active?: boolean;
@@ -92,6 +96,11 @@ function normalizeDish(item: any): Dish {
     id: String(api?.id ?? ""),
     restaurantId: String(api?.restaurant_id ?? api?.restaurantId ?? ""),
     name: typeof api?.name === "string" ? api.name : "",
+    description:
+      typeof (api?.description ?? api?.descriptionText) === "string" &&
+      (api.description ?? api.descriptionText)?.trim().length
+        ? String(api.description ?? api.descriptionText).trim()
+        : undefined,
     price: typeof api?.price === "string" ? api.price : String(api?.price ?? ""),
     isAvailable: parseBoolean(api?.is_available ?? api?.isAvailable, true),
     isActive: parseBoolean(api?.is_active ?? api?.isActive, true),

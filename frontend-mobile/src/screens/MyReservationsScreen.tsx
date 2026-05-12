@@ -12,15 +12,16 @@ import { cancelReservation } from "../services/reservationService";
 import { formatReservationDate } from "../utils/date";
 import { colors, typography } from "../theme";
 import { spacing } from "../constants/spacing";
+import { useAuth } from "../context/AuthContex";
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
   typeof ROUTES.MyReservations
 >;
 
-export function MyReservationsScreen({ route }: Props) {
-  const { userId } = route.params;
-  const { reservations, loading, reload } = useReservations(userId);
+export function MyReservationsScreen({}: Props) {
+  const { accessToken } = useAuth();
+  const { reservations, loading, reload } = useReservations(accessToken);
   const [isCancelling, setIsCancelling] = useState(false);
 
   useFocusEffect(
@@ -34,24 +35,31 @@ export function MyReservationsScreen({ route }: Props) {
     [reservations]
   );
 
-  const handleCancel = async (reservationId: number) => {
+  const handleCancel = async (reservationId: string) => {
     if (isCancelling) {
+      return;
+    }
+
+    if (!accessToken) {
+      Alert.alert("Sesión requerida", "Inicia sesión para cancelar una reserva.");
       return;
     }
 
     try {
       setIsCancelling(true);
-      await cancelReservation(reservationId);
+      await cancelReservation(accessToken, reservationId);
       await reload();
+    } catch (error: any) {
+      Alert.alert("Error", error?.message || "No se pudo cancelar la reserva");
     } finally {
       setIsCancelling(false);
     }
   };
 
-  const confirmCancel = (reservationId: number) => {
+  const confirmCancel = (reservationId: string) => {
     Alert.alert(
       "Cancelar reserva",
-      "Esta acción liberará tu cupo. ¿Deseas continuar?",
+      "Esta acción cancelará tu reserva. ¿Deseas continuar?",
       [
         { text: "Volver", style: "cancel" },
         {
@@ -84,7 +92,7 @@ export function MyReservationsScreen({ route }: Props) {
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <Text style={styles.cardTitle} numberOfLines={1}>
-                {item.menuTitle}
+                {item.title}
               </Text>
               <StatusBadge
                 label={item.status === "confirmed" ? "Confirmada" : "Cancelada"}
@@ -120,7 +128,7 @@ export function MyReservationsScreen({ route }: Props) {
             <Text style={styles.emptySubtitle}>
               {loading
                 ? "Espera un momento mientras actualizamos la información."
-                : "Cuando reserves un menú, aparecerá aquí."}
+                : "Cuando reserves platos, aparecerán aquí."}
             </Text>
           </View>
         }

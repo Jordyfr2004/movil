@@ -35,9 +35,7 @@ export function HomeScreen({ navigation }: Props) {
             label="Mis reservas"
             variant="secondary"
             size="sm"
-            onPress={() =>
-              navigation.navigate(ROUTES.MyReservations, { userId: mockUser.id })
-            }
+            onPress={() => navigation.navigate(ROUTES.MyReservations)}
           />
           <AppButton
             label="Acelerómetro"

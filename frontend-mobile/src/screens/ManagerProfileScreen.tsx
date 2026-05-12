@@ -244,6 +244,11 @@ export function ManagerProfileScreen({ navigation }: Props) {
                   <Text style={styles.dishName} numberOfLines={1}>
                     {item.name}
                   </Text>
+                  {item.description ? (
+                    <Text style={styles.dishDescription} numberOfLines={2}>
+                      {item.description}
+                    </Text>
+                  ) : null}
                   <Text style={styles.dishMeta} numberOfLines={1}>
                     ${item.price}
                   </Text>
@@ -259,6 +264,7 @@ export function ManagerProfileScreen({ navigation }: Props) {
                         dish: {
                           id: item.id,
                           name: item.name,
+                          description: item.description,
                           price: item.price,
                         },
                       })
@@ -431,6 +437,11 @@ const styles = StyleSheet.create({
   dishMeta: {
     fontSize: typography.sizes.sm,
     color: colors.textSecondary,
+  },
+  dishDescription: {
+    fontSize: typography.sizes.sm,
+    color: colors.textSecondary,
+    lineHeight: typography.lineHeights.sm,
   },
   dishActions: {
     flexDirection: "row",

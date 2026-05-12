@@ -4,6 +4,7 @@ import {
   IsNumberString,
   IsOptional,
   IsString,
+  MaxLength,
 } from "class-validator";
 
 export class CreateDishDto {
@@ -11,6 +12,12 @@ export class CreateDishDto {
   @IsString()
   @IsNotEmpty()
   name!: string;
+
+  @IsString()
+  @IsOptional()
+  @IsNotEmpty()
+  @MaxLength(500)
+  description?: string;
 
   // precio como string (decimal en DB)
   @IsNumberString()
