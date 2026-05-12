@@ -11,6 +11,9 @@ type AppInputProps = {
   secureTextEntry?: boolean;
   keyboardType?: "default" | "email-address" | "numeric" | "phone-pad";
   autoCapitalize?: "none" | "sentences" | "words" | "characters";
+  multiline?: boolean;
+  numberOfLines?: number;
+  maxLength?: number;
 };
 
 export function AppInput({
@@ -21,6 +24,9 @@ export function AppInput({
   secureTextEntry,
   keyboardType,
   autoCapitalize,
+  multiline,
+  numberOfLines,
+  maxLength,
 }: AppInputProps) {
   const [isFocused, setIsFocused] = useState(false);
 
@@ -28,7 +34,11 @@ export function AppInput({
     <View style={styles.container}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
-        style={[styles.input, isFocused && styles.inputFocused]}
+        style={[
+          styles.input,
+          multiline && styles.inputMultiline,
+          isFocused && styles.inputFocused,
+        ]}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
@@ -37,6 +47,10 @@ export function AppInput({
         keyboardType={keyboardType}
         autoCapitalize={autoCapitalize}
         selectionColor={colors.primary}
+        multiline={multiline}
+        numberOfLines={numberOfLines}
+        maxLength={maxLength}
+        textAlignVertical={multiline ? "top" : "center"}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
       />
@@ -61,6 +75,9 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.md,
     color: colors.textPrimary,
     backgroundColor: colors.surface,
+  },
+  inputMultiline: {
+    minHeight: 96,
   },
   inputFocused: {
     borderColor: colors.primary,

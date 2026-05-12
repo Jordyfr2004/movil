@@ -9,9 +9,11 @@ import { CreateRestaurantScreen } from "../screens/CreateRestaurantScreen";
 import { ManagerProfileScreen } from "../screens/ManagerProfileScreen";
 import { AddDishScreen } from "../screens/AddDishScreen";
 import { HomeScreen } from "../screens/HomeScreen";
+import { EvidenceScreen } from "../screens/EvidenceScreen";
 import { RestaurantDetailScreen } from "../screens/RestaurantDetailScreen";
 import { MyReservationsScreen } from "../screens/MyReservationsScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
+import { SensorMovimientoScreen } from "../screens/SensorMovimientoScreen";
 import { colors, typography } from "../theme";
 import { useAuth } from "../context/AuthContex";
 import { getProfileBestEffort, UserProfile } from "../services/userService";
@@ -140,6 +142,11 @@ export function AppNavigator() {
         options={{ title: "Restaurantes ULEAM" }}
       />
       <Stack.Screen
+        name={ROUTES.Evidence}
+        component={EvidenceScreen}
+        options={{ title: "Evidencias" }}
+      />
+      <Stack.Screen
         name={ROUTES.RestaurantDetail}
         component={RestaurantDetailScreen}
         options={{ title: "Detalle del restaurante" }}
@@ -153,6 +160,11 @@ export function AppNavigator() {
         name={ROUTES.Profile}
         component={ProfileScreen}
         options={{ title: "Perfil" }}
+      />
+      <Stack.Screen
+        name={ROUTES.SensorMovimiento}
+        component={SensorMovimientoScreen}
+        options={{ title: "Acelerómetro" }}
       />
     </Stack.Navigator>
   );

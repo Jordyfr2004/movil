@@ -40,6 +40,18 @@ export function HomeScreen({ navigation }: Props) {
             }
           />
           <AppButton
+            label="Acelerómetro"
+            variant="secondary"
+            size="sm"
+            onPress={() => navigation.navigate(ROUTES.SensorMovimiento)}
+          />
+          <AppButton
+            label="Evidencias"
+            variant="secondary"
+            size="sm"
+            onPress={() => navigation.navigate(ROUTES.Evidence)}
+          />
+          <AppButton
             label="Perfil"
             variant="secondary"
             size="sm"
