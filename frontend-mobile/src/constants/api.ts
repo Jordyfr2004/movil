@@ -1,1 +1,1 @@
-export const API_URL = 'http://192.160.0.108:3000'; //poner ip del computador
+export const API_URL = 'https://movil-7jh3.onrender.com'; //poner ip del computador

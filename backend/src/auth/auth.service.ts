@@ -146,11 +146,28 @@ export class AuthService {
   async logout(logoutDto: LogoutDto) {
     const { refresh_token } = logoutDto;
 
+    let payload: any;
+
+    try {
+      payload = await this.jwtService.verifyAsync(refresh_token);
+    } catch {
+      throw new UnauthorizedException('Refresh token inválido o expirado');
+    }
+
     const activeTokens = await this.refreshTokenRepo.find({
-      where: { is_revoked: false },
+      where: {
+        user_id: payload.sub,
+        is_revoked: false,
+      },
     });
 
     for (const tokenRecord of activeTokens) {
+      if (tokenRecord.expires_at < new Date()) {
+        tokenRecord.is_revoked = true;
+        await this.refreshTokenRepo.save(tokenRecord);
+        continue;
+      }
+
       const isMatch = await argon2.verify(
         tokenRecord.token_hash,
         refresh_token,
