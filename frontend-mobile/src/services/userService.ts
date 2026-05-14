@@ -1,7 +1,7 @@
 import { API_URL } from "../constants/api";
 import { UserRole } from "../types/models";
 
-const REQUEST_TIMEOUT = 8000;
+const REQUEST_TIMEOUT = 20000;
 
 export type UserProfile = {
   id?: string | number;

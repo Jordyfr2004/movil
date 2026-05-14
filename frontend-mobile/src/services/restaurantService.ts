@@ -1,7 +1,7 @@
 import { API_URL } from "../constants/api";
 import { Restaurant } from "../types/models";
 
-const REQUEST_TIMEOUT = 8000;
+const REQUEST_TIMEOUT = 20000;
 
 type RestaurantApi = {
   id: string;

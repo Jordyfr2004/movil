@@ -1,6 +1,6 @@
 import { API_URL } from "../constants/api";
 
-const REQUEST_TIMEOUT = 8000;
+const REQUEST_TIMEOUT = 20000;
 
 export interface LoginPayload {
   email: string;
