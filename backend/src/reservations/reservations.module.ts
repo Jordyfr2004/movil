@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AuthModule } from 'src/auth/auth.module';
+import { AuthModule } from '../auth/auth.module';
 import { Dish } from '../dishes/entities/dish.entity';
 import { User } from '../users/entities/user.entity';
 import { Reservation } from './entities/reservation.entity';

@@ -1,54 +1,76 @@
-import { AuthAccount } from "src/auth/entities/auth-account.entity";
-import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
-
+import { AuthAccount } from '../../auth/entities/auth-account.entity';
+import { RefreshToken } from '../../auth/entities/refresh-token.entity';
+import { Reservation } from '../../reservations/entities/reservation.entity';
+import { Restaurant } from '../../restaurants/entities/restaurant.entity';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 export enum UserStatus {
-    ACTIVE = 'ACTIVE',
-    INACTIVE = 'INACTIVE',
-    SUSPENDED = 'SUSPENDED'
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+  SUSPENDED = 'SUSPENDED',
 }
 
 export enum UserRole {
-    STUDENT = 'STUDENT',
-    MANAGER = 'MANAGER',
+  STUDENT = 'STUDENT',
+  MANAGER = 'MANAGER',
 }
-
-
 
 @Entity('users')
 export class User {
-    @PrimaryGeneratedColumn('uuid')
-    id!: string;
+  @PrimaryGeneratedColumn('uuid')
+  id!: string;
 
-    @Column({
-        type: 'enum',
-        enum: UserRole,
-        default: UserRole.STUDENT,
-    })
-    role!: UserRole;
+  @Column({
+    type: 'enum',
+    enum: UserRole,
+    default: UserRole.STUDENT,
+  })
+  role!: UserRole;
 
-    @Column({type: 'varchar', length: 255})
-    full_name!: string;
+  @Column({ type: 'varchar', length: 255 })
+  full_name!: string;
 
-    @Column({
-        type: 'enum',
-        enum: UserStatus,
-        default: UserStatus.ACTIVE,
-    })
-    status!: UserStatus;
+  @Column({
+    type: 'enum',
+    enum: UserStatus,
+    default: UserStatus.ACTIVE,
+  })
+  status!: UserStatus;
 
-    @Column({ type: 'boolean', default: true})
-    is_active!: boolean;
+  @Column({ type: 'boolean', default: true })
+  is_active!: boolean;
 
-    @Column({ type: 'uuid', nullable: true})
-    restaurant_id!: string | null;
+  @Column({ type: 'uuid', nullable: true })
+  restaurant_id!: string | null;
 
-    @CreateDateColumn()
-    created_at!: Date;
+  @ManyToOne(() => Restaurant, (restaurant) => restaurant.users, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'restaurant_id' })
+  restaurant!: Restaurant | null;
 
-    @UpdateDateColumn()
-    updated_at!: Date;
+  @OneToMany(() => AuthAccount, (authAccount) => authAccount.user)
+  auth_accounts!: AuthAccount[];
 
-    @OneToMany(() => AuthAccount, (authAccount) => authAccount.user)
-    auth_accounts!: AuthAccount[];
+  @OneToMany(() => RefreshToken, (refreshToken) => refreshToken.user)
+  refresh_tokens!: RefreshToken[];
+
+  @OneToMany(() => Reservation, (reservation) => reservation.user)
+  reservations!: Reservation[];
+
+  @CreateDateColumn()
+  created_at!: Date;
+
+  @UpdateDateColumn()
+  updated_at!: Date;
 }

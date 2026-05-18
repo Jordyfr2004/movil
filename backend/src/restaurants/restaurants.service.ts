@@ -1,9 +1,4 @@
-import {
-  ConflictException,
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import {ConflictException,ForbiddenException,Injectable,NotFoundException,} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -64,7 +59,9 @@ export class RestaurantsService {
   }
 
   async findAll() {
-    return await this.restaurantRepo.find();
+    return await this.restaurantRepo.find({
+      where: { is_active: true},
+    });
   }
 
   async findOne(id: string) {

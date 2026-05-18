@@ -1,3 +1,4 @@
+import { Dish } from '../../dishes/entities/dish.entity';
 import {
   Column,
   Entity,
@@ -24,6 +25,13 @@ export class ReservationItem {
 
   @Column({ type: 'uuid' })
   dish_id!: string;
+
+  @ManyToOne(() => Dish, (dish) => dish.reservation_items, {
+    nullable: false,
+    onDelete: 'RESTRICT',
+  })
+  @JoinColumn({ name: 'dish_id' })
+  dish!: Dish;
 
   @Column({ type: 'varchar', length: 255 })
   dish_name!: string;

@@ -1,13 +1,7 @@
-import {
-  ConflictException,
-  Injectable,
-  UnauthorizedException,
-  NotFoundException,
-} from '@nestjs/common';
+import {ConflictException,Injectable,UnauthorizedException,} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as argon2 from 'argon2';
-
 import { AuthAccount, AuthProvider } from './entities/auth-account.entity';
 import { RegisterAuthDto } from './dto/register-auth.dto';
 import { LoginDto } from './dto/login.dto';
@@ -86,6 +80,9 @@ export class AuthService {
 
     const authAccount = await this.authRepo.findOne({
       where: { email },
+      relations: {
+        user: true,
+      }
     });
 
     if (!authAccount) {
@@ -104,9 +101,20 @@ export class AuthService {
     authAccount.last_login_at = new Date();
     await this.authRepo.save(authAccount);
 
+    await this.refreshTokenRepo.update(
+      {
+        user_id: authAccount.user.id,
+        is_revoked: false,
+      }, 
+      {
+        is_revoked: true,
+      },
+    );
+
     const payload = {
-      sub: authAccount.user_id,
+      sub: authAccount.user.id,
       email: authAccount.email,
+      role: authAccount.user.role,
     };
 
     const accessToken = await this.jwtService.signAsync(payload, {
@@ -123,7 +131,7 @@ export class AuthService {
     expiresAt.setDate(expiresAt.getDate() + 7);
 
     const refreshTokenEntity = this.refreshTokenRepo.create({
-      user_id: authAccount.user_id,
+      user_id: authAccount.user.id,
       token_hash: refreshTokenHash,
       is_revoked: false,
       expires_at: expiresAt,
@@ -134,9 +142,10 @@ export class AuthService {
     return {
       message: 'Inicio de sesión exitoso',
       data: {
-        user_id: authAccount.user_id,
+        user_id: authAccount.user.id,
         email: authAccount.email,
         provider: authAccount.provider,
+        role: authAccount.user.role,
         access_token: accessToken,
         refresh_token: refreshToken,
       },
@@ -183,7 +192,7 @@ export class AuthService {
       }
     }
 
-    throw new NotFoundException('Token de sesión no encontrado');
+    throw new UnauthorizedException('Token invalido o expirado');
   }
 
 
@@ -221,20 +230,42 @@ export class AuthService {
 
         throw new UnauthorizedException('Refresh token expirado');
       }
+      tokenRecord.is_revoked = true;
+      await this.refreshTokenRepo.save(tokenRecord);
 
       const newPayload = {
         sub: payload.sub,
         email: payload.email,
+        role: payload.role,
       };
 
-      const accessToken = await this.jwtService.signAsync(newPayload, {
+      const newAccessToken = await this.jwtService.signAsync(newPayload, {
         expiresIn: '15m',
       });
 
+      const newRefreshToken = await this.jwtService.signAsync(newPayload, {
+        expiresIn: '7d',
+      });
+
+      const newRefreshTokenHash = await argon2.hash(newRefreshToken);
+
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
+
+      const newRefreshTokenEntity = this.refreshTokenRepo.create({
+        user_id: payload.sub,
+        token_hash: newRefreshTokenHash,
+        is_revoked: false,
+        expires_at: expiresAt,
+      });
+
+      await this.refreshTokenRepo.save(newRefreshTokenEntity);
+
       return {
-        message: 'Access token renovado correctamente',
+        message: 'Tokens renovados correctamente',
         data: {
-          access_token: accessToken,
+          access_token: newAccessToken,
+          refresh_token: newRefreshToken,
         },
       };
     }

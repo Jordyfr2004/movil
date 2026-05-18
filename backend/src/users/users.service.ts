@@ -1,10 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
-import { AuthAccount } from 'src/auth/entities/auth-account.entity';
+import { AuthAccount } from '../auth/entities/auth-account.entity';
 
 @Injectable()
 export class UsersService {
@@ -15,11 +13,6 @@ export class UsersService {
     @InjectRepository(AuthAccount)
     private readonly authAccountRepo: Repository<AuthAccount>,
   ) {}
-
-
-  create(createUserDto: CreateUserDto) {
-    return 'This action adds a new user';
-  }
 
   async findAll() {
     return  await this.userRepo.find();
@@ -69,7 +62,7 @@ export class UsersService {
     };
   }
 
-  async update(id: string, updateUserDto: UpdateUserDto) {
+  /*async update(id: string, updateUserDto: UpdateUserDto) {
 
     const user = await this.findOne(id);
     Object.assign(user, updateUserDto);
@@ -83,5 +76,5 @@ export class UsersService {
     return {
       message: 'Usuario eliminado correctamente',
     }
-  }
+  }*/
 }

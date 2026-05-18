@@ -1,17 +1,9 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import {BadRequestException,ForbiddenException,Injectable,NotFoundException,} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { Dish } from '../dishes/entities/dish.entity';
-import { User } from '../users/entities/user.entity';
-import {
-  CreateReservationDto,
-  CreateReservationItemDto,
-} from './dto/create-reservation.dto';
+import { User, UserRole } from '../users/entities/user.entity';
+import {CreateReservationDto,CreateReservationItemDto,} from './dto/create-reservation.dto';
 import { Reservation, ReservationStatus } from './entities/reservation.entity';
 import { ReservationItem } from './entities/reservation-item.entity';
 
@@ -20,10 +12,7 @@ export class ReservationsService {
   constructor(
     @InjectRepository(Reservation)
     private readonly reservationRepo: Repository<Reservation>,
-
-    @InjectRepository(ReservationItem)
-    private readonly reservationItemRepo: Repository<ReservationItem>,
-
+    
     @InjectRepository(Dish)
     private readonly dishRepo: Repository<Dish>,
 
@@ -35,6 +24,10 @@ export class ReservationsService {
     const user = await this.userRepo.findOne({ where: { id: user_id } });
     if (!user) {
       throw new ForbiddenException('Usuario no válido');
+    }
+
+    if (user.role !== UserRole.STUDENT){
+      throw new ForbiddenException('Solo los estudiantes pueden hacer reservas');
     }
 
     const items = Array.isArray(createReservationDto?.items)

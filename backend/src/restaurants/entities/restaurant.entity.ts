@@ -1,19 +1,34 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { Dish } from '../../dishes/entities/dish.entity';
+import { User } from '../../users/entities/user.entity';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 @Entity('restaurants')
 export class Restaurant {
-    @PrimaryGeneratedColumn('uuid')
-    id!: string;
+  @PrimaryGeneratedColumn('uuid')
+  id!: string;
 
-    @Column({ type: 'varchar', length: 255 })
-    name!: string;
+  @Column({ type: 'varchar', length: 255 })
+  name!: string;
 
-    @Column({ type: 'boolean', default: true })
-    is_active!: boolean;
+  @Column({ type: 'boolean', default: true })
+  is_active!: boolean;
 
-    @CreateDateColumn()
-    created_at!: Date;
+  @OneToMany(() => Dish, (dish) => dish.restaurant)
+  dishes!: Dish[];
 
-    @UpdateDateColumn()
-    updated_at!: Date;
+  @OneToMany(() => User, (user) => user.restaurant)
+  users!: User[];
+
+  @CreateDateColumn()
+  created_at!: Date;
+
+  @UpdateDateColumn()
+  updated_at!: Date;
 }

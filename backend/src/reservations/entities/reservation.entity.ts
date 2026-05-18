@@ -1,7 +1,10 @@
+import { User } from '../../users/entities/user.entity';
 import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
+  ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -20,6 +23,13 @@ export class Reservation {
 
   @Column({ type: 'uuid' })
   user_id!: string;
+
+  @ManyToOne(() => User, (user) => user.reservations, {
+    nullable: false,
+    onDelete: 'RESTRICT',
+  })
+  @JoinColumn({ name: 'user_id' })
+  user!: User;
 
   @Column({
     type: 'enum',

@@ -1,11 +1,6 @@
-import {
-  Injectable,
-  NotFoundException,
-  ForbiddenException,
-} from '@nestjs/common';
+import {Injectable,NotFoundException,ForbiddenException,} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-
 import { Dish } from './entities/dish.entity';
 import { CreateDishDto } from './dto/create-dish.dto';
 import { UpdateDishDto } from './dto/update-dish.dto';
@@ -55,7 +50,7 @@ export class DishesService {
     }
 
     return await this.dishRepo.find({
-      where: { restaurant_id: user.restaurant_id },
+      where: { restaurant_id: user.restaurant_id, is_active: true },
     });
   }
 
