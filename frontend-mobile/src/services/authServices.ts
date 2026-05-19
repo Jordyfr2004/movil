@@ -22,6 +22,7 @@ export interface RefreshTokenResponse {
   message: string;
   data: {
     access_token: string;
+    refresh_token: string;
   };
 }
 
@@ -63,7 +64,16 @@ async function requestWithTimeout<T>(
       throw new Error("No se pudo conectar con el servidor");
     }
 
-    throw new Error(error?.message || "Ocurrió un error inesperado");
+    const message = error?.message || "Ocurrió un error inesperado";
+
+    // Preserva el status para que los callers puedan reaccionar a 401/403.
+    if (typeof error?.status === "number") {
+      const wrapped: any = new Error(message);
+      wrapped.status = error.status;
+      throw wrapped;
+    }
+
+    throw new Error(message);
   } finally {
     clearTimeout(timeout);
   }

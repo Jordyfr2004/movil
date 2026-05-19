@@ -5,6 +5,7 @@ import { Dish } from './entities/dish.entity';
 import { CreateDishDto } from './dto/create-dish.dto';
 import { UpdateDishDto } from './dto/update-dish.dto';
 import { User, UserRole } from '../users/entities/user.entity';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class DishesService {
@@ -14,6 +15,9 @@ export class DishesService {
 
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+
+    private readonly notificationsService: NotificationsService,
+
   ) {}
 
   private normalizeDescription(value: unknown): string | null {
@@ -31,13 +35,28 @@ export class DishesService {
       throw new ForbiddenException('No tienes permisos para esta acción');
     }
 
+    const existingActiveDishes = await this.dishRepo.count({
+      where: {
+        restaurant_id: user.restaurant_id,
+        is_active: true,
+      }
+    })
+
     const dish = this.dishRepo.create({
       ...createDishDto,
       description: this.normalizeDescription(createDishDto.description),
       restaurant_id: user.restaurant_id,
     });
 
-    return await this.dishRepo.save(dish);
+    const saveDish = await this.dishRepo.save(dish);
+
+    if (existingActiveDishes === 0) {
+      this.notificationsService.notifyMenuAvailable(
+        user.restaurant_id,
+      )
+    }
+
+    return saveDish;
   }
 
   async findAllByManager(user_id: string) {

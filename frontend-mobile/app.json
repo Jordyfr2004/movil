@@ -6,6 +6,11 @@
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": false,
+    "splash": {
+      "image": "./src/assets/images/logo_comedor_uleam_institucional_final.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FAF9F7"
+    },
     "ios": {
       "supportsTablet": true
     },

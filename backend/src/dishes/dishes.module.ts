@@ -5,11 +5,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Dish } from './entities/dish.entity';
 import { User } from '../users/entities/user.entity';
 import { AuthModule } from '../auth/auth.module';
+import { NotificationsModule } from 'src/notifications/notifications.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Dish, User]),
-    AuthModule,
+    AuthModule, NotificationsModule,
   ],
   controllers: [DishesController],
   providers: [DishesService],

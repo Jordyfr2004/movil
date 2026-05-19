@@ -8,6 +8,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DishesModule } from './dishes/dishes.module';
 import { ReservationsModule } from './reservations/reservations.module';
+import { NotificationsGateway } from './notifications/notifications.gateway';
+import { NotificationsModule } from './notifications/notifications.module';
+
+
 
 @Module({
   imports: [
@@ -32,8 +36,9 @@ import { ReservationsModule } from './reservations/reservations.module';
     RestaurantsModule,
     DishesModule,
     ReservationsModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, NotificationsGateway],
 })
 export class AppModule {}

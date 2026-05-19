@@ -58,7 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const response = await refreshTokenRequest(refreshToken);
 
       setAccessToken(response.data.access_token);
-      await saveTokens(response.data.access_token, refreshToken);
+      await saveTokens(response.data.access_token, response.data.refresh_token);
     } catch (error: any) {
       const status = error?.status;
 
@@ -102,7 +102,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       if (refreshToken) {
-        await logoutRequest(refreshToken);
+        try {
+          await logoutRequest(refreshToken);
+        } catch (error: any) {
+          // Logout debe ser best-effort: si el token ya expiró/revocó,
+          // igual limpiamos localmente sin mostrar error al usuario.
+          const status = error?.status;
+          if (status !== 401 && status !== 403) {
+            throw error;
+          }
+        }
       }
     } finally {
       await clearTokens();

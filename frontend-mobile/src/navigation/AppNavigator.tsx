@@ -17,6 +17,7 @@ import { SensorMovimientoScreen } from "../screens/SensorMovimientoScreen";
 import { colors, typography } from "../theme";
 import { useAuth } from "../context/AuthContex";
 import { getProfileBestEffort, UserProfile } from "../services/userService";
+import { useSocketDebug } from "../hooks/useSocketDebug";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -24,6 +25,9 @@ export function AppNavigator() {
   const { isAuthenticated, isLoading, accessToken, user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
+
+  // Solo en DEV: prueba rápida de Socket.IO (alerta al conectar y al recibir eventos).
+  useSocketDebug(accessToken);
 
   useEffect(() => {
     let isActive = true;
