@@ -381,7 +381,8 @@ export function LoginScreen({ navigation }: Props) {
         });
 
         Alert.alert("Éxito", "Inicio de sesión correcto");
-        navigation.replace(ROUTES.Home);
+        // No navegamos manualmente a Home: al autenticarse, AppNavigator
+        // cambia al flujo correspondiente (Drawer/Stack) y abre la pantalla inicial.
       } catch (error) {
         const message =
           error instanceof Error ? error.message : "Error al iniciar sesión";

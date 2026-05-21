@@ -1,21 +1,26 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Screen } from "../components/Screen";
 import { RestaurantCard } from "../components/RestaurantCard";
-import { AppButton } from "../components/AppButton";
 import { useRestaurants } from "../hooks/useRestaurants";
 import { RootStackParamList } from "../navigation/types";
 import { ROUTES } from "../navigation/routes";
-import { mockUser } from "../constants/mockUser";
 import { colors, typography } from "../theme";
 import { spacing } from "../constants/spacing";
+import { useAuth } from "../context/AuthContex";
 
 type Props = NativeStackScreenProps<RootStackParamList, typeof ROUTES.Home>;
 
 export function HomeScreen({ navigation }: Props) {
   const { restaurants, loading } = useRestaurants();
-  const firstName = mockUser.fullName.split(" ")[0] || "";
+  const { user } = useAuth();
+
+  const displayName = useMemo(() => {
+    const email = user?.email?.trim();
+    if (!email) return "";
+    return email.split("@")[0] ?? "";
+  }, [user?.email]);
 
   return (
     <Screen style={styles.container}>
@@ -24,38 +29,13 @@ export function HomeScreen({ navigation }: Props) {
           <View style={styles.heroBlob} />
         </View>
 
-        <Text style={styles.greeting}>Hola{firstName ? `, ${firstName}` : ""}</Text>
+        <Text style={styles.greeting}>
+          Hola{displayName ? `, ${displayName}` : ""}
+        </Text>
         <Text style={styles.heroTitle}>Elige un restaurante y reserva tu menú.</Text>
         <Text style={styles.heroSubtitle}>
           Revisa horarios, disponibilidad y confirma tu cupo.
         </Text>
-
-        <View style={styles.heroActions}>
-          <AppButton
-            label="Mis reservas"
-            variant="secondary"
-            size="sm"
-            onPress={() => navigation.navigate(ROUTES.MyReservations)}
-          />
-          <AppButton
-            label="Acelerómetro"
-            variant="secondary"
-            size="sm"
-            onPress={() => navigation.navigate(ROUTES.SensorMovimiento)}
-          />
-          <AppButton
-            label="Evidencias"
-            variant="secondary"
-            size="sm"
-            onPress={() => navigation.navigate(ROUTES.Evidence)}
-          />
-          <AppButton
-            label="Perfil"
-            variant="secondary"
-            size="sm"
-            onPress={() => navigation.navigate(ROUTES.Profile)}
-          />
-        </View>
       </View>
 
       <View style={styles.sectionHeader}>
@@ -119,9 +99,9 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: -90,
     right: -110,
-    width: 240,
-    height: 240,
-    borderRadius: 240,
+    width: 220,
+    height: 220,
+    borderRadius: 110,
     backgroundColor: colors.primarySoft,
     opacity: 0.9,
   },
@@ -143,12 +123,6 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.md,
     color: colors.textSecondary,
     lineHeight: typography.lineHeights.md,
-  },
-  heroActions: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
-    marginTop: spacing.lg,
   },
   sectionHeader: {
     flexDirection: "row",

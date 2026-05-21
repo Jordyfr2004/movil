@@ -1,10 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/types";
 import { ROUTES } from "../navigation/routes";
 import { Screen } from "../components/Screen";
-import { AppButton } from "../components/AppButton";
 import { StatusBadge } from "../components/StatusBadge";
 import { colors, typography } from "../theme";
 import { spacing } from "../constants/spacing";
@@ -14,8 +13,7 @@ import { getProfileBestEffort, UserProfile } from "../services/userService";
 type Props = NativeStackScreenProps<RootStackParamList, typeof ROUTES.Profile>;
 
 export function ProfileScreen({ navigation }: Props) {
-  const { logout, accessToken, user } = useAuth();
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const { accessToken, user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
@@ -61,27 +59,6 @@ export function ProfileScreen({ navigation }: Props) {
     return source?.trim()?.charAt(0)?.toUpperCase() ?? "U";
   }, [displayName, displayEmail]);
 
-  const handleLogout = async () => {
-    if (isLoggingOut) return;
-
-    try {
-      setIsLoggingOut(true);
-      await logout();
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "No se pudo cerrar sesión";
-      Alert.alert("Error", message);
-    } finally {
-      setIsLoggingOut(false);
-      navigation.reset({
-        index: 0,
-        routes: [{ name: ROUTES.Welcome }],
-      });
-    }
-  };
-
   return (
     <Screen style={styles.container}>
       <View style={styles.header}>
@@ -113,15 +90,6 @@ export function ProfileScreen({ navigation }: Props) {
           <Text style={styles.label}>Rol</Text>
           <Text style={styles.value}>{roleLabel}</Text>
         </View>
-      </View>
-
-      <View style={styles.footer}>
-        <AppButton
-          label="Cerrar sesión"
-          onPress={handleLogout}
-          variant="danger"
-          disabled={isLoggingOut}
-        />
       </View>
     </Screen>
   );
@@ -207,8 +175,5 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.md,
     color: colors.textPrimary,
     fontWeight: typography.weights.semiBold,
-  },
-  footer: {
-    marginTop: "auto",
   },
 });

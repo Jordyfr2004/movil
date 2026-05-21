@@ -9,7 +9,6 @@ import { LoginScreen } from "../screens/LoginScreen";
 import { CreateRestaurantScreen } from "../screens/CreateRestaurantScreen";
 import { ManagerProfileScreen } from "../screens/ManagerProfileScreen";
 import { AddDishScreen } from "../screens/AddDishScreen";
-import { HomeScreen } from "../screens/HomeScreen";
 import { EvidenceScreen } from "../screens/EvidenceScreen";
 import { RestaurantDetailScreen } from "../screens/RestaurantDetailScreen";
 import { MyReservationsScreen } from "../screens/MyReservationsScreen";
@@ -20,6 +19,7 @@ import { useAuth } from "../context/AuthContex";
 import { getProfileBestEffort, UserProfile } from "../services/userService";
 import { useSocketDebug } from "../hooks/useSocketDebug";
 import { DebugToast } from "../components/DebugToast";
+import { StudentDrawerNavigator } from "./StudentDrawerNavigator";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -126,94 +126,97 @@ export function AppNavigator() {
     return null;
   }
 
+  const commonStackScreenOptions = {
+    contentStyle: { backgroundColor: colors.background },
+    headerStyle: { backgroundColor: colors.background },
+    headerTintColor: colors.textPrimary,
+    headerTitleStyle: {
+      color: colors.textPrimary,
+      fontWeight: typography.weights.semiBold,
+      fontSize: typography.sizes.md,
+    },
+    headerShadowVisible: false,
+  } as const;
+
+  const isStudent = isAuthenticated && profile?.role !== "admin";
+
   return (
     <>
-      <Stack.Navigator
-        key={initialRouteName}
-        initialRouteName={initialRouteName}
-        screenOptions={{
-          contentStyle: { backgroundColor: colors.background },
-          headerStyle: { backgroundColor: colors.background },
-          headerTintColor: colors.textPrimary,
-          headerTitleStyle: {
-            color: colors.textPrimary,
-            fontWeight: typography.weights.semiBold,
-            fontSize: typography.sizes.md,
-          },
-          headerShadowVisible: false,
-        }}
-      >
-      <Stack.Screen
-        name={ROUTES.Welcome}
-        component={WelcomeScreen}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name={ROUTES.StudentAccess}
-        component={StudentAccessScreen}
-        options={{ title: "Acceso estudiante" }}
-      />
-      <Stack.Screen
-        name={ROUTES.Login}
-        component={LoginScreen}
-        options={{ title: "Iniciar sesión" }}
-      />
-      <Stack.Screen
-        name={ROUTES.CreateRestaurant}
-        component={CreateRestaurantScreen}
-        options={{
-          title: "Crear restaurante",
-          headerBackVisible: false,
-          gestureEnabled: false,
-        }}
-      />
-      <Stack.Screen
-        name={ROUTES.ManagerProfile}
-        component={ManagerProfileScreen}
-        options={{
-          title: "Mi perfil",
-          headerBackVisible: false,
-          gestureEnabled: false,
-        }}
-      />
-      <Stack.Screen
-        name={ROUTES.AddDish}
-        component={AddDishScreen}
-        options={{
-          title: "Añadir plato",
-        }}
-      />
-      <Stack.Screen
-        name={ROUTES.Home}
-        component={HomeScreen}
-        options={{ title: "Restaurantes ULEAM" }}
-      />
-      <Stack.Screen
-        name={ROUTES.Evidence}
-        component={EvidenceScreen}
-        options={{ title: "Evidencias" }}
-      />
-      <Stack.Screen
-        name={ROUTES.RestaurantDetail}
-        component={RestaurantDetailScreen}
-        options={{ title: "Detalle del restaurante" }}
-      />
-      <Stack.Screen
-        name={ROUTES.MyReservations}
-        component={MyReservationsScreen}
-        options={{ title: "Mis reservas" }}
-      />
-      <Stack.Screen
-        name={ROUTES.Profile}
-        component={ProfileScreen}
-        options={{ title: "Perfil" }}
-      />
-      <Stack.Screen
-        name={ROUTES.SensorMovimiento}
-        component={SensorMovimientoScreen}
-        options={{ title: "Acelerómetro" }}
-      />
-      </Stack.Navigator>
+      {isStudent ? (
+        <StudentDrawerNavigator profile={profile} />
+      ) : (
+        <Stack.Navigator
+          key={initialRouteName}
+          initialRouteName={initialRouteName}
+          screenOptions={commonStackScreenOptions}
+        >
+          <Stack.Screen
+            name={ROUTES.Welcome}
+            component={WelcomeScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name={ROUTES.StudentAccess}
+            component={StudentAccessScreen}
+            options={{ title: "Acceso estudiante" }}
+          />
+          <Stack.Screen
+            name={ROUTES.Login}
+            component={LoginScreen}
+            options={{ title: "Iniciar sesión" }}
+          />
+          <Stack.Screen
+            name={ROUTES.CreateRestaurant}
+            component={CreateRestaurantScreen}
+            options={{
+              title: "Crear restaurante",
+              headerBackVisible: false,
+              gestureEnabled: false,
+            }}
+          />
+          <Stack.Screen
+            name={ROUTES.ManagerProfile}
+            component={ManagerProfileScreen}
+            options={{
+              title: "Mi perfil",
+              headerBackVisible: false,
+              gestureEnabled: false,
+            }}
+          />
+          <Stack.Screen
+            name={ROUTES.AddDish}
+            component={AddDishScreen}
+            options={{
+              title: "Añadir plato",
+            }}
+          />
+          <Stack.Screen
+            name={ROUTES.Evidence}
+            component={EvidenceScreen}
+            options={{ title: "Evidencias" }}
+          />
+          <Stack.Screen
+            name={ROUTES.RestaurantDetail}
+            component={RestaurantDetailScreen}
+            options={{ title: "Detalle del restaurante" }}
+          />
+          <Stack.Screen
+            name={ROUTES.MyReservations}
+            component={MyReservationsScreen}
+            options={{ title: "Mis reservas" }}
+          />
+          <Stack.Screen
+            name={ROUTES.Profile}
+            component={ProfileScreen}
+            options={{ title: "Perfil" }}
+          />
+          <Stack.Screen
+            name={ROUTES.SensorMovimiento}
+            component={SensorMovimientoScreen}
+            options={{ title: "Acelerómetro" }}
+          />
+        </Stack.Navigator>
+      )}
 
       <DebugToast
         visible={Boolean(debugToast)}
