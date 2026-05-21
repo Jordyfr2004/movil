@@ -112,13 +112,31 @@ export class DishesService {
   async update(id: string, updateDishDto: UpdateDishDto, user_id: string) {
     const dish = await this.findOneForManager(id, user_id);
 
+    const previousAvailability = dish.is_available;
+
     Object.assign(dish, updateDishDto);
 
     if (updateDishDto.description !== undefined) {
       dish.description = this.normalizeDescription(updateDishDto.description);
     }
 
-    return await this.dishRepo.save(dish);
+    const saveDish = await this.dishRepo.save(dish);
+
+    if (previousAvailability === true && saveDish.is_available === false ) {
+      this.notificationsService.notifyDishHidden(
+        saveDish.id,
+        saveDish.restaurant_id,
+      );
+    }
+
+    if(previousAvailability === false && saveDish.is_available === true) {
+      this.notificationsService.notifyDishAvailable(
+        saveDish.id,
+        saveDish.restaurant_id,
+      );
+    }
+
+    return saveDish;
   }
 
   async remove(id: string, user_id: string) {

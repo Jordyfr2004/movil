@@ -50,4 +50,18 @@ export class NotificationsGateway implements OnGatewayConnection {
   }) {
     this.server.to('students').emit('menu_available', payload);
   }
+
+  notifyDishHidden(payload: {
+    dish_id: string;
+    restaurant_id: string;
+  }) {
+    this.server.to('students').emit('dish_hidden', payload);
+  }
+
+  notifyDishAvailable(payload: {
+    dish_id: string;
+    restaurant_id: string;
+  }) {
+    this.server.to('students').emit('dish_available', payload);
+  }
 }
