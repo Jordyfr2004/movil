@@ -2,16 +2,8 @@ import { AuthAccount } from '../../auth/entities/auth-account.entity';
 import { RefreshToken } from '../../auth/entities/refresh-token.entity';
 import { Reservation } from '../../reservations/entities/reservation.entity';
 import { Restaurant } from '../../restaurants/entities/restaurant.entity';
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  JoinColumn,
-  ManyToOne,
-  OneToMany,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
-} from 'typeorm';
+import { Payment } from '../../payments/entities/payment.entity';
+import {Column,CreateDateColumn,Entity,JoinColumn,ManyToOne,OneToMany,PrimaryGeneratedColumn,UpdateDateColumn} from 'typeorm';
 
 export enum UserStatus {
   ACTIVE = 'ACTIVE',
@@ -67,6 +59,9 @@ export class User {
 
   @OneToMany(() => Reservation, (reservation) => reservation.user)
   reservations!: Reservation[];
+
+  @OneToMany(() => Payment, (payment) => payment.user)
+  payments!: Payment[];
 
   @CreateDateColumn()
   created_at!: Date;

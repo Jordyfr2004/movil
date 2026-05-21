@@ -26,7 +26,7 @@ type ApiEnvelope<T> = {
 };
 
 type CreateReservationPayload = {
-  items: Array<{ dish_id: string }>;
+  items: Array<{ dish_id: string; quantity: number }>;
 };
 
 async function requestWithTimeout<T>(
@@ -70,12 +70,38 @@ async function requestWithTimeout<T>(
 }
 
 function normalizeStatus(value: unknown): ReservationStatus {
-  if (typeof value !== "string") return "confirmed";
-  const upper = value.toUpperCase();
-  if (upper === "CANCELLED" || upper === "CANCELED") return "cancelled";
-  if (upper === "CONFIRMED") return "confirmed";
-  if (value.toLowerCase() === "cancelled") return "cancelled";
-  return "confirmed";
+  if (typeof value !== "string") return "pending_payment";
+
+  const trimmed = value.trim();
+  const upper = trimmed.toUpperCase();
+  const lower = trimmed.toLowerCase();
+
+  if (upper === "PENDING_PAYMENT" || lower === "pending_payment") {
+    return "pending_payment";
+  }
+
+  if (upper === "CONFIRMED" || lower === "confirmed") {
+    return "confirmed";
+  }
+
+  if (
+    upper === "CANCELLED" ||
+    upper === "CANCELED" ||
+    lower === "cancelled" ||
+    lower === "canceled"
+  ) {
+    return "cancelled";
+  }
+
+  if (upper === "EXPIRED" || lower === "expired") {
+    return "expired";
+  }
+
+  if (upper === "COMPLETED" || lower === "completed") {
+    return "completed";
+  }
+
+  return "pending_payment";
 }
 
 function normalizeNumber(value: unknown): number {

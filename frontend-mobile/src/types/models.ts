@@ -1,6 +1,11 @@
 export type UserRole = "student" | "admin";
 
-export type ReservationStatus = "confirmed" | "cancelled";
+export type ReservationStatus =
+  | "pending_payment"
+  | "confirmed"
+  | "cancelled"
+  | "expired"
+  | "completed";
 
 export type User = {
   id: number;

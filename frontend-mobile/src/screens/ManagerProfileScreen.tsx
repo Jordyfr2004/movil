@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, FlatList, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, FlatList, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 
@@ -17,6 +17,7 @@ import {
   deleteDish,
   Dish,
   getManagerDishes,
+  updateDish,
 } from "../services/dishService";
 
 type Props = NativeStackScreenProps<
@@ -30,6 +31,7 @@ export function ManagerProfileScreen({ navigation }: Props) {
   const [isLoadingDishes, setIsLoadingDishes] = useState(false);
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [removingDishId, setRemovingDishId] = useState<string | null>(null);
+  const [togglingDishId, setTogglingDishId] = useState<string | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [restaurantName, setRestaurantName] = useState<string>("");
 
@@ -168,6 +170,33 @@ export function ManagerProfileScreen({ navigation }: Props) {
     );
   };
 
+  const handleToggleHidden = async (dish: Dish, nextHiddenValue: boolean) => {
+    if (!accessToken) {
+      Alert.alert("Sesión no disponible", "Vuelve a iniciar sesión.");
+      return;
+    }
+
+    if (togglingDishId) {
+      return;
+    }
+
+    try {
+      setTogglingDishId(dish.id);
+      await updateDish(accessToken, dish.id, {
+        is_active: !nextHiddenValue,
+      });
+      await loadDishes();
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "No se pudo actualizar el plato";
+      Alert.alert("Error", message);
+    } finally {
+      setTogglingDishId(null);
+    }
+  };
+
   return (
     <Screen style={styles.container}>
       <ScrollView
@@ -255,6 +284,21 @@ export function ManagerProfileScreen({ navigation }: Props) {
                 </View>
 
                 <View style={styles.dishActions}>
+                  <View style={styles.dishToggleRow}>
+                    <StatusBadge
+                      label={item.isActive ? "Visible" : "Oculto"}
+                      tone={item.isActive ? "success" : "danger"}
+                    />
+                    <View style={styles.toggleContainer}>
+                      <Text style={styles.toggleLabel}>Ocultar</Text>
+                      <Switch
+                        value={!item.isActive}
+                        onValueChange={(value) => handleToggleHidden(item, value)}
+                        disabled={Boolean(togglingDishId) || Boolean(removingDishId)}
+                      />
+                    </View>
+                  </View>
+
                   <AppButton
                     label="Editar"
                     size="sm"
@@ -444,9 +488,21 @@ const styles = StyleSheet.create({
     lineHeight: typography.lineHeights.sm,
   },
   dishActions: {
+    alignItems: "flex-end",
+    gap: spacing.xs,
+  },
+  dishToggleRow: {
+    alignItems: "flex-end",
+    gap: spacing.xs,
+  },
+  toggleContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
+    gap: spacing.xs,
+  },
+  toggleLabel: {
+    fontSize: typography.sizes.xs,
+    color: colors.textSecondary,
   },
   emptyDishes: {
     paddingTop: spacing.md,

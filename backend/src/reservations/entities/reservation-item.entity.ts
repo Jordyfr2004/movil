@@ -42,6 +42,9 @@ export class ReservationItem {
   @Column({ type: 'uuid' })
   restaurant_id!: string;
 
+  @Column({ type: 'integer', default:1 })
+  quantity!: number;
+
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   unit_price!: string;
 }

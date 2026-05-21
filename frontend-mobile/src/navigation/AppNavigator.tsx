@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { ENABLE_WS_DEBUG } from "../constants/api";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ROUTES } from "./routes";
 import { RootStackParamList } from "./types";
@@ -18,6 +19,7 @@ import { colors, typography } from "../theme";
 import { useAuth } from "../context/AuthContex";
 import { getProfileBestEffort, UserProfile } from "../services/userService";
 import { useSocketDebug } from "../hooks/useSocketDebug";
+import { DebugToast } from "../components/DebugToast";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -26,8 +28,48 @@ export function AppNavigator() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
 
-  // Solo en DEV: prueba rápida de Socket.IO (alerta al conectar y al recibir eventos).
-  useSocketDebug(accessToken);
+  const [debugToast, setDebugToast] = useState<
+    { title: string; message?: string } | null
+  >(null);
+  const debugToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showDebugToast = (title: string, message?: string) => {
+    if (!ENABLE_WS_DEBUG) return;
+
+    setDebugToast({ title, message });
+
+    if (debugToastTimerRef.current) {
+      clearTimeout(debugToastTimerRef.current);
+    }
+
+    // “Unos minutos” para observar pruebas sin molestar demasiado.
+    debugToastTimerRef.current = setTimeout(() => {
+      setDebugToast(null);
+      debugToastTimerRef.current = null;
+    }, 120_000);
+  };
+
+  // Solo en DEV: prueba rápida de Socket.IO (sin alertas intrusivas).
+  useSocketDebug(accessToken, {
+    onMenuAvailable: (payload) => {
+      showDebugToast(
+        "Evento socket: menu_available",
+        payload?.message || "Llegó un evento desde el servidor."
+      );
+    },
+    onError: (message) => {
+      // Si quieres cero UI también para errores, comenta esta línea.
+      showDebugToast("Socket error", message);
+    },
+  });
+
+  useEffect(() => {
+    return () => {
+      if (debugToastTimerRef.current) {
+        clearTimeout(debugToastTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     let isActive = true;
@@ -85,21 +127,22 @@ export function AppNavigator() {
   }
 
   return (
-    <Stack.Navigator
-      key={initialRouteName}
-      initialRouteName={initialRouteName}
-      screenOptions={{
-        contentStyle: { backgroundColor: colors.background },
-        headerStyle: { backgroundColor: colors.background },
-        headerTintColor: colors.textPrimary,
-        headerTitleStyle: {
-          color: colors.textPrimary,
-          fontWeight: typography.weights.semiBold,
-          fontSize: typography.sizes.md,
-        },
-        headerShadowVisible: false,
-      }}
-    >
+    <>
+      <Stack.Navigator
+        key={initialRouteName}
+        initialRouteName={initialRouteName}
+        screenOptions={{
+          contentStyle: { backgroundColor: colors.background },
+          headerStyle: { backgroundColor: colors.background },
+          headerTintColor: colors.textPrimary,
+          headerTitleStyle: {
+            color: colors.textPrimary,
+            fontWeight: typography.weights.semiBold,
+            fontSize: typography.sizes.md,
+          },
+          headerShadowVisible: false,
+        }}
+      >
       <Stack.Screen
         name={ROUTES.Welcome}
         component={WelcomeScreen}
@@ -170,6 +213,14 @@ export function AppNavigator() {
         component={SensorMovimientoScreen}
         options={{ title: "Acelerómetro" }}
       />
-    </Stack.Navigator>
+      </Stack.Navigator>
+
+      <DebugToast
+        visible={Boolean(debugToast)}
+        title={debugToast?.title ?? ""}
+        message={debugToast?.message}
+        onClose={() => setDebugToast(null)}
+      />
+    </>
   );
 }

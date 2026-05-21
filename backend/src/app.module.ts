@@ -8,13 +8,14 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DishesModule } from './dishes/dishes.module';
 import { ReservationsModule } from './reservations/reservations.module';
-import { NotificationsGateway } from './notifications/notifications.gateway';
 import { NotificationsModule } from './notifications/notifications.module';
-
+import { ScheduleModule } from '@nestjs/schedule';
+import { PaymentsModule } from './payments/payments.module';
 
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
     }),
@@ -37,8 +38,9 @@ import { NotificationsModule } from './notifications/notifications.module';
     DishesModule,
     ReservationsModule,
     NotificationsModule,
+    PaymentsModule,
   ],
   controllers: [AppController],
-  providers: [AppService, NotificationsGateway],
+  providers: [AppService],
 })
 export class AppModule {}

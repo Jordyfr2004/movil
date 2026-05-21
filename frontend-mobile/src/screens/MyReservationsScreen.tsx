@@ -30,10 +30,27 @@ export function MyReservationsScreen({}: Props) {
     }, [reload])
   );
 
-  const confirmedCount = useMemo(
-    () => reservations.filter((r) => r.status === "confirmed").length,
-    [reservations]
-  );
+  const activeCount = useMemo(() => {
+    return reservations.filter(
+      (r) => r.status === "confirmed" || r.status === "pending_payment"
+    ).length;
+  }, [reservations]);
+
+  const getStatusBadge = (status: (typeof reservations)[number]["status"]) => {
+    switch (status) {
+      case "confirmed":
+        return { label: "Confirmada", tone: "success" as const };
+      case "pending_payment":
+        return { label: "Pendiente de pago", tone: "success" as const };
+      case "completed":
+        return { label: "Completada", tone: "success" as const };
+      case "expired":
+        return { label: "Expirada", tone: "danger" as const };
+      case "cancelled":
+      default:
+        return { label: "Cancelada", tone: "danger" as const };
+    }
+  };
 
   const handleCancel = async (reservationId: string) => {
     if (isCancelling) {
@@ -78,8 +95,8 @@ export function MyReservationsScreen({}: Props) {
         <Text style={styles.subtitle}>
           {loading
             ? "Cargando tus reservas…"
-            : confirmedCount > 0
-              ? `Tienes ${confirmedCount} reserva${confirmedCount === 1 ? "" : "s"} activa${confirmedCount === 1 ? "" : "s"}.`
+            : activeCount > 0
+              ? `Tienes ${activeCount} reserva${activeCount === 1 ? "" : "s"} activa${activeCount === 1 ? "" : "s"}.`
               : "No tienes reservas activas por ahora."}
         </Text>
       </View>
@@ -94,10 +111,15 @@ export function MyReservationsScreen({}: Props) {
               <Text style={styles.cardTitle} numberOfLines={1}>
                 {item.title}
               </Text>
-              <StatusBadge
-                label={item.status === "confirmed" ? "Confirmada" : "Cancelada"}
-                tone={item.status === "confirmed" ? "success" : "danger"}
-              />
+              {(() => {
+                const badge = getStatusBadge(item.status);
+                return (
+                  <StatusBadge
+                    label={badge.label}
+                    tone={badge.tone}
+                  />
+                );
+              })()}
             </View>
 
             <Text style={styles.cardSubtitle} numberOfLines={1}>
@@ -107,7 +129,7 @@ export function MyReservationsScreen({}: Props) {
               {formatReservationDate(item.reservationDate)}
             </Text>
 
-            {item.status === "confirmed" ? (
+            {item.status === "confirmed" || item.status === "pending_payment" ? (
               <View style={styles.cardFooter}>
                 <AppButton
                   label={isCancelling ? "Cancelando…" : "Cancelar"}

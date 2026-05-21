@@ -69,7 +69,9 @@ export class DishesService {
     }
 
     return await this.dishRepo.find({
-      where: { restaurant_id: user.restaurant_id, is_active: true },
+      // El manager necesita ver también los platos inactivos para poder
+      // volver a activarlos (ocultar/mostrar).
+      where: { restaurant_id: user.restaurant_id },
     });
   }
 

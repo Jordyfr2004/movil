@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-import { Alert } from "react-native";
 import { io, Socket } from "socket.io-client";
 import { ENABLE_WS_DEBUG, SOCKET_URL } from "../constants/api";
 
@@ -14,18 +13,27 @@ type ServerToClientEvents = {
 
 type ClientToServerEvents = Record<string, never>;
 
-function safeStringify(value: unknown) {
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return String(value);
-  }
-}
+type UseSocketDebugOptions = {
+  onMenuAvailable?: (payload: MenuAvailablePayload) => void;
+  onConnect?: (socketId: string) => void;
+  onError?: (message: string) => void;
+};
 
-export function useSocketDebug(accessToken: string | null) {
+export function useSocketDebug(accessToken: string | null): void;
+export function useSocketDebug(
+  accessToken: string | null,
+  options?: UseSocketDebugOptions
+): void;
+export function useSocketDebug(
+  accessToken: string | null,
+  options: UseSocketDebugOptions = {}
+) {
   const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
-  const didShowConnectAlert = useRef(false);
-  const didShowErrorAlert = useRef(false);
+  const didNotifyConnect = useRef(false);
+  const didNotifyError = useRef(false);
+  const optionsRef = useRef<UseSocketDebugOptions>(options);
+
+  optionsRef.current = options;
 
   useEffect(() => {
     if (!ENABLE_WS_DEBUG) return;
@@ -46,24 +54,21 @@ export function useSocketDebug(accessToken: string | null) {
     socketRef.current = socket;
 
     socket.on("connect", () => {
-      didShowErrorAlert.current = false;
+      didNotifyError.current = false;
+      console.log("[socket] connected:", { url: SOCKET_URL, id: socket.id });
 
-      if (!didShowConnectAlert.current) {
-        didShowConnectAlert.current = true;
-        Alert.alert(
-          "Socket conectado",
-          `Conectado a ${SOCKET_URL}\nID: ${socket.id}`
-        );
+      if (!didNotifyConnect.current) {
+        didNotifyConnect.current = true;
+        optionsRef.current.onConnect?.(socket.id ?? "");
       }
     });
 
     socket.on("connect_error", (error) => {
-      if (didShowErrorAlert.current) return;
-      didShowErrorAlert.current = true;
-
-      Alert.alert(
-        "Socket error",
-        `No se pudo conectar al socket.\n${error?.message ?? "Error desconocido"}`
+      console.log("[socket] connect_error:", error?.message ?? error);
+      if (didNotifyError.current) return;
+      didNotifyError.current = true;
+      optionsRef.current.onError?.(
+        error?.message ?? "No se pudo conectar al socket"
       );
     });
 
@@ -73,10 +78,8 @@ export function useSocketDebug(accessToken: string | null) {
     });
 
     socket.on("menu_available", (payload) => {
-      Alert.alert(
-        "Evento socket: menu_available",
-        payload?.message || safeStringify(payload)
-      );
+      console.log("[socket] menu_available:", payload);
+      optionsRef.current.onMenuAvailable?.(payload);
     });
 
     return () => {
@@ -86,8 +89,8 @@ export function useSocketDebug(accessToken: string | null) {
       socket.off("menu_available");
       socket.disconnect();
       socketRef.current = null;
-      didShowConnectAlert.current = false;
-      didShowErrorAlert.current = false;
+      didNotifyConnect.current = false;
+      didNotifyError.current = false;
     };
   }, [accessToken]);
 }

@@ -41,12 +41,14 @@ export function RestaurantDetailScreen({ navigation, route }: Props) {
     try {
       setIsCheckingReservation(true);
       const list = await getMyReservations(accessToken);
-      const confirmedDishIds = list
-        .filter((r) => r.status === "confirmed")
+      const activeDishIds = list
+        .filter(
+          (r) => r.status === "confirmed" || r.status === "pending_payment"
+        )
         .map((r) => r.items?.[0]?.dishId)
         .filter((id): id is string => Boolean(id));
 
-      setReservedDishIds(Array.from(new Set(confirmedDishIds)));
+      setReservedDishIds(Array.from(new Set(activeDishIds)));
     } catch {
       setReservedDishIds([]);
     } finally {
@@ -84,7 +86,7 @@ export function RestaurantDetailScreen({ navigation, route }: Props) {
     try {
       setIsReservingDishId(dishId);
       await createReservation(accessToken, {
-        items: [{ dish_id: dishId }],
+        items: [{ dish_id: dishId, quantity: 1 }],
       });
 
       setReservedDishIds((previous) =>
