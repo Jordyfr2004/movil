@@ -183,7 +183,7 @@ export function ManagerProfileScreen({ navigation }: Props) {
     try {
       setTogglingDishId(dish.id);
       await updateDish(accessToken, dish.id, {
-        is_active: !nextHiddenValue,
+        is_available: !nextHiddenValue,
       });
       await loadDishes();
     } catch (error) {
@@ -286,13 +286,13 @@ export function ManagerProfileScreen({ navigation }: Props) {
                 <View style={styles.dishActions}>
                   <View style={styles.dishToggleRow}>
                     <StatusBadge
-                      label={item.isActive ? "Visible" : "Oculto"}
-                      tone={item.isActive ? "success" : "danger"}
+                      label={item.isAvailable ? "Visible" : "Oculto"}
+                      tone={item.isAvailable ? "success" : "danger"}
                     />
                     <View style={styles.toggleContainer}>
                       <Text style={styles.toggleLabel}>Ocultar</Text>
                       <Switch
-                        value={!item.isActive}
+                        value={!item.isAvailable}
                         onValueChange={(value) => handleToggleHidden(item, value)}
                         disabled={Boolean(togglingDishId) || Boolean(removingDishId)}
                       />
