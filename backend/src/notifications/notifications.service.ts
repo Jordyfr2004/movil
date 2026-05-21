@@ -29,4 +29,22 @@ export class NotificationsService {
             restaurant_id,
         });
     }
+
+    notifyDishCreated(dish: any) {
+        this.notificationsGateway.notifyDishCreated({ dish });
+    }
+
+    notifyDishUpdated(dish: any) {
+        this.notificationsGateway.notifyDishUpdated({ dish });
+    }
+
+    notifyDishDeleted(dish_id: string, restaurant_id: string    
+    ) {
+        this.notificationsGateway.notifyDishDeleted({
+            dish_id,
+            restaurant_id,
+        });
+    }
+
+
 }

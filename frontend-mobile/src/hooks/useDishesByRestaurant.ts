@@ -1,17 +1,30 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { io, Socket } from "socket.io-client";
-import { SOCKET_URL } from "../constants/api";
 import { useAuth } from "../context/AuthContex";
+import { acquireNotificationsSocket, releaseNotificationsSocket } from "../services/notificationsSocket";
 import { Dish, getPublicDishesByRestaurant } from "../services/dishService";
+import type { Socket } from "socket.io-client";
 
 type DishAvailabilityPayload = {
   dish_id: string;
   restaurant_id: string;
 };
 
+type MenuAvailablePayload = {
+  restaurant_id: string;
+  message: string;
+};
+
+type DishChangedPayload = {
+  dish: any;
+};
+
 type ServerToClientEvents = {
+  menu_available: (payload: MenuAvailablePayload) => void;
   dish_hidden: (payload: DishAvailabilityPayload) => void;
   dish_available: (payload: DishAvailabilityPayload) => void;
+  dish_created: (payload: DishChangedPayload) => void;
+  dish_updated: (payload: DishChangedPayload) => void;
+  dish_deleted: (payload: DishAvailabilityPayload) => void;
 };
 
 type ClientToServerEvents = Record<string, never>;
@@ -83,23 +96,21 @@ export function useDishesByRestaurant(restaurantId: string) {
     if (!accessToken) return;
     if (!restaurantId) return;
 
-    const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
-      SOCKET_URL,
-      {
-        transports: ["websocket"],
-        auth: {
-          token: accessToken,
-        },
-        autoConnect: true,
-        reconnection: true,
-      }
-    );
+    const socket = acquireNotificationsSocket(accessToken) as Socket<
+      ServerToClientEvents,
+      ClientToServerEvents
+    >;
 
     socketRef.current = socket;
 
     const shouldHandle = (payload: DishAvailabilityPayload) => {
       const rid = String(payload?.restaurant_id ?? "");
       return rid.length > 0 && rid === String(restaurantIdRef.current);
+    };
+
+    const shouldHandleRestaurantId = (rid: unknown) => {
+      const normalized = String(rid ?? "");
+      return normalized.length > 0 && normalized === String(restaurantIdRef.current);
     };
 
     const handleDishHidden = (payload: DishAvailabilityPayload) => {
@@ -120,14 +131,53 @@ export function useDishesByRestaurant(restaurantId: string) {
       scheduleRefresh(450);
     };
 
+    const handleMenuAvailable = (payload: MenuAvailablePayload) => {
+      if (!shouldHandleRestaurantId(payload?.restaurant_id)) return;
+      scheduleRefresh(450);
+    };
+
+    const handleDishCreated = (payload: DishChangedPayload) => {
+      const dish = payload?.dish;
+      const rid = dish?.restaurant_id ?? dish?.restaurantId;
+      if (!shouldHandleRestaurantId(rid)) return;
+      scheduleRefresh(450);
+    };
+
+    const handleDishUpdated = (payload: DishChangedPayload) => {
+      const dish = payload?.dish;
+      const rid = dish?.restaurant_id ?? dish?.restaurantId;
+      if (!shouldHandleRestaurantId(rid)) return;
+      scheduleRefresh(450);
+    };
+
+    const handleDishDeleted = (payload: DishAvailabilityPayload) => {
+      if (!shouldHandle(payload)) return;
+
+      const dishId = String(payload?.dish_id ?? "");
+      if (dishId) {
+        setDishes((previous) => previous.filter((dish) => String(dish.id) !== dishId));
+      }
+
+      scheduleRefresh(450);
+    };
+
+    socket.on("menu_available", handleMenuAvailable);
     socket.on("dish_hidden", handleDishHidden);
     socket.on("dish_available", handleDishAvailable);
+    socket.on("dish_created", handleDishCreated);
+    socket.on("dish_updated", handleDishUpdated);
+    socket.on("dish_deleted", handleDishDeleted);
 
     return () => {
+      socket.off("menu_available", handleMenuAvailable);
       socket.off("dish_hidden", handleDishHidden);
       socket.off("dish_available", handleDishAvailable);
-      socket.disconnect();
+      socket.off("dish_created", handleDishCreated);
+      socket.off("dish_updated", handleDishUpdated);
+      socket.off("dish_deleted", handleDishDeleted);
       socketRef.current = null;
+
+      releaseNotificationsSocket(accessToken);
     };
   }, [accessToken, restaurantId, refreshDishes, scheduleRefresh]);
 

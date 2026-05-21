@@ -50,6 +50,10 @@ export class DishesService {
 
     const saveDish = await this.dishRepo.save(dish);
 
+    if (saveDish.is_active && saveDish.is_available) {
+      this.notificationsService.notifyDishCreated(saveDish);
+    }
+
     if (existingActiveDishes === 0) {
       this.notificationsService.notifyMenuAvailable(
         user.restaurant_id,
@@ -127,22 +131,27 @@ export class DishesService {
         saveDish.id,
         saveDish.restaurant_id,
       );
-    }
-
-    if(previousAvailability === false && saveDish.is_available === true) {
+    } else if (previousAvailability === false && saveDish.is_available === true) {
       this.notificationsService.notifyDishAvailable(
         saveDish.id,
         saveDish.restaurant_id,
       );
-    }
 
+      this.notificationsService.notifyDishCreated(saveDish);
+    } else if (saveDish.is_active && saveDish.is_available) {
+      this.notificationsService.notifyDishUpdated(saveDish);
+    }
     return saveDish;
   }
 
   async remove(id: string, user_id: string) {
     const dish = await this.findOneForManager(id, user_id);
 
+    const dishId = dish.id;
+    const restaurantId = dish.restaurant_id;
+
     await this.dishRepo.remove(dish);
+    this.notificationsService.notifyDishDeleted(dishId, restaurantId);
 
     return {
       message: 'Plato eliminado correctamente',

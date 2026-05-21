@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
-import { io, Socket } from "socket.io-client";
 import { ENABLE_WS_DEBUG, SOCKET_URL } from "../constants/api";
+import { acquireNotificationsSocket, releaseNotificationsSocket } from "../services/notificationsSocket";
+import type { Socket } from "socket.io-client";
 
 type MenuAvailablePayload = {
   restaurant_id: string;
@@ -39,17 +40,10 @@ export function useSocketDebug(
     if (!ENABLE_WS_DEBUG) return;
     if (!accessToken) return;
 
-    const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
-      SOCKET_URL,
-      {
-        transports: ["websocket"],
-        auth: {
-          token: accessToken,
-        },
-        autoConnect: true,
-        reconnection: true,
-      }
-    );
+    const socket = acquireNotificationsSocket(accessToken) as Socket<
+      ServerToClientEvents,
+      ClientToServerEvents
+    >;
 
     socketRef.current = socket;
 
@@ -87,10 +81,11 @@ export function useSocketDebug(
       socket.off("connect_error");
       socket.off("disconnect");
       socket.off("menu_available");
-      socket.disconnect();
       socketRef.current = null;
       didNotifyConnect.current = false;
       didNotifyError.current = false;
+
+      releaseNotificationsSocket(accessToken);
     };
   }, [accessToken]);
 }
