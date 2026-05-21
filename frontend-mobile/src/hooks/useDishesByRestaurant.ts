@@ -23,6 +23,7 @@ export function useDishesByRestaurant(restaurantId: string) {
   const restaurantIdRef = useRef(restaurantId);
   const refreshSeqRef = useRef(0);
   const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
+  const refreshDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   restaurantIdRef.current = restaurantId;
 
@@ -54,9 +55,29 @@ export function useDishesByRestaurant(restaurantId: string) {
     }
   }, []);
 
+  const scheduleRefresh = useCallback((delayMs: number) => {
+    if (refreshDebounceTimerRef.current) {
+      clearTimeout(refreshDebounceTimerRef.current);
+    }
+
+    refreshDebounceTimerRef.current = setTimeout(() => {
+      refreshDebounceTimerRef.current = null;
+      refreshDishes(false);
+    }, delayMs);
+  }, [refreshDishes]);
+
   useEffect(() => {
     refreshDishes(true);
   }, [restaurantId, refreshDishes]);
+
+  useEffect(() => {
+    return () => {
+      if (refreshDebounceTimerRef.current) {
+        clearTimeout(refreshDebounceTimerRef.current);
+        refreshDebounceTimerRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!accessToken) return;
@@ -83,13 +104,20 @@ export function useDishesByRestaurant(restaurantId: string) {
 
     const handleDishHidden = (payload: DishAvailabilityPayload) => {
       if (!shouldHandle(payload)) return;
-      // Refresco en segundo plano para mantener consistencia con backend.
-      refreshDishes(false);
+      const dishId = String(payload?.dish_id ?? "");
+      if (dishId) {
+        // Update inmediato: el plato oculto desaparece al instante.
+        setDishes((previous) => previous.filter((dish) => String(dish.id) !== dishId));
+      }
+
+      // Refresco con debounce para evitar tormenta de GETs si se ocultan muchos platos.
+      scheduleRefresh(450);
     };
 
     const handleDishAvailable = (payload: DishAvailabilityPayload) => {
       if (!shouldHandle(payload)) return;
-      refreshDishes(false);
+      // No tenemos los detalles del plato; refrescamos con debounce.
+      scheduleRefresh(450);
     };
 
     socket.on("dish_hidden", handleDishHidden);
@@ -101,7 +129,7 @@ export function useDishesByRestaurant(restaurantId: string) {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [accessToken, restaurantId, refreshDishes]);
+  }, [accessToken, restaurantId, refreshDishes, scheduleRefresh]);
 
   return { dishes, loading };
 }

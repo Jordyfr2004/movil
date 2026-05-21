@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, FlatList, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { Alert, FlatList, StyleSheet, Switch, Text, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 
@@ -180,13 +180,34 @@ export function ManagerProfileScreen({ navigation }: Props) {
       return;
     }
 
+    const nextIsAvailable = !nextHiddenValue;
+    const previousIsAvailable = dish.isAvailable;
+
     try {
       setTogglingDishId(dish.id);
+
+      // Optimista: evita “rebote” del switch en listas grandes.
+      setDishes((previous) =>
+        previous.map((item) =>
+          String(item.id) === String(dish.id)
+            ? { ...item, isAvailable: nextIsAvailable }
+            : item
+        )
+      );
+
       await updateDish(accessToken, dish.id, {
-        is_available: !nextHiddenValue,
+        is_available: nextIsAvailable,
       });
-      await loadDishes();
     } catch (error) {
+      // Revertimos si falló.
+      setDishes((previous) =>
+        previous.map((item) =>
+          String(item.id) === String(dish.id)
+            ? { ...item, isAvailable: previousIsAvailable }
+            : item
+        )
+      );
+
       const message =
         error instanceof Error
           ? error.message
@@ -199,146 +220,149 @@ export function ManagerProfileScreen({ navigation }: Props) {
 
   return (
     <Screen style={styles.container}>
-      <ScrollView
+      <FlatList
+        data={dishes}
+        keyExtractor={(item) => String(item.id)}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
-      >
-        <View style={styles.header}>
-          <Text style={styles.title}>Mi perfil</Text>
-          <Text style={styles.subtitle}>
-            Administra tu restaurante y añade tus platos.
-          </Text>
-        </View>
-
-        <View style={styles.card}>
-          <View style={styles.profileRow}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{initial}</Text>
-            </View>
-            <View style={styles.profileText}>
-              <Text style={styles.name} numberOfLines={1}>
-                {displayName}
-              </Text>
-              <Text style={styles.email} numberOfLines={1}>
-                {displayEmail}
+        initialNumToRender={12}
+        windowSize={7}
+        maxToRenderPerBatch={12}
+        updateCellsBatchingPeriod={50}
+        removeClippedSubviews
+        ListHeaderComponent={
+          <>
+            <View style={styles.header}>
+              <Text style={styles.title}>Mi perfil</Text>
+              <Text style={styles.subtitle}>
+                Administra tu restaurante y añade tus platos.
               </Text>
             </View>
-            <StatusBadge label="Manager" tone="success" />
-          </View>
 
-          <View style={styles.divider} />
-
-          <View style={styles.field}>
-            <Text style={styles.label}>Restaurante</Text>
-            <Text style={styles.value} numberOfLines={2}>
-              {restaurantName || "—"}
-            </Text>
-          </View>
-
-          <View style={styles.actions}>
-            <AppButton
-              label="Añadir platos"
-              onPress={() => navigation.navigate(ROUTES.AddDish)}
-            />
-
-            <AppButton
-              label={isLoggingOut ? "Cerrando sesión…" : "Cerrar sesión"}
-              onPress={handleLogout}
-              variant="danger"
-              disabled={isLoggingOut}
-            />
-          </View>
-        </View>
-
-        <View style={styles.dishesCard}>
-          <View style={styles.dishesHeader}>
-            <Text style={styles.dishesTitle}>Mis platos</Text>
-            <Text style={styles.dishesSubtitle}>
-              {isLoadingDishes
-                ? "Cargando tus platos…"
-                : dishes.length > 0
-                  ? `Tienes ${dishes.length} plato${dishes.length === 1 ? "" : "s"}.`
-                  : "Aún no has añadido platos."}
-            </Text>
-          </View>
-
-          <FlatList
-            data={dishes}
-            keyExtractor={(item) => String(item.id)}
-            contentContainerStyle={styles.dishesList}
-            scrollEnabled={false}
-            renderItem={({ item }) => (
-              <View style={styles.dishRow}>
-                <View style={styles.dishText}>
-                  <Text style={styles.dishName} numberOfLines={1}>
-                    {item.name}
+            <View style={styles.card}>
+              <View style={styles.profileRow}>
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>{initial}</Text>
+                </View>
+                <View style={styles.profileText}>
+                  <Text style={styles.name} numberOfLines={1}>
+                    {displayName}
                   </Text>
-                  {item.description ? (
-                    <Text style={styles.dishDescription} numberOfLines={2}>
-                      {item.description}
-                    </Text>
-                  ) : null}
-                  <Text style={styles.dishMeta} numberOfLines={1}>
-                    ${item.price}
+                  <Text style={styles.email} numberOfLines={1}>
+                    {displayEmail}
                   </Text>
                 </View>
+                <StatusBadge label="Manager" tone="success" />
+              </View>
 
-                <View style={styles.dishActions}>
-                  <View style={styles.dishToggleRow}>
-                    <StatusBadge
-                      label={item.isAvailable ? "Visible" : "Oculto"}
-                      tone={item.isAvailable ? "success" : "danger"}
+              <View style={styles.divider} />
+
+              <View style={styles.field}>
+                <Text style={styles.label}>Restaurante</Text>
+                <Text style={styles.value} numberOfLines={2}>
+                  {restaurantName || "—"}
+                </Text>
+              </View>
+
+              <View style={styles.actions}>
+                <AppButton
+                  label="Añadir platos"
+                  onPress={() => navigation.navigate(ROUTES.AddDish)}
+                />
+
+                <AppButton
+                  label={isLoggingOut ? "Cerrando sesión…" : "Cerrar sesión"}
+                  onPress={handleLogout}
+                  variant="danger"
+                  disabled={isLoggingOut}
+                />
+              </View>
+            </View>
+
+            <View style={styles.dishesCard}>
+              <View style={styles.dishesHeader}>
+                <Text style={styles.dishesTitle}>Mis platos</Text>
+                <Text style={styles.dishesSubtitle}>
+                  {isLoadingDishes
+                    ? "Cargando tus platos…"
+                    : dishes.length > 0
+                      ? `Tienes ${dishes.length} plato${dishes.length === 1 ? "" : "s"}.`
+                      : "Aún no has añadido platos."}
+                </Text>
+              </View>
+            </View>
+          </>
+        }
+        renderItem={({ item }) => (
+          <View style={[styles.dishesCard, styles.dishesCardInner]}>
+            <View style={styles.dishRow}>
+              <View style={styles.dishText}>
+                <Text style={styles.dishName} numberOfLines={1}>
+                  {item.name}
+                </Text>
+                {item.description ? (
+                  <Text style={styles.dishDescription} numberOfLines={2}>
+                    {item.description}
+                  </Text>
+                ) : null}
+                <Text style={styles.dishMeta} numberOfLines={1}>
+                  ${item.price}
+                </Text>
+              </View>
+
+              <View style={styles.dishActions}>
+                <View style={styles.dishToggleRow}>
+                  <StatusBadge
+                    label={item.isAvailable ? "Visible" : "Oculto"}
+                    tone={item.isAvailable ? "success" : "danger"}
+                  />
+                  <View style={styles.toggleContainer}>
+                    <Text style={styles.toggleLabel}>Ocultar</Text>
+                    <Switch
+                      value={!item.isAvailable}
+                      onValueChange={(value) => handleToggleHidden(item, value)}
+                      disabled={Boolean(togglingDishId) || Boolean(removingDishId)}
                     />
-                    <View style={styles.toggleContainer}>
-                      <Text style={styles.toggleLabel}>Ocultar</Text>
-                      <Switch
-                        value={!item.isAvailable}
-                        onValueChange={(value) => handleToggleHidden(item, value)}
-                        disabled={Boolean(togglingDishId) || Boolean(removingDishId)}
-                      />
-                    </View>
                   </View>
-
-                  <AppButton
-                    label="Editar"
-                    size="sm"
-                    variant="secondary"
-                    onPress={() =>
-                      navigation.navigate(ROUTES.AddDish, {
-                        dish: {
-                          id: item.id,
-                          name: item.name,
-                          description: item.description,
-                          price: item.price,
-                        },
-                      })
-                    }
-                  />
-                  <AppButton
-                    label={
-                      removingDishId === item.id ? "Eliminando…" : "Eliminar"
-                    }
-                    size="sm"
-                    variant="danger"
-                    disabled={Boolean(removingDishId)}
-                    onPress={() => confirmRemoveDish(item)}
-                  />
                 </View>
+
+                <AppButton
+                  label="Editar"
+                  size="sm"
+                  variant="secondary"
+                  onPress={() =>
+                    navigation.navigate(ROUTES.AddDish, {
+                      dish: {
+                        id: item.id,
+                        name: item.name,
+                        description: item.description,
+                        price: item.price,
+                      },
+                    })
+                  }
+                />
+                <AppButton
+                  label={removingDishId === item.id ? "Eliminando…" : "Eliminar"}
+                  size="sm"
+                  variant="danger"
+                  disabled={Boolean(removingDishId)}
+                  onPress={() => confirmRemoveDish(item)}
+                />
               </View>
-            )}
-            ListEmptyComponent={
-              <View style={styles.emptyDishes}>
-                <Text style={styles.emptyDishesTitle}>
-                  {isLoadingDishes ? "Cargando…" : "Sin platos"}
-                </Text>
-                <Text style={styles.emptyDishesSubtitle}>
-                  Pulsa “Añadir platos” para crear tu primer plato.
-                </Text>
-              </View>
-            }
-          />
-        </View>
-      </ScrollView>
+            </View>
+          </View>
+        )}
+        ListEmptyComponent={
+          <View style={[styles.dishesCard, styles.emptyDishes]}>
+            <Text style={styles.emptyDishesTitle}>
+              {isLoadingDishes ? "Cargando…" : "Sin platos"}
+            </Text>
+            <Text style={styles.emptyDishesSubtitle}>
+              Pulsa “Añadir platos” para crear tu primer plato.
+            </Text>
+          </View>
+        }
+      />
     </Screen>
   );
 }
@@ -349,6 +373,9 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: spacing.lg,
+  },
+  dishesCardInner: {
+    marginTop: 0,
   },
   header: {
     gap: spacing.xs,
