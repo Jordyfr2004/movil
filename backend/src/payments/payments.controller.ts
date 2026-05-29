@@ -1,7 +1,9 @@
-import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Headers, Post, Req, UseGuards } from '@nestjs/common';
 import { PaymentsService } from './payments.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto';
+import type { Request } from 'express';
+import type { RawBodyRequest } from '@nestjs/common';
 
 @Controller('payments')
 export class PaymentsController {
@@ -15,4 +17,10 @@ export class PaymentsController {
       req.user.user_id,
     )
   }
+
+  @Post('webhook')
+  handleStripeWebhook(@Req() req: RawBodyRequest<Request>,@Headers('stripe-signature') signature: string) {
+    return this.paymentsService.handleStripeWebhook(req.rawBody!, signature)
+  }
+
 }

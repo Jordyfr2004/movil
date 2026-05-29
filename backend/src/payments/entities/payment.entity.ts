@@ -38,6 +38,9 @@ export class Payment {
   @Column({ type: 'varchar', length: 255, nullable: true })
   stripe_payment_intent_id!: string | null;
 
+  @Column({ type: 'varchar', length: 225, nullable: true})
+  stripe_event_id!: string | null;
+
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   amount!: string;
 

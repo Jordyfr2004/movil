@@ -75,4 +75,88 @@ export class PaymentsService {
             payment_intent_id: paymentIntent.id,
         };
     }
+
+    async handleStripeWebhook(rawBody: Buffer, signature: string,) {
+
+
+        const webhookSecret =process.env.STRIPE_WEBHOOK_SECRET;
+
+        if (!webhookSecret) {
+            throw new BadRequestException('Webhook secret no configurado',);
+        }
+
+        type StripeWebhookEvent = ReturnType<typeof this.stripe.webhooks.constructEvent>;
+
+        let event: StripeWebhookEvent;
+
+        try {
+            event = this.stripe.webhooks.constructEvent(
+                rawBody,
+                signature,
+                webhookSecret,
+            );
+        } catch {
+            throw new BadRequestException('Firma inválida');
+        }
+
+        if (
+            event.type === 'payment_intent.succeeded'
+        ) {
+            const paymentIntent = event.data.object as { id: string };
+
+            const payment = await this.paymentRepo.findOne({
+                where: {
+                    stripe_payment_intent_id: paymentIntent.id,
+                },
+                relations: {
+                    reservation: true,
+                },
+            });
+
+            if (!payment) {
+                throw new NotFoundException('Pago no encontrado',);
+            }
+
+            if (payment.status === PaymentStatus.PAID) {
+                return {
+                    received: true,
+                };
+            }
+
+            const existingEvent = await this.paymentRepo.findOne({
+                where:{
+                    stripe_payment_intent_id: paymentIntent.id,
+                }
+            });
+
+            if (existingEvent) {
+                return {
+                    received: true,
+                }
+            }
+
+            payment.status = PaymentStatus.PAID;
+
+            payment.paid_at = new Date();
+
+            payment.stripe_event_id = event.id;
+
+            payment.reservation.status = ReservationStatus.CONFIRMED;
+
+            payment.reservation.paid_at = new Date();
+
+            payment.reservation.confirmed_at = new Date();
+
+            payment.stripe_payment_intent_id = paymentIntent.id;
+
+            await this.paymentRepo.manager.transaction(
+                async (manager) => { await manager.save(payment.reservation);
+                    await manager.save( payment);
+                },
+            );
+        }
+        return {
+            received: true,
+        };
+    }
 }
