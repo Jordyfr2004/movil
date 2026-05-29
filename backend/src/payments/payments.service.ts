@@ -52,6 +52,9 @@ export class PaymentsService {
         const paymentIntent = await this.stripe.paymentIntents.create({
             amount: amountInCents,
             currency: process.env.STRIPE_CURRENCY ??'usd',
+            automatic_payment_methods: {
+                enabled: true,
+            },
 
             metadata: {
                 reservation_id: reservation.id,
@@ -123,16 +126,10 @@ export class PaymentsService {
                 };
             }
 
-            const existingEvent = await this.paymentRepo.findOne({
-                where:{
-                    stripe_payment_intent_id: paymentIntent.id,
-                }
-            });
-
-            if (existingEvent) {
+            if (payment.stripe_event_id && payment.stripe_event_id === event.id) {
                 return {
                     received: true,
-                }
+                };
             }
 
             payment.status = PaymentStatus.PAID;

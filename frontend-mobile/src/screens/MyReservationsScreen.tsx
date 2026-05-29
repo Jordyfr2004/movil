@@ -13,6 +13,9 @@ import { formatReservationDate } from "../utils/date";
 import { colors, typography } from "../theme";
 import { spacing } from "../constants/spacing";
 import { useAuth } from "../context/AuthContex";
+import { useStripe } from "@stripe/stripe-react-native";
+import { STRIPE_PUBLISHABLE_KEY } from "../constants/stripe";
+import { createPaymentIntent } from "../services/paymentService";
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
@@ -23,6 +26,8 @@ export function MyReservationsScreen({}: Props) {
   const { accessToken } = useAuth();
   const { reservations, loading, reload } = useReservations(accessToken);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [payingReservationId, setPayingReservationId] = useState<string | null>(null);
+  const { initPaymentSheet, presentPaymentSheet } = useStripe();
 
   useFocusEffect(
     useCallback(() => {
@@ -88,6 +93,55 @@ export function MyReservationsScreen({}: Props) {
     );
   };
 
+  const handlePay = async (reservationId: string) => {
+    if (payingReservationId) {
+      return;
+    }
+
+    if (!STRIPE_PUBLISHABLE_KEY) {
+      Alert.alert(
+        "Falta configurar Stripe",
+        "Define EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY (pk_test_...) y reinicia la app."
+      );
+      return;
+    }
+
+    if (!accessToken) {
+      Alert.alert("Sesión requerida", "Inicia sesión para pagar la reserva.");
+      return;
+    }
+
+    try {
+      setPayingReservationId(reservationId);
+
+      const intent = await createPaymentIntent(accessToken, reservationId);
+      if (!intent.clientSecret) {
+        throw new Error("No se recibió clientSecret del servidor");
+      }
+
+      const init = await initPaymentSheet({
+        merchantDisplayName: "Movil",
+        paymentIntentClientSecret: intent.clientSecret,
+      });
+
+      if (init.error) {
+        throw new Error(init.error.message);
+      }
+
+      const presented = await presentPaymentSheet();
+      if (presented.error) {
+        throw new Error(presented.error.message);
+      }
+
+      Alert.alert("Pago completado", "Pago realizado. Actualizando reserva…");
+      await reload();
+    } catch (error: any) {
+      Alert.alert("Error", error?.message || "No se pudo completar el pago");
+    } finally {
+      setPayingReservationId(null);
+    }
+  };
+
   return (
     <Screen style={styles.container}>
       <View style={styles.header}>
@@ -131,6 +185,17 @@ export function MyReservationsScreen({}: Props) {
 
             {item.status === "confirmed" || item.status === "pending_payment" ? (
               <View style={styles.cardFooter}>
+                {item.status === "pending_payment" ? (
+                  <AppButton
+                    label={
+                      payingReservationId === item.id ? "Procesando…" : "Pagar"
+                    }
+                    onPress={() => handlePay(item.id)}
+                    variant="primary"
+                    size="sm"
+                    disabled={Boolean(payingReservationId) || isCancelling}
+                  />
+                ) : null}
                 <AppButton
                   label={isCancelling ? "Cancelando…" : "Cancelar"}
                   onPress={() => confirmCancel(item.id)}
@@ -221,6 +286,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     flexDirection: "row",
     justifyContent: "flex-end",
+    gap: spacing.sm,
   },
   emptyCard: {
     backgroundColor: colors.surfaceMuted,

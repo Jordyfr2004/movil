@@ -29,7 +29,7 @@ import { PaymentsModule } from './payments/payments.module';
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_NAME'),
         autoLoadEntities: true,
-        //synscronize: true//
+        //synchronize: true//
         synchronize: configService.get<string>('TYPEORM_SYNCHRONIZE') === 'true',
       }),
     }),
