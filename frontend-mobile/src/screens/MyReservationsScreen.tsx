@@ -196,13 +196,15 @@ export function MyReservationsScreen({}: Props) {
                     disabled={Boolean(payingReservationId) || isCancelling}
                   />
                 ) : null}
-                <AppButton
-                  label={isCancelling ? "Cancelando…" : "Cancelar"}
-                  onPress={() => confirmCancel(item.id)}
-                  variant="danger"
-                  size="sm"
-                  disabled={isCancelling}
-                />
+                {item.status === "pending_payment" ? (
+                  <AppButton
+                    label={isCancelling ? "Cancelando…" : "Cancelar"}
+                    onPress={() => confirmCancel(item.id)}
+                    variant="danger"
+                    size="sm"
+                    disabled={isCancelling || payingReservationId === item.id}
+                  />
+                ) : null}
               </View>
             ) : null}
           </View>

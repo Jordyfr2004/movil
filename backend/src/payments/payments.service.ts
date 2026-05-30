@@ -102,9 +102,7 @@ export class PaymentsService {
             throw new BadRequestException('Firma inválida');
         }
 
-        if (
-            event.type === 'payment_intent.succeeded'
-        ) {
+        if (event.type === 'payment_intent.succeeded') {
             const paymentIntent = event.data.object as { id: string };
 
             const payment = await this.paymentRepo.findOne({
@@ -120,6 +118,7 @@ export class PaymentsService {
                 throw new NotFoundException('Pago no encontrado',);
             }
 
+            // Idempotencia: si ya procesamos este pago/evento, no hacemos nada.
             if (payment.status === PaymentStatus.PAID) {
                 return {
                     received: true,
@@ -132,25 +131,24 @@ export class PaymentsService {
                 };
             }
 
-            payment.status = PaymentStatus.PAID;
+            const paidAt = new Date();
 
-            payment.paid_at = new Date();
+            await this.paymentRepo.manager.transaction(async (manager) => {
+                payment.status = PaymentStatus.PAID;
+                payment.paid_at = paidAt;
+                payment.stripe_event_id = event.id;
+                payment.stripe_payment_intent_id = paymentIntent.id;
 
-            payment.stripe_event_id = event.id;
+                // Solo confirmamos la reserva si todavía está pendiente.
+                if (payment.reservation.status === ReservationStatus.PENDING_PAYMENT) {
+                    payment.reservation.status = ReservationStatus.CONFIRMED;
+                    payment.reservation.paid_at = paidAt;
+                    payment.reservation.confirmed_at = paidAt;
+                    await manager.save(payment.reservation);
+                }
 
-            payment.reservation.status = ReservationStatus.CONFIRMED;
-
-            payment.reservation.paid_at = new Date();
-
-            payment.reservation.confirmed_at = new Date();
-
-            payment.stripe_payment_intent_id = paymentIntent.id;
-
-            await this.paymentRepo.manager.transaction(
-                async (manager) => { await manager.save(payment.reservation);
-                    await manager.save( payment);
-                },
-            );
+                await manager.save(payment);
+            });
         }
         return {
             received: true,

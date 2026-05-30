@@ -1,6 +1,7 @@
 import {BadRequestException,ForbiddenException,Injectable,NotFoundException,} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
+import Stripe from 'stripe';
 import { Dish } from '../dishes/entities/dish.entity';
 import { User, UserRole } from '../users/entities/user.entity';
 import {CreateReservationDto,CreateReservationItemDto,} from './dto/create-reservation.dto';
@@ -8,9 +9,12 @@ import {Reservation,ReservationStatus,} from './entities/reservation.entity';
 import { ReservationItem } from './entities/reservation-item.entity';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { LessThan } from 'typeorm';
+import { PaymentStatus } from '../payments/entities/payment.entity';
 
 @Injectable()
 export class ReservationsService {
+  private readonly stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+
   constructor(
     @InjectRepository(Reservation)
     private readonly reservationRepo: Repository<Reservation>,
@@ -202,6 +206,9 @@ export class ReservationsService {
   async cancel(reservationId: string,user_id: string,) {
     const reservation = await this.reservationRepo.findOne({
         where: { id: reservationId },
+        relations: {
+          payments: true,
+        },
       });
 
     if (!reservation) {
@@ -210,6 +217,40 @@ export class ReservationsService {
 
     if (reservation.user_id !== user_id) {
       throw new ForbiddenException('No tienes permisos para esta acción');
+    }
+
+    // Si ya existe un pago marcado como PAID en BD, no se puede cancelar.
+    if (Array.isArray(reservation.payments) && reservation.payments.some((p) => p.status === PaymentStatus.PAID)) {
+      throw new BadRequestException('No puedes cancelar una reserva pagada');
+    }
+
+    // Cierra la ventana: si Stripe ya lo marcó como succeeded pero el webhook aún no corrió, bloqueamos la cancelación.
+    const latestPayment = Array.isArray(reservation.payments)
+      ? reservation.payments
+          .filter((p) => !!p.stripe_payment_intent_id)
+          .sort((a, b) => {
+            const aTime = a.created_at instanceof Date ? a.created_at.getTime() : new Date(a.created_at as any).getTime();
+            const bTime = b.created_at instanceof Date ? b.created_at.getTime() : new Date(b.created_at as any).getTime();
+            return bTime - aTime;
+          })[0]
+      : undefined;
+
+    if (latestPayment?.stripe_payment_intent_id) {
+      try {
+        const intent = await this.stripe.paymentIntents.retrieve(latestPayment.stripe_payment_intent_id);
+        if (intent.status === 'succeeded') {
+          throw new BadRequestException('No puedes cancelar una reserva pagada');
+        }
+      } catch (err) {
+        // Si Stripe falla, no asumimos pago; seguimos con las validaciones por estado.
+        if (err instanceof BadRequestException) {
+          throw err;
+        }
+      }
+    }
+
+    if (reservation.status === ReservationStatus.CONFIRMED){
+      throw new BadRequestException('No puedes cancelar una reserva confirmada');
     }
 
     if (reservation.status ===ReservationStatus.CANCELLED) {
@@ -225,6 +266,10 @@ export class ReservationsService {
     
     if (reservation.status === ReservationStatus.COMPLETED) {
       throw new BadRequestException('No puedes cancelar una reserva completada');
+    }
+
+    if (reservation.status !== ReservationStatus.PENDING_PAYMENT) {
+      throw new BadRequestException('Solo puedes cancelar una reserva pendiente de pago');
     }
 
     reservation.status = ReservationStatus.CANCELLED;
