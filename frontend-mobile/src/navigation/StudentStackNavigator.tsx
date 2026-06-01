@@ -3,17 +3,13 @@ import { Pressable, StyleSheet } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import { RootStackParamList } from "./types";
-import { ROUTES } from "./routes";
-
 import { HomeScreen } from "../screens/HomeScreen";
-import { EvidenceScreen } from "../screens/EvidenceScreen";
 import { RestaurantDetailScreen } from "../screens/RestaurantDetailScreen";
 import { MyReservationsScreen } from "../screens/MyReservationsScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
-import { SensorMovimientoScreen } from "../screens/SensorMovimientoScreen";
-
 import { colors, typography } from "../theme";
+import { ROUTES } from "./routes";
+import { RootStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -43,7 +39,6 @@ export function StudentStackNavigator() {
               accessibilityLabel="Abrir menú"
               onPress={() => {
                 const parent = navigation.getParent();
-                // Drawer navigator vive arriba del stack.
                 (parent as any)?.openDrawer?.();
               }}
               hitSlop={10}
@@ -71,16 +66,6 @@ export function StudentStackNavigator() {
         name={ROUTES.MyReservations}
         component={MyReservationsScreen}
         options={{ title: "Mis reservas" }}
-      />
-      <Stack.Screen
-        name={ROUTES.Evidence}
-        component={EvidenceScreen}
-        options={{ title: "Evidencias" }}
-      />
-      <Stack.Screen
-        name={ROUTES.SensorMovimiento}
-        component={SensorMovimientoScreen}
-        options={{ title: "Acelerómetro" }}
       />
       <Stack.Screen
         name={ROUTES.Profile}

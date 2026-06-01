@@ -1,6 +1,4 @@
-import { API_URL } from "../constants/api";
-
-const REQUEST_TIMEOUT = 20000;
+import { httpClient } from "../api";
 
 export type Dish = {
   id: string;
@@ -20,7 +18,6 @@ type DishApi = {
   price: string;
   is_available: boolean;
   is_active: boolean;
-  // algunos backends/frontends devuelven camelCase
   restaurantId?: string;
   descriptionText?: string | null;
   isAvailable?: boolean;
@@ -36,46 +33,6 @@ type CreateDishPayload = {
 };
 
 type UpdateDishPayload = Partial<CreateDishPayload>;
-
-async function requestWithTimeout<T>(
-  endpoint: string,
-  options: RequestInit
-): Promise<T> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
-
-  try {
-    const response = await fetch(`${API_URL}${endpoint}`, {
-      ...options,
-      signal: controller.signal,
-    });
-
-    const result = await response.json().catch(() => null);
-
-    if (!response.ok) {
-      const error: any = new Error(result?.message || "Error en la solicitud");
-      error.status = response.status;
-      throw error;
-    }
-
-    return result as T;
-  } catch (error: any) {
-    if (error?.name === "AbortError") {
-      throw new Error("El servidor tardó demasiado en responder");
-    }
-
-    if (
-      error?.message?.includes("Network request failed") ||
-      error?.message?.toLowerCase?.().includes("network")
-    ) {
-      throw new Error("No se pudo conectar con el servidor");
-    }
-
-    throw new Error(error?.message || "Ocurrió un error inesperado");
-  } finally {
-    clearTimeout(timeout);
-  }
-}
 
 function normalizeDish(item: any): Dish {
   const api = item as Partial<DishApi>;
@@ -112,11 +69,8 @@ export async function getPublicDishesByRestaurant(
 ): Promise<Dish[]> {
   if (!restaurantId) return [];
 
-  const result = await requestWithTimeout<any>(
-    `/dishes/restaurant/${encodeURIComponent(restaurantId)}`,
-    {
-      method: "GET",
-    }
+  const result = await httpClient.get<any>(
+    `/dishes/restaurant/${encodeURIComponent(restaurantId)}`
   );
 
   const payload = Array.isArray((result as any)?.data)
@@ -134,13 +88,8 @@ export async function createDish(
   accessToken: string,
   payload: CreateDishPayload
 ): Promise<Dish> {
-  const result = await requestWithTimeout<any>("/dishes", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
-    },
-    body: JSON.stringify(payload),
+  const result = await httpClient.post<any>("/dishes", payload, {
+    accessToken,
   });
 
   const created = (result as any)?.data ?? result;
@@ -148,11 +97,8 @@ export async function createDish(
 }
 
 export async function getManagerDishes(accessToken: string): Promise<Dish[]> {
-  const result = await requestWithTimeout<any>("/dishes", {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
+  const result = await httpClient.get<any>("/dishes", {
+    accessToken,
   });
 
   const payload = Array.isArray((result as any)?.data)
@@ -171,15 +117,11 @@ export async function updateDish(
   dishId: string,
   payload: UpdateDishPayload
 ): Promise<Dish> {
-  const result = await requestWithTimeout<any>(
+  const result = await httpClient.patch<any>(
     `/dishes/${encodeURIComponent(dishId)}`,
+    payload,
     {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify(payload),
+      accessToken,
     }
   );
 
@@ -191,10 +133,7 @@ export async function deleteDish(
   accessToken: string,
   dishId: string
 ): Promise<{ message?: string } | any> {
-  return requestWithTimeout<any>(`/dishes/${encodeURIComponent(dishId)}`, {
-    method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
+  return httpClient.delete<any>(`/dishes/${encodeURIComponent(dishId)}`, {
+    accessToken,
   });
 }

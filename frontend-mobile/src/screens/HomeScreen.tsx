@@ -1,19 +1,24 @@
 import React, { useMemo } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { Screen } from "../components/Screen";
+
+import { Card } from "../components/Card";
+import { EmptyState } from "../components/EmptyState";
+import { ErrorMessage } from "../components/ErrorMessage";
+import { LoadingState } from "../components/LoadingState";
 import { RestaurantCard } from "../components/RestaurantCard";
-import { useRestaurants } from "../hooks/useRestaurants";
-import { RootStackParamList } from "../navigation/types";
-import { ROUTES } from "../navigation/routes";
-import { colors, typography } from "../theme";
+import { Screen } from "../components/Screen";
 import { spacing } from "../constants/spacing";
-import { useAuth } from "../context/AuthContex";
+import { useAuth } from "../context/AuthContext";
+import { useRestaurants } from "../hooks/useRestaurants";
+import { ROUTES } from "../navigation/routes";
+import { RootStackParamList } from "../navigation/types";
+import { colors, typography } from "../theme";
 
 type Props = NativeStackScreenProps<RootStackParamList, typeof ROUTES.Home>;
 
 export function HomeScreen({ navigation }: Props) {
-  const { restaurants, loading } = useRestaurants();
+  const { restaurants, loading, error, reload } = useRestaurants();
   const { user } = useAuth();
 
   const displayName = useMemo(() => {
@@ -24,7 +29,7 @@ export function HomeScreen({ navigation }: Props) {
 
   return (
     <Screen style={styles.container}>
-      <View style={styles.hero}>
+      <Card style={styles.hero}>
         <View style={styles.heroBg} pointerEvents="none">
           <View style={styles.heroBlob} />
         </View>
@@ -32,11 +37,13 @@ export function HomeScreen({ navigation }: Props) {
         <Text style={styles.greeting}>
           Hola{displayName ? `, ${displayName}` : ""}
         </Text>
-        <Text style={styles.heroTitle}>Elige un restaurante y reserva tu menú.</Text>
+        <Text style={styles.heroTitle}>
+          Elige un restaurante y reserva tu menú.
+        </Text>
         <Text style={styles.heroSubtitle}>
           Revisa horarios, disponibilidad y confirma tu cupo.
         </Text>
-      </View>
+      </Card>
 
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Restaurantes</Text>
@@ -58,16 +65,26 @@ export function HomeScreen({ navigation }: Props) {
           />
         )}
         ListEmptyComponent={
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>
-              {loading ? "Cargando restaurantes…" : "Sin restaurantes activos"}
-            </Text>
-            <Text style={styles.emptySubtitle}>
-              {loading
-                ? "Esto puede tomar unos segundos."
-                : "Vuelve más tarde para ver opciones disponibles."}
-            </Text>
-          </View>
+          loading ? (
+            <LoadingState
+              message="Esto puede tomar unos segundos."
+              style={styles.feedbackState}
+            />
+          ) : error ? (
+            <ErrorMessage
+              title="No se pudieron cargar los restaurantes"
+              message={error}
+              onRetry={reload}
+              style={styles.feedbackState}
+            />
+          ) : (
+            <EmptyState
+              title="Sin restaurantes activos"
+              message="Vuelve más tarde para ver opciones disponibles."
+              iconName="silverware-fork-knife"
+              style={styles.feedbackState}
+            />
+          )
         }
       />
     </Screen>
@@ -79,18 +96,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   hero: {
-    backgroundColor: colors.surface,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.lg,
     marginBottom: spacing.xl,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 1,
   },
   heroBg: {
     ...StyleSheet.absoluteFillObject,
@@ -143,23 +150,7 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     paddingBottom: spacing.xl,
   },
-  emptyCard: {
-    backgroundColor: colors.surfaceMuted,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.lg,
+  feedbackState: {
     marginTop: spacing.sm,
-  },
-  emptyTitle: {
-    fontSize: typography.sizes.md,
-    fontWeight: typography.weights.bold,
-    color: colors.textPrimary,
-    marginBottom: spacing.xs,
-  },
-  emptySubtitle: {
-    fontSize: typography.sizes.sm,
-    color: colors.textSecondary,
-    lineHeight: typography.lineHeights.sm,
   },
 });

@@ -1,6 +1,4 @@
-import { API_URL } from "../constants/api";
-
-const REQUEST_TIMEOUT = 20000;
+import { httpClient } from "../api";
 
 export interface LoginPayload {
   email: string;
@@ -30,91 +28,24 @@ export interface LogoutResponse {
   message: string;
 }
 
-async function requestWithTimeout<T>(
-  endpoint: string,
-  options: RequestInit
-): Promise<T> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
-
-  try {
-    const response = await fetch(`${API_URL}${endpoint}`, {
-      ...options,
-      signal: controller.signal,
-    });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      const error: any = new Error(result?.message || "Error en la solicitud");
-      error.status = response.status;
-      throw error;
-    }
-
-    return result;
-  } catch (error: any) {
-    if (error?.name === "AbortError") {
-      throw new Error("El servidor tardó demasiado en responder");
-    }
-
-    if (
-      error?.message?.includes("Network request failed") ||
-      error?.message?.toLowerCase?.().includes("network")
-    ) {
-      throw new Error("No se pudo conectar con el servidor");
-    }
-
-    const message = error?.message || "Ocurrió un error inesperado";
-
-    // Preserva el status para que los callers puedan reaccionar a 401/403.
-    if (typeof error?.status === "number") {
-      const wrapped: any = new Error(message);
-      wrapped.status = error.status;
-      throw wrapped;
-    }
-
-    throw new Error(message);
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
 export async function loginRequest(
   payload: LoginPayload
 ): Promise<LoginSuccessResponse> {
-  return requestWithTimeout<LoginSuccessResponse>("/auth/login", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
+  return httpClient.post<LoginSuccessResponse>("/auth/login", payload);
 }
 
 export async function refreshTokenRequest(
   refreshToken: string
 ): Promise<RefreshTokenResponse> {
-  return requestWithTimeout<RefreshTokenResponse>("/auth/refresh", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      refresh_token: refreshToken,
-    }),
+  return httpClient.post<RefreshTokenResponse>("/auth/refresh", {
+    refresh_token: refreshToken,
   });
 }
 
 export async function logoutRequest(
   refreshToken: string
 ): Promise<LogoutResponse> {
-  return requestWithTimeout<LogoutResponse>("/auth/logout", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      refresh_token: refreshToken,
-    }),
+  return httpClient.post<LogoutResponse>("/auth/logout", {
+    refresh_token: refreshToken,
   });
 }

@@ -1,7 +1,5 @@
-import { API_URL } from "../constants/api";
+import { httpClient } from "../api";
 import { Restaurant } from "../types/models";
-
-const REQUEST_TIMEOUT = 20000;
 
 type RestaurantApi = {
   id: string;
@@ -21,46 +19,6 @@ type RestaurantCreateResponse = {
   data?: RestaurantApi;
 };
 
-async function requestWithTimeout<T>(
-  endpoint: string,
-  options: RequestInit
-): Promise<T> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
-
-  try {
-    const response = await fetch(`${API_URL}${endpoint}`, {
-      ...options,
-      signal: controller.signal,
-    });
-
-    const result = await response.json().catch(() => null);
-
-    if (!response.ok) {
-      const error: any = new Error(result?.message || "Error en la solicitud");
-      error.status = response.status;
-      throw error;
-    }
-
-    return result as T;
-  } catch (error: any) {
-    if (error?.name === "AbortError") {
-      throw new Error("El servidor tardó demasiado en responder");
-    }
-
-    if (
-      error?.message?.includes("Network request failed") ||
-      error?.message?.toLowerCase?.().includes("network")
-    ) {
-      throw new Error("No se pudo conectar con el servidor");
-    }
-
-    throw new Error(error?.message || "Ocurrió un error inesperado");
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
 function normalizeRestaurant(item: any): Restaurant {
   const isActive = Boolean(item?.is_active ?? item?.isActive ?? item?.active);
 
@@ -74,9 +32,7 @@ function normalizeRestaurant(item: any): Restaurant {
 }
 
 export async function getRestaurants(): Promise<Restaurant[]> {
-  const result = await requestWithTimeout<any>("/restaurants", {
-    method: "GET",
-  });
+  const result = await httpClient.get<any>("/restaurants");
 
   const payload = Array.isArray(result?.data) ? result.data : result;
   const list = Array.isArray(payload) ? payload : [];
@@ -90,15 +46,11 @@ export async function createRestaurant(
   accessToken: string,
   payload: RestaurantCreatePayload
 ): Promise<Restaurant> {
-  const result = await requestWithTimeout<RestaurantCreateResponse>(
+  const result = await httpClient.post<RestaurantCreateResponse>(
     "/restaurants",
+    payload,
     {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify(payload),
+      accessToken,
     }
   );
 
@@ -111,10 +63,8 @@ export async function getRestaurantById(
 ): Promise<Restaurant | null> {
   if (!restaurantId) return null;
 
-  const result = await requestWithTimeout<any>(`/restaurants/${restaurantId}`,
-    {
-      method: "GET",
-    }
+  const result = await httpClient.get<any>(
+    `/restaurants/${encodeURIComponent(restaurantId)}`
   );
 
   const payload = (result as any)?.data ?? result;

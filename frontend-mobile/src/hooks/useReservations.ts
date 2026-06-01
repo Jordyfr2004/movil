@@ -21,15 +21,18 @@ function buildReservationTitle(reservation: Reservation) {
 export function useReservations(accessToken: string | null) {
   const [reservations, setReservations] = useState<ReservationListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const reload = useCallback(() => {
     if (!accessToken) {
       setReservations([]);
       setLoading(false);
+      setError(null);
       return Promise.resolve();
     }
 
     setLoading(true);
+    setError(null);
 
     return Promise.allSettled([getMyReservations(accessToken), getRestaurants()])
       .then((results) => {
@@ -63,11 +66,21 @@ export function useReservations(accessToken: string | null) {
         });
 
         setReservations(enriched);
+
+        if (reservationsResult.status === "rejected") {
+          setError(
+            reservationsResult.reason instanceof Error
+              ? reservationsResult.reason.message
+              : "No se pudieron cargar las reservas"
+          );
+        } else {
+          setError(null);
+        }
       })
       .finally(() => {
         setLoading(false);
       });
   }, [accessToken]);
 
-  return { reservations, loading, reload };
+  return { reservations, loading, error, reload };
 }

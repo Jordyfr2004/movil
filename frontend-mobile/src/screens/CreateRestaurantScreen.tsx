@@ -2,15 +2,16 @@ import React, { useMemo, useState } from "react";
 import { Alert, StyleSheet, Text, View } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 
-import { Screen } from "../components/Screen";
-import { AppInput } from "../components/AppInput";
 import { AppButton } from "../components/AppButton";
-import { colors, typography } from "../theme";
+import { AppInput } from "../components/AppInput";
+import { Card } from "../components/Card";
+import { Screen } from "../components/Screen";
 import { spacing } from "../constants/spacing";
-import { RootStackParamList } from "../navigation/types";
+import { useAuth } from "../context/AuthContext";
 import { ROUTES } from "../navigation/routes";
-import { useAuth } from "../context/AuthContex";
+import { RootStackParamList } from "../navigation/types";
 import { createRestaurant } from "../services/restaurantService";
+import { colors, typography } from "../theme";
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
@@ -78,7 +79,7 @@ export function CreateRestaurantScreen({ navigation }: Props) {
         </Text>
       </View>
 
-      <View style={styles.card}>
+      <Card style={styles.card}>
         <AppInput
           label="Nombre del restaurante"
           value={name}
@@ -94,7 +95,7 @@ export function CreateRestaurantScreen({ navigation }: Props) {
             disabled={!canSubmit}
           />
         </View>
-      </View>
+      </Card>
     </Screen>
   );
 }
@@ -119,16 +120,6 @@ const styles = StyleSheet.create({
     lineHeight: typography.lineHeights.md,
   },
   card: {
-    backgroundColor: colors.surface,
-    borderRadius: 18,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 1,
     gap: spacing.lg,
   },
   actions: {

@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Restaurant } from "../types/models";
 import { colors, typography } from "../theme";
 import { spacing } from "../constants/spacing";
+import { Card } from "./Card";
 import { StatusBadge } from "./StatusBadge";
 
 type RestaurantCardProps = {
@@ -24,64 +25,53 @@ export function RestaurantCard({
       onPress={onPress ? () => onPress(restaurant) : undefined}
       disabled={isDisabled}
       style={({ pressed }) => [
-        styles.card,
         pressed && !isDisabled && styles.pressed,
         isDisabled && styles.disabled,
       ]}
     >
-      <View style={styles.topRow}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{initial}</Text>
-        </View>
+      <Card>
+        <View style={styles.topRow}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{initial}</Text>
+          </View>
 
-        <View style={styles.headerText}>
-          <Text style={styles.name} numberOfLines={1}>
-            {restaurant.name}
-          </Text>
-          {restaurant.location ? (
-            <Text style={styles.location} numberOfLines={1}>
-              {restaurant.location}
+          <View style={styles.headerText}>
+            <Text style={styles.name} numberOfLines={1}>
+              {restaurant.name}
             </Text>
-          ) : null}
+            {restaurant.location ? (
+              <Text style={styles.location} numberOfLines={1}>
+                {restaurant.location}
+              </Text>
+            ) : null}
+          </View>
+
+          <StatusBadge
+            label={restaurant.isActive ? "Abierto" : "Cerrado"}
+            tone={restaurant.isActive ? "success" : "danger"}
+          />
         </View>
 
-        <StatusBadge
-          label={restaurant.isActive ? "Abierto" : "Cerrado"}
-          tone={restaurant.isActive ? "success" : "danger"}
-        />
-      </View>
-
-      {restaurant.description ? (
-        <Text style={styles.description} numberOfLines={2}>
-          {restaurant.description}
-        </Text>
-      ) : null}
-
-      {restaurant.openingTime && restaurant.closingTime ? (
-        <View style={styles.footer}>
-          <Text style={styles.timeLabel}>Horario</Text>
-          <Text style={styles.timeValue}>
-            {restaurant.openingTime} - {restaurant.closingTime}
+        {restaurant.description ? (
+          <Text style={styles.description} numberOfLines={2}>
+            {restaurant.description}
           </Text>
-        </View>
-      ) : null}
+        ) : null}
+
+        {restaurant.openingTime && restaurant.closingTime ? (
+          <View style={styles.footer}>
+            <Text style={styles.timeLabel}>Horario</Text>
+            <Text style={styles.timeValue}>
+              {restaurant.openingTime} - {restaurant.closingTime}
+            </Text>
+          </View>
+        ) : null}
+      </Card>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: 18,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 1,
-  },
   pressed: {
     opacity: 0.96,
     transform: [{ scale: 0.995 }],

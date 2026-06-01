@@ -2,16 +2,23 @@ import React, { useCallback, useMemo, useState } from "react";
 import { Alert, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { RootStackParamList } from "../navigation/types";
-import { ROUTES } from "../navigation/routes";
+
+import { AppButton } from "../components/AppButton";
+import { Card } from "../components/Card";
+import { EmptyState } from "../components/EmptyState";
+import { ErrorMessage } from "../components/ErrorMessage";
 import { Screen } from "../components/Screen";
 import { StatusBadge } from "../components/StatusBadge";
-import { AppButton } from "../components/AppButton";
-import { colors, typography } from "../theme";
 import { spacing } from "../constants/spacing";
+import { useAuth } from "../context/AuthContext";
 import { useDishesByRestaurant } from "../hooks/useDishesByRestaurant";
-import { createReservation, getMyReservations } from "../services/reservationService";
-import { useAuth } from "../context/AuthContex";
+import { ROUTES } from "../navigation/routes";
+import { RootStackParamList } from "../navigation/types";
+import {
+  createReservation,
+  getMyReservations,
+} from "../services/reservationService";
+import { colors, typography } from "../theme";
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
@@ -22,15 +29,23 @@ export function RestaurantDetailScreen({ navigation, route }: Props) {
   const { restaurant } = route.params;
   const initial = restaurant.name?.trim()?.charAt(0)?.toUpperCase() ?? "R";
   const restaurantId = String(restaurant.id);
-  const { dishes, loading } = useDishesByRestaurant(restaurantId);
+  const { dishes, loading, error, reload } = useDishesByRestaurant(restaurantId);
   const { accessToken, isAuthenticated } = useAuth();
-  const [isReservingDishId, setIsReservingDishId] = useState<string | null>(null);
+  const [isReservingDishId, setIsReservingDishId] = useState<string | null>(
+    null
+  );
   const [reservedDishIds, setReservedDishIds] = useState<string[]>([]);
   const [isCheckingReservation, setIsCheckingReservation] = useState(false);
 
-  const canReserve = useMemo(() => Boolean(isAuthenticated && accessToken), [isAuthenticated, accessToken]);
+  const canReserve = useMemo(
+    () => Boolean(isAuthenticated && accessToken),
+    [isAuthenticated, accessToken]
+  );
 
-  const reservedDishIdSet = useMemo(() => new Set(reservedDishIds), [reservedDishIds]);
+  const reservedDishIdSet = useMemo(
+    () => new Set(reservedDishIds),
+    [reservedDishIds]
+  );
 
   const refreshReservedDishes = useCallback(async () => {
     if (!accessToken) {
@@ -43,9 +58,11 @@ export function RestaurantDetailScreen({ navigation, route }: Props) {
       const list = await getMyReservations(accessToken);
       const activeDishIds = list
         .filter(
-          (r) => r.status === "confirmed" || r.status === "pending_payment"
+          (reservation) =>
+            reservation.status === "confirmed" ||
+            reservation.status === "pending_payment"
         )
-        .map((r) => r.items?.[0]?.dishId)
+        .map((reservation) => reservation.items?.[0]?.dishId)
         .filter((id): id is string => Boolean(id));
 
       setReservedDishIds(Array.from(new Set(activeDishIds)));
@@ -64,14 +81,13 @@ export function RestaurantDetailScreen({ navigation, route }: Props) {
 
   const handleReserve = async (dishId: string) => {
     if (!canReserve || !accessToken) {
-      Alert.alert(
-        "Sesión requerida",
-        "Inicia sesión para poder reservar.",
-        [
-          { text: "Cancelar", style: "cancel" },
-          { text: "Iniciar sesión", onPress: () => navigation.navigate(ROUTES.Login) },
-        ]
-      );
+      Alert.alert("Sesión requerida", "Inicia sesión para poder reservar.", [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Iniciar sesión",
+          onPress: () => navigation.navigate(ROUTES.Login),
+        },
+      ]);
       return;
     }
 
@@ -94,7 +110,6 @@ export function RestaurantDetailScreen({ navigation, route }: Props) {
       );
     } catch (error: any) {
       const message = error?.message || "No se pudo crear la reserva";
-
       const status = error?.status;
 
       if (
@@ -116,7 +131,7 @@ export function RestaurantDetailScreen({ navigation, route }: Props) {
 
   return (
     <Screen style={styles.container}>
-      <View style={styles.hero}>
+      <Card style={styles.hero}>
         <View style={styles.heroHeader}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{initial}</Text>
@@ -141,24 +156,24 @@ export function RestaurantDetailScreen({ navigation, route }: Props) {
 
         {restaurant.openingTime && restaurant.closingTime ? (
           <View style={styles.metaRow}>
-            <View style={styles.metaItem}>
+            <Card variant="muted" style={styles.metaItem}>
               <Text style={styles.metaLabel}>Horario</Text>
               <Text style={styles.metaValue}>
                 {restaurant.openingTime} - {restaurant.closingTime}
               </Text>
-            </View>
+            </Card>
           </View>
         ) : null}
-      </View>
+      </Card>
 
       {restaurant.description ? (
-        <View style={styles.card}>
+        <Card>
           <Text style={styles.cardTitle}>Descripción</Text>
           <Text style={styles.cardText}>{restaurant.description}</Text>
-        </View>
+        </Card>
       ) : null}
 
-      <View style={styles.menuCard}>
+      <Card style={styles.menuCard}>
         <Text style={styles.menuTitle}>Menú del día</Text>
         <Text style={styles.menuSubtitle}>
           Platos disponibles para reservar.
@@ -170,6 +185,13 @@ export function RestaurantDetailScreen({ navigation, route }: Props) {
             <View style={styles.skeletonLineSm} />
             <View style={styles.skeletonLineLg} />
           </View>
+        ) : error ? (
+          <ErrorMessage
+            title="No se pudieron cargar los platos"
+            message={error}
+            onRetry={reload}
+            style={styles.feedbackState}
+          />
         ) : dishes.length > 0 ? (
           <View style={styles.menuList}>
             {dishes.map((dish) => (
@@ -212,14 +234,14 @@ export function RestaurantDetailScreen({ navigation, route }: Props) {
             ))}
           </View>
         ) : (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>No hay platos disponibles</Text>
-            <Text style={styles.emptySubtitle}>
-              Vuelve más tarde para ver el menú.
-            </Text>
-          </View>
+          <EmptyState
+            title="No hay platos disponibles"
+            message="Vuelve más tarde para ver el menú."
+            iconName="food-off-outline"
+            style={styles.feedbackState}
+          />
         )}
-      </View>
+      </Card>
     </Screen>
   );
 }
@@ -229,17 +251,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   hero: {
-    backgroundColor: colors.surface,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.lg,
     marginBottom: spacing.lg,
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 1,
   },
   heroHeader: {
     flexDirection: "row",
@@ -278,10 +290,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
   },
   metaItem: {
-    backgroundColor: colors.surfaceMuted,
     borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.border,
     padding: spacing.md,
   },
   metaLabel: {
@@ -293,13 +302,6 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.semiBold,
     color: colors.textPrimary,
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.lg,
   },
   cardTitle: {
     fontSize: typography.sizes.sm,
@@ -314,11 +316,6 @@ const styles = StyleSheet.create({
   },
   menuCard: {
     marginTop: spacing.lg,
-    backgroundColor: colors.surface,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.lg,
   },
   menuTitle: {
     fontSize: typography.sizes.md,
@@ -350,6 +347,9 @@ const styles = StyleSheet.create({
   menuList: {
     marginTop: spacing.lg,
     gap: spacing.md,
+  },
+  feedbackState: {
+    marginTop: spacing.lg,
   },
   dishRow: {
     flexDirection: "row",
@@ -385,24 +385,5 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.bold,
     color: colors.textPrimary,
-  },
-  emptyCard: {
-    marginTop: spacing.lg,
-    backgroundColor: colors.surfaceMuted,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.lg,
-  },
-  emptyTitle: {
-    fontSize: typography.sizes.md,
-    fontWeight: typography.weights.bold,
-    color: colors.textPrimary,
-    marginBottom: spacing.xs,
-  },
-  emptySubtitle: {
-    fontSize: typography.sizes.sm,
-    color: colors.textSecondary,
-    lineHeight: typography.lineHeights.sm,
   },
 });

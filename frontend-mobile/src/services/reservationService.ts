@@ -1,7 +1,5 @@
-import { API_URL } from "../constants/api";
+import { httpClient } from "../api";
 import { Reservation, ReservationItem, ReservationStatus } from "../types/models";
-
-const REQUEST_TIMEOUT = 20000;
 
 type ReservationItemApi = {
   id: string;
@@ -28,46 +26,6 @@ type ApiEnvelope<T> = {
 type CreateReservationPayload = {
   items: Array<{ dish_id: string; quantity: number }>;
 };
-
-async function requestWithTimeout<T>(
-  endpoint: string,
-  options: RequestInit
-): Promise<T> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
-
-  try {
-    const response = await fetch(`${API_URL}${endpoint}`, {
-      ...options,
-      signal: controller.signal,
-    });
-
-    const result = await response.json().catch(() => null);
-
-    if (!response.ok) {
-      const error: any = new Error(result?.message || "Error en la solicitud");
-      error.status = response.status;
-      throw error;
-    }
-
-    return result as T;
-  } catch (error: any) {
-    if (error?.name === "AbortError") {
-      throw new Error("El servidor tardó demasiado en responder");
-    }
-
-    if (
-      error?.message?.includes("Network request failed") ||
-      error?.message?.toLowerCase?.().includes("network")
-    ) {
-      throw new Error("No se pudo conectar con el servidor");
-    }
-
-    throw new Error(error?.message || "Ocurrió un error inesperado");
-  } finally {
-    clearTimeout(timeout);
-  }
-}
 
 function normalizeStatus(value: unknown): ReservationStatus {
   if (typeof value !== "string") return "pending_payment";
@@ -133,12 +91,12 @@ function normalizeReservation(payload: any): Reservation {
 }
 
 export async function getMyReservations(accessToken: string): Promise<Reservation[]> {
-  const result = await requestWithTimeout<ApiEnvelope<ReservationApi[]>>("/reservations/my", {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
+  const result = await httpClient.get<ApiEnvelope<ReservationApi[]>>(
+    "/reservations/my",
+    {
+      accessToken,
+    }
+  );
 
   const payload = (result as any)?.data ?? result;
   const list = Array.isArray(payload) ? payload : [];
@@ -149,14 +107,13 @@ export async function createReservation(
   accessToken: string,
   payload: CreateReservationPayload
 ): Promise<Reservation> {
-  const result = await requestWithTimeout<ApiEnvelope<ReservationApi>>("/reservations", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
-    },
-    body: JSON.stringify(payload),
-  });
+  const result = await httpClient.post<ApiEnvelope<ReservationApi>>(
+    "/reservations",
+    payload,
+    {
+      accessToken,
+    }
+  );
 
   const data = (result as any)?.data ?? result;
   return normalizeReservation(data);
@@ -166,13 +123,11 @@ export async function cancelReservation(
   accessToken: string,
   reservationId: string
 ): Promise<Reservation> {
-  const result = await requestWithTimeout<ApiEnvelope<ReservationApi>>(
+  const result = await httpClient.patch<ApiEnvelope<ReservationApi>>(
     `/reservations/${reservationId}/cancel`,
+    undefined,
     {
-      method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
+      accessToken,
     }
   );
 

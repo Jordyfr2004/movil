@@ -6,7 +6,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { AppNavigator } from "./src/navigation/AppNavigator";
 import { appTheme } from "./src/theme";
-import { AuthProvider } from "./src/context/AuthContex";
+import { AuthProvider } from "./src/context/AuthContext";
 import { StripeProvider } from "@stripe/stripe-react-native";
 import { STRIPE_PUBLISHABLE_KEY } from "./src/constants/stripe";
 

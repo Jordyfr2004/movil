@@ -1,18 +1,20 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { RootStackParamList } from "../navigation/types";
-import { ROUTES } from "../navigation/routes";
+
+import { Card } from "../components/Card";
 import { Screen } from "../components/Screen";
 import { StatusBadge } from "../components/StatusBadge";
-import { colors, typography } from "../theme";
 import { spacing } from "../constants/spacing";
-import { useAuth } from "../context/AuthContex";
+import { useAuth } from "../context/AuthContext";
+import { ROUTES } from "../navigation/routes";
+import { RootStackParamList } from "../navigation/types";
 import { getProfileBestEffort, UserProfile } from "../services/userService";
+import { colors, typography } from "../theme";
 
 type Props = NativeStackScreenProps<RootStackParamList, typeof ROUTES.Profile>;
 
-export function ProfileScreen({ navigation }: Props) {
+export function ProfileScreen({}: Props) {
   const { accessToken, user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
 
@@ -68,7 +70,7 @@ export function ProfileScreen({ navigation }: Props) {
         </Text>
       </View>
 
-      <View style={styles.card}>
+      <Card>
         <View style={styles.profileRow}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{initial}</Text>
@@ -90,7 +92,7 @@ export function ProfileScreen({ navigation }: Props) {
           <Text style={styles.label}>Rol</Text>
           <Text style={styles.value}>{roleLabel}</Text>
         </View>
-      </View>
+      </Card>
     </Screen>
   );
 }
@@ -113,18 +115,6 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.md,
     color: colors.textSecondary,
     lineHeight: typography.lineHeights.md,
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: 18,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 1,
   },
   profileRow: {
     flexDirection: "row",

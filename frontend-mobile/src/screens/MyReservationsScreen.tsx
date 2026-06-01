@@ -2,20 +2,25 @@ import React, { useCallback, useMemo, useState } from "react";
 import { Alert, FlatList, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { RootStackParamList } from "../navigation/types";
-import { ROUTES } from "../navigation/routes";
+import { useStripe } from "@stripe/stripe-react-native";
+
+import { AppButton } from "../components/AppButton";
+import { Card } from "../components/Card";
+import { EmptyState } from "../components/EmptyState";
+import { ErrorMessage } from "../components/ErrorMessage";
+import { LoadingState } from "../components/LoadingState";
 import { Screen } from "../components/Screen";
 import { StatusBadge } from "../components/StatusBadge";
-import { AppButton } from "../components/AppButton";
-import { useReservations } from "../hooks/useReservations";
-import { cancelReservation } from "../services/reservationService";
-import { formatReservationDate } from "../utils/date";
-import { colors, typography } from "../theme";
 import { spacing } from "../constants/spacing";
-import { useAuth } from "../context/AuthContex";
-import { useStripe } from "@stripe/stripe-react-native";
 import { STRIPE_PUBLISHABLE_KEY } from "../constants/stripe";
+import { useAuth } from "../context/AuthContext";
+import { useReservations } from "../hooks/useReservations";
+import { ROUTES } from "../navigation/routes";
+import { RootStackParamList } from "../navigation/types";
 import { createPaymentIntent } from "../services/paymentService";
+import { cancelReservation } from "../services/reservationService";
+import { colors, typography } from "../theme";
+import { formatReservationDate } from "../utils/date";
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
@@ -24,9 +29,11 @@ type Props = NativeStackScreenProps<
 
 export function MyReservationsScreen({}: Props) {
   const { accessToken } = useAuth();
-  const { reservations, loading, reload } = useReservations(accessToken);
+  const { reservations, loading, error, reload } = useReservations(accessToken);
   const [isCancelling, setIsCancelling] = useState(false);
-  const [payingReservationId, setPayingReservationId] = useState<string | null>(null);
+  const [payingReservationId, setPayingReservationId] = useState<string | null>(
+    null
+  );
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
 
   useFocusEffect(
@@ -37,7 +44,9 @@ export function MyReservationsScreen({}: Props) {
 
   const activeCount = useMemo(() => {
     return reservations.filter(
-      (r) => r.status === "confirmed" || r.status === "pending_payment"
+      (reservation) =>
+        reservation.status === "confirmed" ||
+        reservation.status === "pending_payment"
     ).length;
   }, [reservations]);
 
@@ -160,19 +169,14 @@ export function MyReservationsScreen({}: Props) {
         keyExtractor={(item) => String(item.id)}
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => (
-          <View style={styles.card}>
+          <Card>
             <View style={styles.cardHeader}>
               <Text style={styles.cardTitle} numberOfLines={1}>
                 {item.title}
               </Text>
               {(() => {
                 const badge = getStatusBadge(item.status);
-                return (
-                  <StatusBadge
-                    label={badge.label}
-                    tone={badge.tone}
-                  />
-                );
+                return <StatusBadge label={badge.label} tone={badge.tone} />;
               })()}
             </View>
 
@@ -207,19 +211,29 @@ export function MyReservationsScreen({}: Props) {
                 ) : null}
               </View>
             ) : null}
-          </View>
+          </Card>
         )}
         ListEmptyComponent={
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>
-              {loading ? "Cargando reservas…" : "Aún no tienes reservas"}
-            </Text>
-            <Text style={styles.emptySubtitle}>
-              {loading
-                ? "Espera un momento mientras actualizamos la información."
-                : "Cuando reserves platos, aparecerán aquí."}
-            </Text>
-          </View>
+          loading ? (
+            <LoadingState
+              message="Espera un momento mientras actualizamos la información."
+              style={styles.feedbackState}
+            />
+          ) : error ? (
+            <ErrorMessage
+              title="No se pudieron cargar las reservas"
+              message={error}
+              onRetry={reload}
+              style={styles.feedbackState}
+            />
+          ) : (
+            <EmptyState
+              title="Aún no tienes reservas"
+              message="Cuando reserves platos, aparecerán aquí."
+              iconName="calendar-blank-outline"
+              style={styles.feedbackState}
+            />
+          )
         }
       />
     </Screen>
@@ -248,18 +262,6 @@ const styles = StyleSheet.create({
   listContent: {
     gap: spacing.md,
     paddingBottom: spacing.xl,
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: 18,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 1,
   },
   cardHeader: {
     flexDirection: "row",
@@ -290,23 +292,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     gap: spacing.sm,
   },
-  emptyCard: {
-    backgroundColor: colors.surfaceMuted,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.lg,
+  feedbackState: {
     marginTop: spacing.sm,
-  },
-  emptyTitle: {
-    fontSize: typography.sizes.md,
-    fontWeight: typography.weights.bold,
-    color: colors.textPrimary,
-    marginBottom: spacing.xs,
-  },
-  emptySubtitle: {
-    fontSize: typography.sizes.sm,
-    color: colors.textSecondary,
-    lineHeight: typography.lineHeights.sm,
   },
 });

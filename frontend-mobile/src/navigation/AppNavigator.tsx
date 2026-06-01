@@ -1,25 +1,24 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ENABLE_WS_DEBUG } from "../constants/api";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { ROUTES } from "./routes";
-import { RootStackParamList } from "./types";
-import { WelcomeScreen } from "../screens/WelcomeScreen";
+
+import { ENABLE_WS_DEBUG } from "../constants/api";
+import { useAuth } from "../context/AuthContext";
+import { DebugToast } from "../components/DebugToast";
 import { StudentAccessScreen } from "../screens/StudentAccessScreen";
+import { WelcomeScreen } from "../screens/WelcomeScreen";
 import { LoginScreen } from "../screens/LoginScreen";
 import { CreateRestaurantScreen } from "../screens/CreateRestaurantScreen";
 import { ManagerProfileScreen } from "../screens/ManagerProfileScreen";
 import { AddDishScreen } from "../screens/AddDishScreen";
-import { EvidenceScreen } from "../screens/EvidenceScreen";
 import { RestaurantDetailScreen } from "../screens/RestaurantDetailScreen";
 import { MyReservationsScreen } from "../screens/MyReservationsScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
-import { SensorMovimientoScreen } from "../screens/SensorMovimientoScreen";
-import { colors, typography } from "../theme";
-import { useAuth } from "../context/AuthContex";
 import { getProfileBestEffort, UserProfile } from "../services/userService";
 import { useSocketDebug } from "../hooks/useSocketDebug";
-import { DebugToast } from "../components/DebugToast";
+import { colors, typography } from "../theme";
+import { ROUTES } from "./routes";
 import { StudentDrawerNavigator } from "./StudentDrawerNavigator";
+import { RootStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -27,7 +26,6 @@ export function AppNavigator() {
   const { isAuthenticated, isLoading, accessToken, user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
-
   const [debugToast, setDebugToast] = useState<
     { title: string; message?: string } | null
   >(null);
@@ -42,14 +40,12 @@ export function AppNavigator() {
       clearTimeout(debugToastTimerRef.current);
     }
 
-    // “Unos minutos” para observar pruebas sin molestar demasiado.
     debugToastTimerRef.current = setTimeout(() => {
       setDebugToast(null);
       debugToastTimerRef.current = null;
     }, 120_000);
   };
 
-  // Solo en DEV: prueba rápida de Socket.IO (sin alertas intrusivas).
   useSocketDebug(accessToken, {
     onMenuAvailable: (payload) => {
       showDebugToast(
@@ -58,7 +54,6 @@ export function AppNavigator() {
       );
     },
     onError: (message) => {
-      // Si quieres cero UI también para errores, comenta esta línea.
       showDebugToast("Socket error", message);
     },
   });
@@ -191,11 +186,6 @@ export function AppNavigator() {
             }}
           />
           <Stack.Screen
-            name={ROUTES.Evidence}
-            component={EvidenceScreen}
-            options={{ title: "Evidencias" }}
-          />
-          <Stack.Screen
             name={ROUTES.RestaurantDetail}
             component={RestaurantDetailScreen}
             options={{ title: "Detalle del restaurante" }}
@@ -209,11 +199,6 @@ export function AppNavigator() {
             name={ROUTES.Profile}
             component={ProfileScreen}
             options={{ title: "Perfil" }}
-          />
-          <Stack.Screen
-            name={ROUTES.SensorMovimiento}
-            component={SensorMovimientoScreen}
-            options={{ title: "Acelerómetro" }}
           />
         </Stack.Navigator>
       )}

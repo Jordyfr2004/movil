@@ -3,22 +3,26 @@ import { Alert, FlatList, StyleSheet, Switch, Text, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 
-import { Screen } from "../components/Screen";
 import { AppButton } from "../components/AppButton";
+import { Card } from "../components/Card";
+import { EmptyState } from "../components/EmptyState";
+import { ErrorMessage } from "../components/ErrorMessage";
+import { LoadingState } from "../components/LoadingState";
+import { Screen } from "../components/Screen";
 import { StatusBadge } from "../components/StatusBadge";
-import { colors, typography } from "../theme";
 import { spacing } from "../constants/spacing";
-import { RootStackParamList } from "../navigation/types";
+import { useAuth } from "../context/AuthContext";
 import { ROUTES } from "../navigation/routes";
-import { useAuth } from "../context/AuthContex";
-import { getProfileBestEffort, UserProfile } from "../services/userService";
-import { getRestaurantById } from "../services/restaurantService";
+import { RootStackParamList } from "../navigation/types";
 import {
   deleteDish,
   Dish,
   getManagerDishes,
   updateDish,
 } from "../services/dishService";
+import { getRestaurantById } from "../services/restaurantService";
+import { getProfileBestEffort, UserProfile } from "../services/userService";
+import { colors, typography } from "../theme";
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
@@ -33,12 +37,13 @@ export function ManagerProfileScreen({ navigation }: Props) {
   const [removingDishId, setRemovingDishId] = useState<string | null>(null);
   const [togglingDishId, setTogglingDishId] = useState<string | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [restaurantName, setRestaurantName] = useState<string>("");
+  const [restaurantName, setRestaurantName] = useState("");
+  const [dishesError, setDishesError] = useState<string | null>(null);
 
   useEffect(() => {
     let isActive = true;
 
-    const load = async () => {
+    const loadProfile = async () => {
       if (!accessToken) {
         if (isActive) {
           setProfile(null);
@@ -59,7 +64,7 @@ export function ManagerProfileScreen({ navigation }: Props) {
           if (isActive) {
             setRestaurantName(restaurant?.name ?? "");
           }
-        } else {
+        } else if (isActive) {
           setRestaurantName("");
         }
       } catch {
@@ -70,7 +75,7 @@ export function ManagerProfileScreen({ navigation }: Props) {
       }
     };
 
-    load();
+    loadProfile();
 
     return () => {
       isActive = false;
@@ -80,6 +85,7 @@ export function ManagerProfileScreen({ navigation }: Props) {
   const loadDishes = useCallback(async () => {
     if (!accessToken) {
       setDishes([]);
+      setDishesError(null);
       return;
     }
 
@@ -87,8 +93,12 @@ export function ManagerProfileScreen({ navigation }: Props) {
       setIsLoadingDishes(true);
       const list = await getManagerDishes(accessToken);
       setDishes(list);
-    } catch {
+      setDishesError(null);
+    } catch (error) {
       setDishes([]);
+      setDishesError(
+        error instanceof Error ? error.message : "No se pudieron cargar los platos"
+      );
     } finally {
       setIsLoadingDishes(false);
     }
@@ -146,9 +156,7 @@ export function ManagerProfileScreen({ navigation }: Props) {
       await loadDishes();
     } catch (error) {
       const message =
-        error instanceof Error
-          ? error.message
-          : "No se pudo eliminar el plato";
+        error instanceof Error ? error.message : "No se pudo eliminar el plato";
       Alert.alert("Error", message);
     } finally {
       setRemovingDishId(null);
@@ -158,7 +166,7 @@ export function ManagerProfileScreen({ navigation }: Props) {
   const confirmRemoveDish = (dish: Dish) => {
     Alert.alert(
       "Eliminar plato",
-      `Se eliminará “${dish.name}”. ¿Deseas continuar?`,
+      `Se eliminará "${dish.name}". ¿Deseas continuar?`,
       [
         { text: "Volver", style: "cancel" },
         {
@@ -186,7 +194,6 @@ export function ManagerProfileScreen({ navigation }: Props) {
     try {
       setTogglingDishId(dish.id);
 
-      // Optimista: evita “rebote” del switch en listas grandes.
       setDishes((previous) =>
         previous.map((item) =>
           String(item.id) === String(dish.id)
@@ -199,7 +206,6 @@ export function ManagerProfileScreen({ navigation }: Props) {
         is_available: nextIsAvailable,
       });
     } catch (error) {
-      // Revertimos si falló.
       setDishes((previous) =>
         previous.map((item) =>
           String(item.id) === String(dish.id)
@@ -209,9 +215,7 @@ export function ManagerProfileScreen({ navigation }: Props) {
       );
 
       const message =
-        error instanceof Error
-          ? error.message
-          : "No se pudo actualizar el plato";
+        error instanceof Error ? error.message : "No se pudo actualizar el plato";
       Alert.alert("Error", message);
     } finally {
       setTogglingDishId(null);
@@ -239,11 +243,12 @@ export function ManagerProfileScreen({ navigation }: Props) {
               </Text>
             </View>
 
-            <View style={styles.card}>
+            <Card>
               <View style={styles.profileRow}>
                 <View style={styles.avatar}>
                   <Text style={styles.avatarText}>{initial}</Text>
                 </View>
+
                 <View style={styles.profileText}>
                   <Text style={styles.name} numberOfLines={1}>
                     {displayName}
@@ -252,6 +257,7 @@ export function ManagerProfileScreen({ navigation }: Props) {
                     {displayEmail}
                   </Text>
                 </View>
+
                 <StatusBadge label="Manager" tone="success" />
               </View>
 
@@ -260,7 +266,7 @@ export function ManagerProfileScreen({ navigation }: Props) {
               <View style={styles.field}>
                 <Text style={styles.label}>Restaurante</Text>
                 <Text style={styles.value} numberOfLines={2}>
-                  {restaurantName || "—"}
+                  {restaurantName || "-"}
                 </Text>
               </View>
 
@@ -277,9 +283,9 @@ export function ManagerProfileScreen({ navigation }: Props) {
                   disabled={isLoggingOut}
                 />
               </View>
-            </View>
+            </Card>
 
-            <View style={styles.dishesCard}>
+            <Card style={styles.dishesCard}>
               <View style={styles.dishesHeader}>
                 <Text style={styles.dishesTitle}>Mis platos</Text>
                 <Text style={styles.dishesSubtitle}>
@@ -290,11 +296,11 @@ export function ManagerProfileScreen({ navigation }: Props) {
                       : "Aún no has añadido platos."}
                 </Text>
               </View>
-            </View>
+            </Card>
           </>
         }
         renderItem={({ item }) => (
-          <View style={[styles.dishesCard, styles.dishesCardInner]}>
+          <Card style={[styles.dishesCard, styles.dishesCardInner]}>
             <View style={styles.dishRow}>
               <View style={styles.dishText}>
                 <Text style={styles.dishName} numberOfLines={1}>
@@ -316,6 +322,7 @@ export function ManagerProfileScreen({ navigation }: Props) {
                     label={item.isAvailable ? "Visible" : "Oculto"}
                     tone={item.isAvailable ? "success" : "danger"}
                   />
+
                   <View style={styles.toggleContainer}>
                     <Text style={styles.toggleLabel}>Ocultar</Text>
                     <Switch
@@ -350,17 +357,29 @@ export function ManagerProfileScreen({ navigation }: Props) {
                 />
               </View>
             </View>
-          </View>
+          </Card>
         )}
         ListEmptyComponent={
-          <View style={[styles.dishesCard, styles.emptyDishes]}>
-            <Text style={styles.emptyDishesTitle}>
-              {isLoadingDishes ? "Cargando…" : "Sin platos"}
-            </Text>
-            <Text style={styles.emptyDishesSubtitle}>
-              Pulsa “Añadir platos” para crear tu primer plato.
-            </Text>
-          </View>
+          isLoadingDishes ? (
+            <LoadingState
+              message="Cargando tus platos…"
+              style={styles.feedbackState}
+            />
+          ) : dishesError ? (
+            <ErrorMessage
+              title="No se pudieron cargar los platos"
+              message={dishesError}
+              onRetry={loadDishes}
+              style={styles.feedbackState}
+            />
+          ) : (
+            <EmptyState
+              title="Sin platos"
+              message='Pulsa "Añadir platos" para crear tu primer plato.'
+              iconName="food-outline"
+              style={styles.feedbackState}
+            />
+          )
         }
       />
     </Screen>
@@ -373,6 +392,9 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: spacing.lg,
+  },
+  feedbackState: {
+    marginTop: spacing.lg,
   },
   dishesCardInner: {
     marginTop: 0,
@@ -391,18 +413,6 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.md,
     color: colors.textSecondary,
     lineHeight: typography.lineHeights.md,
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: 18,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 1,
   },
   profileRow: {
     flexDirection: "row",
@@ -460,16 +470,6 @@ const styles = StyleSheet.create({
   },
   dishesCard: {
     marginTop: spacing.lg,
-    backgroundColor: colors.surface,
-    borderRadius: 18,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 1,
   },
   dishesHeader: {
     gap: spacing.xs,
@@ -484,9 +484,6 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.sm,
     color: colors.textSecondary,
     lineHeight: typography.lineHeights.sm,
-  },
-  dishesList: {
-    gap: spacing.sm,
   },
   dishRow: {
     flexDirection: "row",
@@ -530,19 +527,5 @@ const styles = StyleSheet.create({
   toggleLabel: {
     fontSize: typography.sizes.xs,
     color: colors.textSecondary,
-  },
-  emptyDishes: {
-    paddingTop: spacing.md,
-    gap: spacing.xs,
-  },
-  emptyDishesTitle: {
-    fontSize: typography.sizes.md,
-    fontWeight: typography.weights.semiBold,
-    color: colors.textPrimary,
-  },
-  emptyDishesSubtitle: {
-    fontSize: typography.sizes.sm,
-    color: colors.textSecondary,
-    lineHeight: typography.lineHeights.sm,
   },
 });

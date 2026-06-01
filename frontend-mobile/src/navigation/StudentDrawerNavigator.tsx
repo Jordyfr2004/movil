@@ -1,5 +1,12 @@
 import React, { useMemo, useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import {
+  Alert,
+  Pressable,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import {
   createDrawerNavigator,
   DrawerContentComponentProps,
@@ -7,11 +14,11 @@ import {
 } from "@react-navigation/drawer";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import { ROUTES } from "./routes";
-import { colors, typography } from "../theme";
 import { spacing } from "../constants/spacing";
+import { useAuth } from "../context/AuthContext";
 import { UserProfile } from "../services/userService";
-import { useAuth } from "../context/AuthContex";
+import { colors, typography } from "../theme";
+import { ROUTES } from "./routes";
 import { StudentStackNavigator } from "./StudentStackNavigator";
 
 type StudentDrawerParamList = {
@@ -107,30 +114,17 @@ function StudentDrawerContent({
         accessibilityRole="button"
         accessibilityLabel="Ir a Mis reservas"
         onPress={() => handleGoTo(ROUTES.MyReservations)}
-        style={({ pressed }) => [styles.drawerItem, pressed && styles.drawerItemPressed]}
+        style={({ pressed }) => [
+          styles.drawerItem,
+          pressed && styles.drawerItemPressed,
+        ]}
       >
-        <MaterialCommunityIcons name="calendar-check" size={20} color={colors.textPrimary} />
+        <MaterialCommunityIcons
+          name="calendar-check"
+          size={20}
+          color={colors.textPrimary}
+        />
         <Text style={styles.drawerItemText}>Mis reservas</Text>
-      </Pressable>
-
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Ir a Acelerómetro"
-        onPress={() => handleGoTo(ROUTES.SensorMovimiento)}
-        style={({ pressed }) => [styles.drawerItem, pressed && styles.drawerItemPressed]}
-      >
-        <MaterialCommunityIcons name="axis-arrow" size={20} color={colors.textPrimary} />
-        <Text style={styles.drawerItemText}>Acelerómetro</Text>
-      </Pressable>
-
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Ir a Evidencias"
-        onPress={() => handleGoTo(ROUTES.Evidence)}
-        style={({ pressed }) => [styles.drawerItem, pressed && styles.drawerItemPressed]}
-      >
-        <MaterialCommunityIcons name="image-multiple" size={20} color={colors.textPrimary} />
-        <Text style={styles.drawerItemText}>Evidencias</Text>
       </Pressable>
 
       <View style={styles.grow} />
@@ -154,7 +148,7 @@ function StudentDrawerContent({
           color={colors.error}
         />
         <Text style={styles.drawerItemTextDanger}>
-          {isLoggingOut ? "Cerrando sesión…" : "Cerrar sesión"}
+          {isLoggingOut ? "Cerrando sesión..." : "Cerrar sesión"}
         </Text>
       </Pressable>
     </DrawerContentScrollView>
@@ -181,7 +175,9 @@ export function StudentDrawerNavigator({
           backgroundColor: colors.surface,
         },
       }}
-      drawerContent={(props) => <StudentDrawerContent {...props} profile={profile} />}
+      drawerContent={(props) => (
+        <StudentDrawerContent {...props} profile={profile} />
+      )}
     >
       <Drawer.Screen name="StudentStack" component={StudentStackNavigator} />
     </Drawer.Navigator>

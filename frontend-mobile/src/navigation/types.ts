@@ -10,9 +10,7 @@ export type RootStackParamList = {
   [ROUTES.ManagerProfile]: undefined;
   [ROUTES.AddDish]: { dish?: Pick<Dish, "id" | "name" | "price" | "description"> } | undefined;
   [ROUTES.Home]: undefined;
-  [ROUTES.Evidence]: undefined;
   [ROUTES.RestaurantDetail]: { restaurant: Restaurant };
   [ROUTES.MyReservations]: undefined;
   [ROUTES.Profile]: undefined;
-  [ROUTES.SensorMovimiento]: undefined;
 };

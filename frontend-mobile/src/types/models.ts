@@ -7,13 +7,6 @@ export type ReservationStatus =
   | "expired"
   | "completed";
 
-export type User = {
-  id: number;
-  fullName: string;
-  email: string;
-  role: UserRole;
-};
-
 export type Restaurant = {
   id: string | number;
   name: string;
@@ -24,18 +17,6 @@ export type Restaurant = {
   closingTime?: string;
   createdAt?: string;
   updatedAt?: string;
-};
-
-export type Menu = {
-  id: number;
-  restaurantId: string | number;
-  menuDate: string;
-  title: string;
-  description: string;
-  availableQuota: number;
-  reservedQuota: number;
-  remainingQuota?: number;
-  isActive: boolean;
 };
 
 export type Reservation = {

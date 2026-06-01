@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useAuth } from "../context/AuthContex";
+import { useAuth } from "../context/AuthContext";
 import { acquireNotificationsSocket, releaseNotificationsSocket } from "../services/notificationsSocket";
 import { Dish, getPublicDishesByRestaurant } from "../services/dishService";
 import type { Socket } from "socket.io-client";
@@ -32,6 +32,7 @@ type ClientToServerEvents = Record<string, never>;
 export function useDishesByRestaurant(restaurantId: string) {
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { accessToken } = useAuth();
   const restaurantIdRef = useRef(restaurantId);
   const refreshSeqRef = useRef(0);
@@ -44,6 +45,7 @@ export function useDishesByRestaurant(restaurantId: string) {
     if (!restaurantIdRef.current) {
       setDishes([]);
       setLoading(false);
+      setError(null);
       return;
     }
 
@@ -57,10 +59,16 @@ export function useDishesByRestaurant(restaurantId: string) {
       if (seq !== refreshSeqRef.current) return;
       if (String(restaurantIdRef.current) !== requestedRestaurantId) return;
       setDishes(data);
-    } catch {
+      setError(null);
+    } catch (reason: unknown) {
       if (seq !== refreshSeqRef.current) return;
       if (String(restaurantIdRef.current) !== requestedRestaurantId) return;
       setDishes([]);
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : "No se pudieron cargar los platos"
+      );
     } finally {
       if (seq !== refreshSeqRef.current) return;
       if (String(restaurantIdRef.current) !== requestedRestaurantId) return;
@@ -181,5 +189,10 @@ export function useDishesByRestaurant(restaurantId: string) {
     };
   }, [accessToken, restaurantId, refreshDishes, scheduleRefresh]);
 
-  return { dishes, loading };
+  return {
+    dishes,
+    loading,
+    error,
+    reload: () => refreshDishes(true),
+  };
 }
