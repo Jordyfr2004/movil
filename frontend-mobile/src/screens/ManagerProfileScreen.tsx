@@ -1,15 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, FlatList, StyleSheet, Switch, Text, View } from "react-native";
+import { Alert, FlatList, ListRenderItem, StyleSheet } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-
-import { AppButton } from "../components/AppButton";
-import { Card } from "../components/Card";
-import { EmptyState } from "../components/EmptyState";
-import { ErrorMessage } from "../components/ErrorMessage";
-import { LoadingState } from "../components/LoadingState";
+import {
+  ManagerDishCard,
+  ManagerDishesFeedback,
+  ManagerProfileListHeader,
+} from "../components/managerProfile";
 import { Screen } from "../components/Screen";
-import { StatusBadge } from "../components/StatusBadge";
 import { spacing } from "../constants/spacing";
 import { useAuth } from "../context/AuthContext";
 import { ROUTES } from "../navigation/routes";
@@ -22,7 +20,6 @@ import {
 } from "../services/dishService";
 import { getRestaurantById } from "../services/restaurantService";
 import { getProfileBestEffort, UserProfile } from "../services/userService";
-import { colors, typography } from "../theme";
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
@@ -123,7 +120,7 @@ export function ManagerProfileScreen({ navigation }: Props) {
     return source?.trim()?.charAt(0)?.toUpperCase() ?? "U";
   }, [displayName, displayEmail]);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     if (isLoggingOut) return;
 
     try {
@@ -140,87 +137,135 @@ export function ManagerProfileScreen({ navigation }: Props) {
         routes: [{ name: ROUTES.Welcome }],
       });
     }
-  };
+  }, [isLoggingOut, logout, navigation]);
 
-  const handleRemoveDish = async (dishId: string) => {
-    if (!accessToken) {
-      Alert.alert("Sesión no disponible", "Vuelve a iniciar sesión.");
-      return;
-    }
+  const handleAddDishPress = useCallback(() => {
+    navigation.navigate(ROUTES.AddDish);
+  }, [navigation]);
 
-    if (removingDishId) return;
-
-    try {
-      setRemovingDishId(dishId);
-      await deleteDish(accessToken, dishId);
-      await loadDishes();
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "No se pudo eliminar el plato";
-      Alert.alert("Error", message);
-    } finally {
-      setRemovingDishId(null);
-    }
-  };
-
-  const confirmRemoveDish = (dish: Dish) => {
-    Alert.alert(
-      "Eliminar plato",
-      `Se eliminará "${dish.name}". ¿Deseas continuar?`,
-      [
-        { text: "Volver", style: "cancel" },
-        {
-          text: "Eliminar",
-          style: "destructive",
-          onPress: () => handleRemoveDish(dish.id),
+  const handleEditDish = useCallback(
+    (dish: Dish) => {
+      navigation.navigate(ROUTES.AddDish, {
+        dish: {
+          id: dish.id,
+          name: dish.name,
+          description: dish.description,
+          price: dish.price,
         },
-      ]
-    );
-  };
-
-  const handleToggleHidden = async (dish: Dish, nextHiddenValue: boolean) => {
-    if (!accessToken) {
-      Alert.alert("Sesión no disponible", "Vuelve a iniciar sesión.");
-      return;
-    }
-
-    if (togglingDishId) {
-      return;
-    }
-
-    const nextIsAvailable = !nextHiddenValue;
-    const previousIsAvailable = dish.isAvailable;
-
-    try {
-      setTogglingDishId(dish.id);
-
-      setDishes((previous) =>
-        previous.map((item) =>
-          String(item.id) === String(dish.id)
-            ? { ...item, isAvailable: nextIsAvailable }
-            : item
-        )
-      );
-
-      await updateDish(accessToken, dish.id, {
-        is_available: nextIsAvailable,
       });
-    } catch (error) {
-      setDishes((previous) =>
-        previous.map((item) =>
-          String(item.id) === String(dish.id)
-            ? { ...item, isAvailable: previousIsAvailable }
-            : item
-        )
-      );
+    },
+    [navigation]
+  );
 
-      const message =
-        error instanceof Error ? error.message : "No se pudo actualizar el plato";
-      Alert.alert("Error", message);
-    } finally {
-      setTogglingDishId(null);
-    }
-  };
+  const handleRemoveDish = useCallback(
+    async (dishId: string) => {
+      if (!accessToken) {
+        Alert.alert("Sesión no disponible", "Vuelve a iniciar sesión.");
+        return;
+      }
+
+      if (removingDishId) return;
+
+      try {
+        setRemovingDishId(dishId);
+        await deleteDish(accessToken, dishId);
+        await loadDishes();
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "No se pudo eliminar el plato";
+        Alert.alert("Error", message);
+      } finally {
+        setRemovingDishId(null);
+      }
+    },
+    [accessToken, loadDishes, removingDishId]
+  );
+
+  const confirmRemoveDish = useCallback(
+    (dish: Dish) => {
+      Alert.alert(
+        "Eliminar plato",
+        `Se eliminará "${dish.name}". ¿Deseas continuar?`,
+        [
+          { text: "Volver", style: "cancel" },
+          {
+            text: "Eliminar",
+            style: "destructive",
+            onPress: () => handleRemoveDish(dish.id),
+          },
+        ]
+      );
+    },
+    [handleRemoveDish]
+  );
+
+  const handleToggleHidden = useCallback(
+    async (dish: Dish, nextHiddenValue: boolean) => {
+      if (!accessToken) {
+        Alert.alert("Sesión no disponible", "Vuelve a iniciar sesión.");
+        return;
+      }
+
+      if (togglingDishId) {
+        return;
+      }
+
+      const nextIsAvailable = !nextHiddenValue;
+      const previousIsAvailable = dish.isAvailable;
+
+      try {
+        setTogglingDishId(dish.id);
+
+        setDishes((previous) =>
+          previous.map((item) =>
+            String(item.id) === String(dish.id)
+              ? { ...item, isAvailable: nextIsAvailable }
+              : item
+          )
+        );
+
+        await updateDish(accessToken, dish.id, {
+          is_available: nextIsAvailable,
+        });
+      } catch (error) {
+        setDishes((previous) =>
+          previous.map((item) =>
+            String(item.id) === String(dish.id)
+              ? { ...item, isAvailable: previousIsAvailable }
+              : item
+          )
+        );
+
+        const message =
+          error instanceof Error ? error.message : "No se pudo actualizar el plato";
+        Alert.alert("Error", message);
+      } finally {
+        setTogglingDishId(null);
+      }
+    },
+    [accessToken, togglingDishId]
+  );
+
+  const renderDish: ListRenderItem<Dish> = useCallback(
+    ({ item }) => (
+      <ManagerDishCard
+        dish={item}
+        isRemoving={removingDishId === item.id}
+        isRemovingDisabled={Boolean(removingDishId)}
+        isInteractionDisabled={Boolean(togglingDishId) || Boolean(removingDishId)}
+        onEdit={() => handleEditDish(item)}
+        onRemove={() => confirmRemoveDish(item)}
+        onToggleHidden={(value) => handleToggleHidden(item, value)}
+      />
+    ),
+    [
+      confirmRemoveDish,
+      handleEditDish,
+      handleToggleHidden,
+      removingDishId,
+      togglingDishId,
+    ]
+  );
 
   return (
     <Screen style={styles.container}>
@@ -235,151 +280,26 @@ export function ManagerProfileScreen({ navigation }: Props) {
         updateCellsBatchingPeriod={50}
         removeClippedSubviews
         ListHeaderComponent={
-          <>
-            <View style={styles.header}>
-              <Text style={styles.title}>Mi perfil</Text>
-              <Text style={styles.subtitle}>
-                Administra tu restaurante y añade tus platos.
-              </Text>
-            </View>
-
-            <Card>
-              <View style={styles.profileRow}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>{initial}</Text>
-                </View>
-
-                <View style={styles.profileText}>
-                  <Text style={styles.name} numberOfLines={1}>
-                    {displayName}
-                  </Text>
-                  <Text style={styles.email} numberOfLines={1}>
-                    {displayEmail}
-                  </Text>
-                </View>
-
-                <StatusBadge label="Manager" tone="success" />
-              </View>
-
-              <View style={styles.divider} />
-
-              <View style={styles.field}>
-                <Text style={styles.label}>Restaurante</Text>
-                <Text style={styles.value} numberOfLines={2}>
-                  {restaurantName || "-"}
-                </Text>
-              </View>
-
-              <View style={styles.actions}>
-                <AppButton
-                  label="Añadir platos"
-                  onPress={() => navigation.navigate(ROUTES.AddDish)}
-                />
-
-                <AppButton
-                  label={isLoggingOut ? "Cerrando sesión…" : "Cerrar sesión"}
-                  onPress={handleLogout}
-                  variant="danger"
-                  disabled={isLoggingOut}
-                />
-              </View>
-            </Card>
-
-            <Card style={styles.dishesCard}>
-              <View style={styles.dishesHeader}>
-                <Text style={styles.dishesTitle}>Mis platos</Text>
-                <Text style={styles.dishesSubtitle}>
-                  {isLoadingDishes
-                    ? "Cargando tus platos…"
-                    : dishes.length > 0
-                      ? `Tienes ${dishes.length} plato${dishes.length === 1 ? "" : "s"}.`
-                      : "Aún no has añadido platos."}
-                </Text>
-              </View>
-            </Card>
-          </>
+          <ManagerProfileListHeader
+            displayName={displayName}
+            displayEmail={displayEmail}
+            initial={initial}
+            restaurantName={restaurantName}
+            isLoggingOut={isLoggingOut}
+            isLoadingDishes={isLoadingDishes}
+            dishesCount={dishes.length}
+            onAddDishPress={handleAddDishPress}
+            onLogoutPress={handleLogout}
+          />
         }
-        renderItem={({ item }) => (
-          <Card style={[styles.dishesCard, styles.dishesCardInner]}>
-            <View style={styles.dishRow}>
-              <View style={styles.dishText}>
-                <Text style={styles.dishName} numberOfLines={1}>
-                  {item.name}
-                </Text>
-                {item.description ? (
-                  <Text style={styles.dishDescription} numberOfLines={2}>
-                    {item.description}
-                  </Text>
-                ) : null}
-                <Text style={styles.dishMeta} numberOfLines={1}>
-                  ${item.price}
-                </Text>
-              </View>
-
-              <View style={styles.dishActions}>
-                <View style={styles.dishToggleRow}>
-                  <StatusBadge
-                    label={item.isAvailable ? "Visible" : "Oculto"}
-                    tone={item.isAvailable ? "success" : "danger"}
-                  />
-
-                  <View style={styles.toggleContainer}>
-                    <Text style={styles.toggleLabel}>Ocultar</Text>
-                    <Switch
-                      value={!item.isAvailable}
-                      onValueChange={(value) => handleToggleHidden(item, value)}
-                      disabled={Boolean(togglingDishId) || Boolean(removingDishId)}
-                    />
-                  </View>
-                </View>
-
-                <AppButton
-                  label="Editar"
-                  size="sm"
-                  variant="secondary"
-                  onPress={() =>
-                    navigation.navigate(ROUTES.AddDish, {
-                      dish: {
-                        id: item.id,
-                        name: item.name,
-                        description: item.description,
-                        price: item.price,
-                      },
-                    })
-                  }
-                />
-                <AppButton
-                  label={removingDishId === item.id ? "Eliminando…" : "Eliminar"}
-                  size="sm"
-                  variant="danger"
-                  disabled={Boolean(removingDishId)}
-                  onPress={() => confirmRemoveDish(item)}
-                />
-              </View>
-            </View>
-          </Card>
-        )}
+        renderItem={renderDish}
         ListEmptyComponent={
-          isLoadingDishes ? (
-            <LoadingState
-              message="Cargando tus platos…"
-              style={styles.feedbackState}
-            />
-          ) : dishesError ? (
-            <ErrorMessage
-              title="No se pudieron cargar los platos"
-              message={dishesError}
-              onRetry={loadDishes}
-              style={styles.feedbackState}
-            />
-          ) : (
-            <EmptyState
-              title="Sin platos"
-              message='Pulsa "Añadir platos" para crear tu primer plato.'
-              iconName="food-outline"
-              style={styles.feedbackState}
-            />
-          )
+          <ManagerDishesFeedback
+            isLoadingDishes={isLoadingDishes}
+            dishesError={dishesError}
+            onRetry={loadDishes}
+            style={styles.feedbackState}
+          />
         }
       />
     </Screen>
@@ -395,137 +315,5 @@ const styles = StyleSheet.create({
   },
   feedbackState: {
     marginTop: spacing.lg,
-  },
-  dishesCardInner: {
-    marginTop: 0,
-  },
-  header: {
-    gap: spacing.xs,
-    marginBottom: spacing.lg,
-  },
-  title: {
-    fontSize: typography.sizes.xl,
-    fontWeight: typography.weights.bold,
-    color: colors.textPrimary,
-    lineHeight: typography.lineHeights.xl,
-  },
-  subtitle: {
-    fontSize: typography.sizes.md,
-    color: colors.textSecondary,
-    lineHeight: typography.lineHeights.md,
-  },
-  profileRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-  },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: colors.primarySoft,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarText: {
-    fontSize: typography.sizes.lg,
-    fontWeight: typography.weights.bold,
-    color: colors.primary,
-  },
-  profileText: {
-    flex: 1,
-    gap: 2,
-  },
-  name: {
-    fontSize: typography.sizes.md,
-    fontWeight: typography.weights.bold,
-    color: colors.textPrimary,
-    lineHeight: typography.lineHeights.md,
-  },
-  email: {
-    fontSize: typography.sizes.sm,
-    color: colors.textSecondary,
-    lineHeight: typography.lineHeights.sm,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.border,
-    marginVertical: spacing.lg,
-  },
-  field: {
-    gap: spacing.xs,
-  },
-  label: {
-    fontSize: typography.sizes.sm,
-    color: colors.textMuted,
-  },
-  value: {
-    fontSize: typography.sizes.md,
-    color: colors.textPrimary,
-    fontWeight: typography.weights.semiBold,
-  },
-  actions: {
-    marginTop: spacing.lg,
-    gap: spacing.sm,
-  },
-  dishesCard: {
-    marginTop: spacing.lg,
-  },
-  dishesHeader: {
-    gap: spacing.xs,
-    marginBottom: spacing.md,
-  },
-  dishesTitle: {
-    fontSize: typography.sizes.lg,
-    fontWeight: typography.weights.bold,
-    color: colors.textPrimary,
-  },
-  dishesSubtitle: {
-    fontSize: typography.sizes.sm,
-    color: colors.textSecondary,
-    lineHeight: typography.lineHeights.sm,
-  },
-  dishRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-    paddingVertical: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  dishText: {
-    flex: 1,
-    gap: 2,
-  },
-  dishName: {
-    fontSize: typography.sizes.md,
-    fontWeight: typography.weights.semiBold,
-    color: colors.textPrimary,
-  },
-  dishMeta: {
-    fontSize: typography.sizes.sm,
-    color: colors.textSecondary,
-  },
-  dishDescription: {
-    fontSize: typography.sizes.sm,
-    color: colors.textSecondary,
-    lineHeight: typography.lineHeights.sm,
-  },
-  dishActions: {
-    alignItems: "flex-end",
-    gap: spacing.xs,
-  },
-  dishToggleRow: {
-    alignItems: "flex-end",
-    gap: spacing.xs,
-  },
-  toggleContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-  },
-  toggleLabel: {
-    fontSize: typography.sizes.xs,
-    color: colors.textSecondary,
   },
 });

@@ -1,5 +1,5 @@
 import React from "react";
-import { Pressable, StyleSheet, Text, ViewStyle } from "react-native";
+import { Pressable, StyleProp, StyleSheet, Text, ViewStyle } from "react-native";
 import { colors, typography } from "../theme";
 import { spacing } from "../constants/spacing";
 
@@ -12,7 +12,9 @@ type AppButtonProps = {
   disabled?: boolean;
   variant?: AppButtonVariant;
   size?: AppButtonSize;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
 };
 
 export function AppButton({
@@ -22,12 +24,17 @@ export function AppButton({
   variant = "primary",
   size = "md",
   style,
+  accessibilityLabel,
+  accessibilityHint,
 }: AppButtonProps) {
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled}
       accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityHint={accessibilityHint}
+      accessibilityState={{ disabled: Boolean(disabled) }}
       style={({ pressed }) => [
         styles.base,
         size === "sm" ? styles.sizeSm : styles.sizeMd,
