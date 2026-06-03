@@ -14,6 +14,8 @@ type AppInputProps = {
   multiline?: boolean;
   numberOfLines?: number;
   maxLength?: number;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
 };
 
 export function AppInput({
@@ -27,6 +29,8 @@ export function AppInput({
   multiline,
   numberOfLines,
   maxLength,
+  accessibilityLabel,
+  accessibilityHint,
 }: AppInputProps) {
   const [isFocused, setIsFocused] = useState(false);
 
@@ -50,6 +54,8 @@ export function AppInput({
         multiline={multiline}
         numberOfLines={numberOfLines}
         maxLength={maxLength}
+        accessibilityLabel={accessibilityLabel ?? label}
+        accessibilityHint={accessibilityHint}
         textAlignVertical={multiline ? "top" : "center"}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}

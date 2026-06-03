@@ -1,6 +1,8 @@
 import { httpClient } from "../api";
 import { Reservation, ReservationItem, ReservationStatus } from "../types/models";
 
+type UnknownRecord = Record<string, unknown>;
+
 type ReservationItemApi = {
   id: string;
   dish_id: string;
@@ -26,6 +28,18 @@ type ApiEnvelope<T> = {
 type CreateReservationPayload = {
   items: Array<{ dish_id: string; quantity: number }>;
 };
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === "object" && value !== null;
+}
+
+function unwrapData(value: unknown): unknown {
+  if (isRecord(value) && value.data !== undefined) {
+    return value.data;
+  }
+
+  return value;
+}
 
 function normalizeStatus(value: unknown): ReservationStatus {
   if (typeof value !== "string") return "pending_payment";
@@ -67,25 +81,30 @@ function normalizeNumber(value: unknown): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-function normalizeReservationItem(item: any): ReservationItem {
+function normalizeReservationItem(item: unknown): ReservationItem {
+  const source = isRecord(item) ? item : {};
+
   return {
-    id: String(item?.id ?? ""),
-    dishId: String(item?.dish_id ?? item?.dishId ?? ""),
-    dishName: typeof item?.dish_name === "string" ? item.dish_name : "",
+    id: String(source.id ?? ""),
+    dishId: String(source.dish_id ?? source.dishId ?? ""),
+    dishName: typeof source.dish_name === "string" ? source.dish_name : "",
     dishDescription:
-      typeof item?.dish_description === "string" ? item.dish_description : null,
-    restaurantId: String(item?.restaurant_id ?? item?.restaurantId ?? ""),
-    unitPrice: normalizeNumber(item?.unit_price ?? item?.unitPrice),
+      typeof source.dish_description === "string"
+        ? source.dish_description
+        : null,
+    restaurantId: String(source.restaurant_id ?? source.restaurantId ?? ""),
+    unitPrice: normalizeNumber(source.unit_price ?? source.unitPrice),
   };
 }
 
-function normalizeReservation(payload: any): Reservation {
-  const items = Array.isArray(payload?.items) ? payload.items : [];
+function normalizeReservation(payload: unknown): Reservation {
+  const source = isRecord(payload) ? payload : {};
+  const items = Array.isArray(source.items) ? source.items : [];
 
   return {
-    id: String(payload?.id ?? ""),
-    status: normalizeStatus(payload?.status),
-    createdAt: String(payload?.created_at ?? payload?.createdAt ?? ""),
+    id: String(source.id ?? ""),
+    status: normalizeStatus(source.status),
+    createdAt: String(source.created_at ?? source.createdAt ?? ""),
     items: items.map(normalizeReservationItem),
   };
 }
@@ -98,7 +117,7 @@ export async function getMyReservations(accessToken: string): Promise<Reservatio
     }
   );
 
-  const payload = (result as any)?.data ?? result;
+  const payload = unwrapData(result);
   const list = Array.isArray(payload) ? payload : [];
   return list.map(normalizeReservation).filter((r) => Boolean(r.id));
 }
@@ -115,8 +134,7 @@ export async function createReservation(
     }
   );
 
-  const data = (result as any)?.data ?? result;
-  return normalizeReservation(data);
+  return normalizeReservation(unwrapData(result));
 }
 
 export async function cancelReservation(
@@ -131,6 +149,5 @@ export async function cancelReservation(
     }
   );
 
-  const data = (result as any)?.data ?? result;
-  return normalizeReservation(data);
+  return normalizeReservation(unwrapData(result));
 }

@@ -1,17 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { Alert, StyleSheet } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 
-import { AppButton } from "../components/AppButton";
-import { AppInput } from "../components/AppInput";
-import { Card } from "../components/Card";
+import { AddDishForm, AddDishHeader } from "../components/addDish";
 import { Screen } from "../components/Screen";
-import { spacing } from "../constants/spacing";
 import { useAuth } from "../context/AuthContext";
 import { ROUTES } from "../navigation/routes";
 import { RootStackParamList } from "../navigation/types";
 import { createDish, updateDish } from "../services/dishService";
-import { colors, typography } from "../theme";
 
 type Props = NativeStackScreenProps<RootStackParamList, typeof ROUTES.AddDish>;
 
@@ -67,10 +63,13 @@ export function AddDishScreen({ navigation, route }: Props) {
       return;
     }
 
-    if (isSubmitting) return;
+    if (isSubmitting) {
+      return;
+    }
 
     try {
       setIsSubmitting(true);
+
       if (isEditMode && dish?.id) {
         await updateDish(accessToken, dish.id, {
           name: trimmedName,
@@ -84,22 +83,24 @@ export function AddDishScreen({ navigation, route }: Props) {
             onPress: () => navigation.goBack(),
           },
         ]);
-      } else {
-        await createDish(accessToken, {
-          name: trimmedName,
-          description: trimmedDescription.length ? trimmedDescription : undefined,
-          price: safePrice,
-          is_available: true,
-          is_active: true,
-        });
 
-        Alert.alert("Listo", "Plato añadido correctamente.", [
-          {
-            text: "Volver",
-            onPress: () => navigation.goBack(),
-          },
-        ]);
+        return;
       }
+
+      await createDish(accessToken, {
+        name: trimmedName,
+        description: trimmedDescription.length ? trimmedDescription : undefined,
+        price: safePrice,
+        is_available: true,
+        is_active: true,
+      });
+
+      Alert.alert("Listo", "Plato añadido correctamente.", [
+        {
+          text: "Volver",
+          onPress: () => navigation.goBack(),
+        },
+      ]);
     } catch (error) {
       const message =
         error instanceof Error
@@ -107,6 +108,7 @@ export function AddDishScreen({ navigation, route }: Props) {
           : isEditMode
             ? "No se pudo actualizar el plato"
             : "No se pudo añadir el plato";
+
       Alert.alert("Error", message);
     } finally {
       setIsSubmitting(false);
@@ -115,60 +117,19 @@ export function AddDishScreen({ navigation, route }: Props) {
 
   return (
     <Screen style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>
-          {isEditMode ? "Editar plato" : "Añadir plato"}
-        </Text>
-        <Text style={styles.subtitle}>
-          {isEditMode
-            ? "Actualiza la información del plato."
-            : "Agrega un plato para que los estudiantes lo vean en tu restaurante."}
-        </Text>
-      </View>
-
-      <Card style={styles.card}>
-        <AppInput
-          label="Nombre"
-          value={name}
-          onChangeText={setName}
-          placeholder="Ej: Arroz con pollo"
-          autoCapitalize="words"
-        />
-
-        <AppInput
-          label="Descripción (opcional)"
-          value={description}
-          onChangeText={setDescription}
-          placeholder="Ej: Incluye ensalada y bebida"
-          autoCapitalize="sentences"
-          multiline
-          numberOfLines={3}
-          maxLength={500}
-        />
-
-        <AppInput
-          label="Precio"
-          value={price}
-          onChangeText={(value) => setPrice(normalizePriceInput(value))}
-          placeholder="Ej: 2.50"
-          keyboardType="numeric"
-          autoCapitalize="none"
-        />
-
-        <View style={styles.actions}>
-          <AppButton
-            label={
-              isSubmitting
-                ? "Guardando…"
-                : isEditMode
-                  ? "Guardar cambios"
-                  : "Guardar plato"
-            }
-            onPress={handleSubmit}
-            disabled={!canSubmit}
-          />
-        </View>
-      </Card>
+      <AddDishHeader isEditMode={isEditMode} />
+      <AddDishForm
+        canSubmit={canSubmit}
+        description={description}
+        isEditMode={isEditMode}
+        isSubmitting={isSubmitting}
+        name={name}
+        price={price}
+        onDescriptionChange={setDescription}
+        onNameChange={setName}
+        onPriceChange={(value) => setPrice(normalizePriceInput(value))}
+        onSubmit={handleSubmit}
+      />
     </Screen>
   );
 }
@@ -176,26 +137,5 @@ export function AddDishScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
-    gap: spacing.xs,
-    marginBottom: spacing.lg,
-  },
-  title: {
-    fontSize: typography.sizes.xl,
-    fontWeight: typography.weights.bold,
-    color: colors.textPrimary,
-    lineHeight: typography.lineHeights.xl,
-  },
-  subtitle: {
-    fontSize: typography.sizes.md,
-    color: colors.textSecondary,
-    lineHeight: typography.lineHeights.md,
-  },
-  card: {
-    gap: spacing.lg,
-  },
-  actions: {
-    gap: spacing.sm,
   },
 });

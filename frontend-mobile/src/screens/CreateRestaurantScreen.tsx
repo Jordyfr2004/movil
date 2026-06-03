@@ -1,17 +1,16 @@
 import React, { useMemo, useState } from "react";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { Alert, StyleSheet } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 
-import { AppButton } from "../components/AppButton";
-import { AppInput } from "../components/AppInput";
-import { Card } from "../components/Card";
+import {
+  CreateRestaurantForm,
+  CreateRestaurantHeader,
+} from "../components/createRestaurant";
 import { Screen } from "../components/Screen";
-import { spacing } from "../constants/spacing";
 import { useAuth } from "../context/AuthContext";
 import { ROUTES } from "../navigation/routes";
 import { RootStackParamList } from "../navigation/types";
 import { createRestaurant } from "../services/restaurantService";
-import { colors, typography } from "../theme";
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
@@ -39,7 +38,9 @@ export function CreateRestaurantScreen({ navigation }: Props) {
       return;
     }
 
-    if (isSubmitting) return;
+    if (isSubmitting) {
+      return;
+    }
 
     try {
       setIsSubmitting(true);
@@ -63,6 +64,7 @@ export function CreateRestaurantScreen({ navigation }: Props) {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "No se pudo crear el restaurante";
+
       Alert.alert("Error", message);
     } finally {
       setIsSubmitting(false);
@@ -71,31 +73,14 @@ export function CreateRestaurantScreen({ navigation }: Props) {
 
   return (
     <Screen style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Crea tu restaurante</Text>
-        <Text style={styles.subtitle}>
-          Como manager, necesitas registrar tu restaurante una sola vez para que
-          sea visible a los estudiantes.
-        </Text>
-      </View>
-
-      <Card style={styles.card}>
-        <AppInput
-          label="Nombre del restaurante"
-          value={name}
-          onChangeText={setName}
-          placeholder="Ej: Comedor Central"
-          autoCapitalize="words"
-        />
-
-        <View style={styles.actions}>
-          <AppButton
-            label={isSubmitting ? "Creando…" : "Crear restaurante"}
-            onPress={handleCreate}
-            disabled={!canSubmit}
-          />
-        </View>
-      </Card>
+      <CreateRestaurantHeader />
+      <CreateRestaurantForm
+        canSubmit={canSubmit}
+        isSubmitting={isSubmitting}
+        name={name}
+        onNameChange={setName}
+        onSubmit={handleCreate}
+      />
     </Screen>
   );
 }
@@ -103,26 +88,5 @@ export function CreateRestaurantScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
-    gap: spacing.xs,
-    marginBottom: spacing.lg,
-  },
-  title: {
-    fontSize: typography.sizes.xl,
-    fontWeight: typography.weights.bold,
-    color: colors.textPrimary,
-    lineHeight: typography.lineHeights.xl,
-  },
-  subtitle: {
-    fontSize: typography.sizes.md,
-    color: colors.textSecondary,
-    lineHeight: typography.lineHeights.md,
-  },
-  card: {
-    gap: spacing.lg,
-  },
-  actions: {
-    gap: spacing.sm,
   },
 });

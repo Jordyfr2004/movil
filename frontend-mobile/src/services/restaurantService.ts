@@ -1,6 +1,8 @@
 import { httpClient } from "../api";
 import { Restaurant } from "../types/models";
 
+type UnknownRecord = Record<string, unknown>;
+
 type RestaurantApi = {
   id: string;
   name: string;
@@ -19,22 +21,52 @@ type RestaurantCreateResponse = {
   data?: RestaurantApi;
 };
 
-function normalizeRestaurant(item: any): Restaurant {
-  const isActive = Boolean(item?.is_active ?? item?.isActive ?? item?.active);
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === "object" && value !== null;
+}
+
+function unwrapData(value: unknown): unknown {
+  if (isRecord(value) && value.data !== undefined) {
+    return value.data;
+  }
+
+  return value;
+}
+
+function readString(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+function readId(value: unknown): string | number | undefined {
+  return typeof value === "string" || typeof value === "number"
+    ? value
+    : undefined;
+}
+
+function normalizeRestaurant(item: unknown): Restaurant {
+  if (!isRecord(item)) {
+    return {
+      id: "",
+      name: "",
+      isActive: false,
+    };
+  }
+
+  const isActive = Boolean(item.is_active ?? item.isActive ?? item.active);
 
   return {
-    id: item?.id,
-    name: typeof item?.name === "string" ? item.name : "",
+    id: readId(item.id) ?? "",
+    name: readString(item.name) ?? "",
     isActive,
-    createdAt: item?.created_at ?? item?.createdAt,
-    updatedAt: item?.updated_at ?? item?.updatedAt,
+    createdAt: readString(item.created_at ?? item.createdAt),
+    updatedAt: readString(item.updated_at ?? item.updatedAt),
   };
 }
 
 export async function getRestaurants(): Promise<Restaurant[]> {
-  const result = await httpClient.get<any>("/restaurants");
+  const result = await httpClient.get<unknown>("/restaurants");
 
-  const payload = Array.isArray(result?.data) ? result.data : result;
+  const payload = unwrapData(result);
   const list = Array.isArray(payload) ? payload : [];
 
   return list
@@ -54,8 +86,7 @@ export async function createRestaurant(
     }
   );
 
-  const created = (result as any)?.data ?? result;
-  return normalizeRestaurant(created);
+  return normalizeRestaurant(unwrapData(result));
 }
 
 export async function getRestaurantById(
@@ -63,12 +94,11 @@ export async function getRestaurantById(
 ): Promise<Restaurant | null> {
   if (!restaurantId) return null;
 
-  const result = await httpClient.get<any>(
+  const result = await httpClient.get<unknown>(
     `/restaurants/${encodeURIComponent(restaurantId)}`
   );
 
-  const payload = (result as any)?.data ?? result;
-  const normalized = normalizeRestaurant(payload);
+  const normalized = normalizeRestaurant(unwrapData(result));
 
   if (!normalized?.id || !normalized?.name) return null;
   return normalized;

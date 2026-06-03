@@ -1,6 +1,8 @@
 import { httpClient } from "../api";
 import { UserRole } from "../types/models";
 
+type UnknownRecord = Record<string, unknown>;
+
 export type UserProfile = {
   id?: string | number;
   fullName?: string;
@@ -11,7 +13,39 @@ export type UserProfile = {
 
 export interface UserProfileResponse {
   message?: string;
-  data?: any;
+  data?: unknown;
+}
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === "object" && value !== null;
+}
+
+function unwrapData(value: unknown): unknown {
+  if (isRecord(value) && value.data !== undefined) {
+    return value.data;
+  }
+
+  return value;
+}
+
+function readString(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+function readId(value: unknown): string | number | undefined {
+  return typeof value === "string" || typeof value === "number"
+    ? value
+    : undefined;
+}
+
+function readRestaurantId(value: unknown): string | null {
+  if (value === null) return null;
+  return typeof value === "string" ? value : null;
+}
+
+function readStatus(error: unknown): number | undefined {
+  if (!isRecord(error)) return undefined;
+  return typeof error.status === "number" ? error.status : undefined;
 }
 
 function normalizeRole(value: unknown): UserRole | string | undefined {
@@ -28,25 +62,26 @@ function normalizeRole(value: unknown): UserRole | string | undefined {
   return value;
 }
 
-function normalizeUserProfile(payload: any): UserProfile {
-  if (!payload || typeof payload !== "object") return {};
+function normalizeUserProfile(payload: unknown): UserProfile {
+  if (!isRecord(payload)) return {};
 
   const fullNameCandidate =
     payload.fullName ??
     payload.full_name ??
     payload.name ??
     (payload.first_name || payload.last_name
-      ? `${payload.first_name ?? ""} ${payload.last_name ?? ""}`.trim()
+      ? `${readString(payload.first_name) ?? ""} ${readString(payload.last_name) ?? ""}`.trim()
       : undefined);
 
   return {
-    id: payload.id ?? payload.user_id ?? payload.userId,
+    id: readId(payload.id ?? payload.user_id ?? payload.userId),
     fullName:
       typeof fullNameCandidate === "string" ? fullNameCandidate : undefined,
-    email: typeof payload.email === "string" ? payload.email : undefined,
+    email: readString(payload.email),
     role: normalizeRole(payload.role ?? payload.user_role),
-    restaurantId:
-      payload.restaurantId ?? payload.restaurant_id ?? payload.restaurant ?? null,
+    restaurantId: readRestaurantId(
+      payload.restaurantId ?? payload.restaurant_id ?? payload.restaurant ?? null
+    ),
   };
 }
 
@@ -55,7 +90,7 @@ export async function getMyProfile(accessToken: string): Promise<UserProfile> {
     accessToken,
   });
 
-  return normalizeUserProfile((result as any)?.data ?? result);
+  return normalizeUserProfile(unwrapData(result));
 }
 
 export async function getUserById(
@@ -69,7 +104,7 @@ export async function getUserById(
     }
   );
 
-  return normalizeUserProfile((result as any)?.data ?? result);
+  return normalizeUserProfile(unwrapData(result));
 }
 
 export async function getProfileBestEffort(
@@ -78,8 +113,8 @@ export async function getProfileBestEffort(
 ): Promise<UserProfile> {
   try {
     return await getMyProfile(accessToken);
-  } catch (error: any) {
-    const status = error?.status;
+  } catch (error: unknown) {
+    const status = readStatus(error);
     const looksLikeNotFound = status === 404;
 
     if (!userId || !looksLikeNotFound) {

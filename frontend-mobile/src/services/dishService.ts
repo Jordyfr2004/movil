@@ -1,5 +1,7 @@
 import { httpClient } from "../api";
 
+type UnknownRecord = Record<string, unknown>;
+
 export type Dish = {
   id: string;
   restaurantId: string;
@@ -8,20 +10,6 @@ export type Dish = {
   price: string;
   isAvailable: boolean;
   isActive: boolean;
-};
-
-type DishApi = {
-  id: string;
-  restaurant_id: string;
-  name: string;
-  description?: string | null;
-  price: string;
-  is_available: boolean;
-  is_active: boolean;
-  restaurantId?: string;
-  descriptionText?: string | null;
-  isAvailable?: boolean;
-  isActive?: boolean;
 };
 
 type CreateDishPayload = {
@@ -34,33 +22,49 @@ type CreateDishPayload = {
 
 type UpdateDishPayload = Partial<CreateDishPayload>;
 
-function normalizeDish(item: any): Dish {
-  const api = item as Partial<DishApi>;
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === "object" && value !== null;
+}
 
-  const parseBoolean = (value: unknown, fallback: boolean) => {
-    if (value === undefined || value === null) return fallback;
-    if (typeof value === "boolean") return value;
-    if (typeof value === "number") return value === 1;
-    if (typeof value === "string") {
-      const normalized = value.trim().toLowerCase();
-      if (normalized === "true" || normalized === "1") return true;
-      if (normalized === "false" || normalized === "0") return false;
-    }
-    return Boolean(value);
-  };
+function unwrapData(value: unknown): unknown {
+  if (isRecord(value) && value.data !== undefined) {
+    return value.data;
+  }
+
+  return value;
+}
+
+function readTrimmedString(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : undefined;
+}
+
+function parseBoolean(value: unknown, fallback: boolean) {
+  if (value === undefined || value === null) return fallback;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value === 1;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true" || normalized === "1") return true;
+    if (normalized === "false" || normalized === "0") return false;
+  }
+  return Boolean(value);
+}
+
+function normalizeDish(item: unknown): Dish {
+  const api = isRecord(item) ? item : {};
+
+  const descriptionValue = api.description ?? api.descriptionText;
 
   return {
-    id: String(api?.id ?? ""),
-    restaurantId: String(api?.restaurant_id ?? api?.restaurantId ?? ""),
-    name: typeof api?.name === "string" ? api.name : "",
-    description:
-      typeof (api?.description ?? api?.descriptionText) === "string" &&
-      (api.description ?? api.descriptionText)?.trim().length
-        ? String(api.description ?? api.descriptionText).trim()
-        : undefined,
-    price: typeof api?.price === "string" ? api.price : String(api?.price ?? ""),
-    isAvailable: parseBoolean(api?.is_available ?? api?.isAvailable, true),
-    isActive: parseBoolean(api?.is_active ?? api?.isActive, true),
+    id: String(api.id ?? ""),
+    restaurantId: String(api.restaurant_id ?? api.restaurantId ?? ""),
+    name: typeof api.name === "string" ? api.name : "",
+    description: readTrimmedString(descriptionValue),
+    price: typeof api.price === "string" ? api.price : String(api.price ?? ""),
+    isAvailable: parseBoolean(api.is_available ?? api.isAvailable, true),
+    isActive: parseBoolean(api.is_active ?? api.isActive, true),
   };
 }
 
@@ -69,47 +73,40 @@ export async function getPublicDishesByRestaurant(
 ): Promise<Dish[]> {
   if (!restaurantId) return [];
 
-  const result = await httpClient.get<any>(
+  const result = await httpClient.get<unknown>(
     `/dishes/restaurant/${encodeURIComponent(restaurantId)}`
   );
 
-  const payload = Array.isArray((result as any)?.data)
-    ? (result as any).data
-    : result;
-
+  const payload = unwrapData(result);
   const list = Array.isArray(payload) ? payload : [];
 
   return list
     .map(normalizeDish)
-    .filter((dish) => Boolean(dish?.id) && Boolean(dish?.name));
+    .filter((dish) => Boolean(dish.id) && Boolean(dish.name));
 }
 
 export async function createDish(
   accessToken: string,
   payload: CreateDishPayload
 ): Promise<Dish> {
-  const result = await httpClient.post<any>("/dishes", payload, {
+  const result = await httpClient.post<unknown>("/dishes", payload, {
     accessToken,
   });
 
-  const created = (result as any)?.data ?? result;
-  return normalizeDish(created);
+  return normalizeDish(unwrapData(result));
 }
 
 export async function getManagerDishes(accessToken: string): Promise<Dish[]> {
-  const result = await httpClient.get<any>("/dishes", {
+  const result = await httpClient.get<unknown>("/dishes", {
     accessToken,
   });
 
-  const payload = Array.isArray((result as any)?.data)
-    ? (result as any).data
-    : result;
-
+  const payload = unwrapData(result);
   const list = Array.isArray(payload) ? payload : [];
 
   return list
     .map(normalizeDish)
-    .filter((dish) => Boolean(dish?.id) && Boolean(dish?.name));
+    .filter((dish) => Boolean(dish.id) && Boolean(dish.name));
 }
 
 export async function updateDish(
@@ -117,7 +114,7 @@ export async function updateDish(
   dishId: string,
   payload: UpdateDishPayload
 ): Promise<Dish> {
-  const result = await httpClient.patch<any>(
+  const result = await httpClient.patch<unknown>(
     `/dishes/${encodeURIComponent(dishId)}`,
     payload,
     {
@@ -125,15 +122,29 @@ export async function updateDish(
     }
   );
 
-  const updated = (result as any)?.data ?? result;
-  return normalizeDish(updated);
+  return normalizeDish(unwrapData(result));
 }
 
 export async function deleteDish(
   accessToken: string,
   dishId: string
-): Promise<{ message?: string } | any> {
-  return httpClient.delete<any>(`/dishes/${encodeURIComponent(dishId)}`, {
-    accessToken,
-  });
+): Promise<{ message?: string }> {
+  const result = await httpClient.delete<unknown>(
+    `/dishes/${encodeURIComponent(dishId)}`,
+    {
+      accessToken,
+    }
+  );
+
+  const payload = unwrapData(result);
+  if (!isRecord(payload)) {
+    return {};
+  }
+
+  const message = readTrimmedString(payload.message);
+  if (!message) {
+    return {};
+  }
+
+  return { message };
 }

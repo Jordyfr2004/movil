@@ -1,17 +1,18 @@
 import React from "react";
 import { Pressable, StyleSheet } from "react-native";
+import { DrawerNavigationProp } from "@react-navigation/drawer";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { HomeScreen } from "../screens/HomeScreen";
-import { RestaurantDetailScreen } from "../screens/RestaurantDetailScreen";
 import { MyReservationsScreen } from "../screens/MyReservationsScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
+import { RestaurantDetailScreen } from "../screens/RestaurantDetailScreen";
 import { colors, typography } from "../theme";
 import { ROUTES } from "./routes";
-import { RootStackParamList } from "./types";
+import { StudentDrawerParamList, StudentStackParamList } from "./types";
 
-const Stack = createNativeStackNavigator<RootStackParamList>();
+const Stack = createNativeStackNavigator<StudentStackParamList>();
 
 export function StudentStackNavigator() {
   return (
@@ -38,8 +39,9 @@ export function StudentStackNavigator() {
               accessibilityRole="button"
               accessibilityLabel="Abrir menú"
               onPress={() => {
-                const parent = navigation.getParent();
-                (parent as any)?.openDrawer?.();
+                const parent =
+                  navigation.getParent<DrawerNavigationProp<StudentDrawerParamList>>();
+                parent?.openDrawer();
               }}
               hitSlop={10}
               style={({ pressed }) => [

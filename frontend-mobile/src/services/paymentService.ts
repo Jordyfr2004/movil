@@ -1,5 +1,7 @@
 import { httpClient } from "../api";
 
+type UnknownRecord = Record<string, unknown>;
+
 type ApiEnvelope<T> = {
   message?: string;
   data?: T;
@@ -9,6 +11,22 @@ type CreatePaymentIntentResponse = {
   clientSecret: string;
   payment_intent_id: string;
 };
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === "object" && value !== null;
+}
+
+function unwrapData(value: unknown): unknown {
+  if (isRecord(value) && value.data !== undefined) {
+    return value.data;
+  }
+
+  return value;
+}
+
+function readString(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
 
 export async function createPaymentIntent(
   accessToken: string,
@@ -24,10 +42,11 @@ export async function createPaymentIntent(
     }
   );
 
-  const payload = (result as any)?.data ?? result;
+  const payload = unwrapData(result);
+  const source = isRecord(payload) ? payload : {};
 
   return {
-    clientSecret: String(payload?.clientSecret ?? ""),
-    payment_intent_id: String(payload?.payment_intent_id ?? ""),
+    clientSecret: readString(source.clientSecret),
+    payment_intent_id: readString(source.payment_intent_id),
   };
 }

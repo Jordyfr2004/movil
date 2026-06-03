@@ -11,7 +11,9 @@ import {
   createDrawerNavigator,
   DrawerContentComponentProps,
   DrawerContentScrollView,
+  DrawerNavigationProp,
 } from "@react-navigation/drawer";
+import { useNavigation } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { spacing } from "../constants/spacing";
@@ -20,18 +22,24 @@ import { UserProfile } from "../services/userService";
 import { colors, typography } from "../theme";
 import { ROUTES } from "./routes";
 import { StudentStackNavigator } from "./StudentStackNavigator";
-
-type StudentDrawerParamList = {
-  StudentStack: undefined;
-};
+import { StudentDrawerParamList } from "./types";
 
 const Drawer = createDrawerNavigator<StudentDrawerParamList>();
+
+type StudentDrawerContentProps = DrawerContentComponentProps & {
+  profile: UserProfile | null;
+};
+
+type StudentDrawerTargetRoute =
+  | typeof ROUTES.Profile
+  | typeof ROUTES.MyReservations;
 
 function StudentDrawerContent({
   profile,
   ...props
-}: DrawerContentComponentProps & { profile: UserProfile | null }) {
+}: StudentDrawerContentProps) {
   const { user, logout } = useAuth();
+  const navigation = useNavigation<DrawerNavigationProp<StudentDrawerParamList>>();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const displayName = useMemo(() => {
@@ -48,16 +56,9 @@ function StudentDrawerContent({
     return source.trim().charAt(0).toUpperCase() || "U";
   }, [displayName, user?.email]);
 
-  const handleGoToProfile = () => {
-    props.navigation.closeDrawer();
-    (props.navigation as any).navigate("StudentStack", {
-      screen: ROUTES.Profile,
-    });
-  };
-
-  const handleGoTo = (routeName: (typeof ROUTES)[keyof typeof ROUTES]) => {
-    props.navigation.closeDrawer();
-    (props.navigation as any).navigate("StudentStack", {
+  const handleGoTo = (routeName: StudentDrawerTargetRoute) => {
+    navigation.closeDrawer();
+    navigation.navigate("StudentStack", {
       screen: routeName,
     });
   };
@@ -67,7 +68,7 @@ function StudentDrawerContent({
 
     try {
       setIsLoggingOut(true);
-      props.navigation.closeDrawer();
+      navigation.closeDrawer();
       await logout();
     } catch (error) {
       const message =
@@ -86,7 +87,7 @@ function StudentDrawerContent({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Ir al perfil"
-        onPress={handleGoToProfile}
+        onPress={() => handleGoTo(ROUTES.Profile)}
         style={({ pressed }) => [
           styles.userRow,
           pressed && styles.userRowPressed,
