@@ -1,5 +1,5 @@
 import React from "react";
-import { Animated, StyleSheet, Text } from "react-native";
+import { Animated, StyleSheet } from "react-native";
 import { colors } from "../../theme";
 import { StudentAccessLayoutMetrics } from "./studentAccessTheme";
 import { useStudentAccessEntranceAnimation } from "./useStudentAccessEntranceAnimation";

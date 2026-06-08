@@ -18,10 +18,34 @@ import {
   getMyReservations,
 } from "../services/reservationService";
 
+type UnknownRecord = Record<string, unknown>;
+
 type Props = NativeStackScreenProps<
   RootStackParamList,
   typeof ROUTES.RestaurantDetail
 >;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === "object" && value !== null;
+}
+
+function readErrorStatus(error: unknown): number | undefined {
+  if (!isRecord(error)) {
+    return undefined;
+  }
+
+  return typeof error.status === "number" ? error.status : undefined;
+}
+
+function readErrorMessage(error: unknown, fallback: string): string {
+  if (!isRecord(error)) {
+    return fallback;
+  }
+
+  return typeof error.message === "string" && error.message
+    ? error.message
+    : fallback;
+}
 
 export function RestaurantDetailScreen({ navigation, route }: Props) {
   const { restaurant } = route.params;
@@ -110,9 +134,9 @@ export function RestaurantDetailScreen({ navigation, route }: Props) {
       setReservedDishIds((previous) =>
         previous.includes(dishId) ? previous : [...previous, dishId]
       );
-    } catch (error: any) {
-      const message = error?.message || "No se pudo crear la reserva";
-      const status = error?.status;
+    } catch (error: unknown) {
+      const message = readErrorMessage(error, "No se pudo crear la reserva");
+      const status = readErrorStatus(error);
 
       if (
         status === 400 &&

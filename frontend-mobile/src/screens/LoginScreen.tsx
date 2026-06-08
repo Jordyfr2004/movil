@@ -10,7 +10,10 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import {
   LoginFooter,
   LoginForm,
@@ -22,6 +25,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { ROUTES } from "../navigation/routes";
 import { RootStackParamList } from "../navigation/types";
+import { classifyAuthError } from "../services/authServices";
 import { typography } from "../theme";
 
 type Props = NativeStackScreenProps<RootStackParamList, typeof ROUTES.Login>;
@@ -35,7 +39,6 @@ export function LoginScreen({ navigation }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -56,6 +59,22 @@ export function LoginScreen({ navigation }: Props) {
 
   const isValidEmail = (value: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  };
+
+  const logLoginDebug = (
+    message: string,
+    details?: Record<string, unknown>
+  ) => {
+    if (!__DEV__) {
+      return;
+    }
+
+    if (details) {
+      console.log(`[login-screen] ${message}`, details);
+      return;
+    }
+
+    console.log(`[login-screen] ${message}`);
   };
 
   const handleLogin = async () => {
@@ -86,9 +105,20 @@ export function LoginScreen({ navigation }: Props) {
       });
 
       Alert.alert("Éxito", "Inicio de sesión correcto");
-    } catch (error) {
-      const message =
+    } catch (error: unknown) {
+      const errorKind = classifyAuthError(error);
+      const errorMessage =
         error instanceof Error ? error.message : "Error al iniciar sesión";
+
+      logLoginDebug("El error de login llegó a la pantalla", {
+        kind: errorKind,
+        message: errorMessage,
+      });
+
+      const message =
+        errorKind === "timeout" || errorKind === "red"
+          ? "No pudimos conectar con el servidor. Verifica que el backend esté activo e inténtalo nuevamente."
+          : errorMessage;
 
       Alert.alert("Error", message);
     } finally {
@@ -138,13 +168,9 @@ export function LoginScreen({ navigation }: Props) {
                   email={email}
                   password={password}
                   loading={loading}
-                  rememberMe={rememberMe}
                   metrics={metrics}
                   onEmailChange={setEmail}
                   onPasswordChange={setPassword}
-                  onToggleRememberMe={() =>
-                    setRememberMe((current) => !current)
-                  }
                   onForgotPassword={handleForgotPassword}
                   onSubmit={handleLogin}
                 />

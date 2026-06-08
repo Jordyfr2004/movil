@@ -2,6 +2,7 @@ import { httpClient } from "../api";
 import { UserRole } from "../types/models";
 
 type UnknownRecord = Record<string, unknown>;
+const PROFILE_REQUEST_TIMEOUT_MS = 15000;
 
 export type UserProfile = {
   id?: string | number;
@@ -48,6 +49,42 @@ function readStatus(error: unknown): number | undefined {
   return typeof error.status === "number" ? error.status : undefined;
 }
 
+function readMessage(error: unknown): string | undefined {
+  if (!isRecord(error)) {
+    return error instanceof Error ? error.message : undefined;
+  }
+
+  return typeof error.message === "string" ? error.message : undefined;
+}
+
+function classifyProfileError(error: unknown): string {
+  const status = readStatus(error);
+  const message = readMessage(error)?.toLowerCase() ?? "";
+
+  if (status === 401 || status === 403) return "401/403";
+  if (status === 404) return "404";
+  if (status !== undefined && status >= 500) return "server";
+  if (message.includes("tard")) return "timeout";
+  if (message.includes("no se pudo conectar") || message.includes("network")) {
+    return "red";
+  }
+
+  return "desconocido";
+}
+
+function logProfileDebug(message: string, details?: UnknownRecord) {
+  if (!__DEV__) {
+    return;
+  }
+
+  if (details) {
+    console.log(`[profile] ${message}`, details);
+    return;
+  }
+
+  console.log(`[profile] ${message}`);
+}
+
 function normalizeRole(value: unknown): UserRole | string | undefined {
   if (typeof value !== "string") return undefined;
   const lower = value.toLowerCase();
@@ -86,25 +123,50 @@ function normalizeUserProfile(payload: unknown): UserProfile {
 }
 
 export async function getMyProfile(accessToken: string): Promise<UserProfile> {
-  const result = await httpClient.get<UserProfileResponse>("/users/me", {
-    accessToken,
-  });
+  logProfileDebug("Solicitando /users/me");
 
-  return normalizeUserProfile(unwrapData(result));
+  try {
+    const result = await httpClient.get<UserProfileResponse>("/users/me", {
+      accessToken,
+      timeoutMs: PROFILE_REQUEST_TIMEOUT_MS,
+    });
+
+    return normalizeUserProfile(unwrapData(result));
+  } catch (error: unknown) {
+    logProfileDebug("Falló /users/me", {
+      type: classifyProfileError(error),
+      status: readStatus(error) ?? -1,
+      message: readMessage(error) ?? "Sin mensaje",
+    });
+    throw error;
+  }
 }
 
 export async function getUserById(
   userId: string,
   accessToken: string
 ): Promise<UserProfile> {
-  const result = await httpClient.get<UserProfileResponse>(
-    `/users/${encodeURIComponent(userId)}`,
-    {
-      accessToken,
-    }
-  );
+  logProfileDebug("Solicitando /users/:id", { userId });
 
-  return normalizeUserProfile(unwrapData(result));
+  try {
+    const result = await httpClient.get<UserProfileResponse>(
+      `/users/${encodeURIComponent(userId)}`,
+      {
+        accessToken,
+        timeoutMs: PROFILE_REQUEST_TIMEOUT_MS,
+      }
+    );
+
+    return normalizeUserProfile(unwrapData(result));
+  } catch (error: unknown) {
+    logProfileDebug("Falló /users/:id", {
+      userId,
+      type: classifyProfileError(error),
+      status: readStatus(error) ?? -1,
+      message: readMessage(error) ?? "Sin mensaje",
+    });
+    throw error;
+  }
 }
 
 export async function getProfileBestEffort(
@@ -121,6 +183,7 @@ export async function getProfileBestEffort(
       throw error;
     }
 
+    logProfileDebug("Fallback de /users/me a /users/:id", { userId });
     return await getUserById(userId, accessToken);
   }
 }

@@ -1,9 +1,18 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { StyleSheet } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 import { ENABLE_WS_DEBUG } from "../constants/api";
+import { spacing } from "../constants/spacing";
 import { useAuth } from "../context/AuthContext";
-import { DebugToast } from "../components/DebugToast";
+import {
+  AppButton,
+  DebugToast,
+  ErrorMessage,
+  LoadingState,
+  Screen,
+} from "../components";
+import { useSocketDebug } from "../hooks/useSocketDebug";
 import { StudentAccessScreen } from "../screens/StudentAccessScreen";
 import { WelcomeScreen } from "../screens/WelcomeScreen";
 import { LoginScreen } from "../screens/LoginScreen";
@@ -14,25 +23,229 @@ import { RestaurantDetailScreen } from "../screens/RestaurantDetailScreen";
 import { MyReservationsScreen } from "../screens/MyReservationsScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
 import { getProfileBestEffort, UserProfile } from "../services/userService";
-import { useSocketDebug } from "../hooks/useSocketDebug";
 import { colors, typography } from "../theme";
 import { ROUTES } from "./routes";
 import { StudentDrawerNavigator } from "./StudentDrawerNavigator";
 import { RootStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+const isSocketDebugEnabled = ENABLE_WS_DEBUG;
+
+type UnknownRecord = Record<string, unknown>;
+type ProfileLoadErrorKind =
+  | "timeout"
+  | "network"
+  | "server"
+  | "not-found"
+  | "unknown";
+
+type ProfileLoadError = {
+  kind: ProfileLoadErrorKind;
+  message: string;
+};
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === "object" && value !== null;
+}
+
+function readStatus(error: unknown): number | undefined {
+  if (!isRecord(error)) {
+    return undefined;
+  }
+
+  return typeof error.status === "number" ? error.status : undefined;
+}
+
+function readMessage(error: unknown): string {
+  if (!isRecord(error)) {
+    return error instanceof Error && error.message
+      ? error.message
+      : "No se pudo cargar tu perfil.";
+  }
+
+  if (typeof error.message === "string" && error.message.trim()) {
+    return error.message.trim();
+  }
+
+  return "No se pudo cargar tu perfil.";
+}
+
+function logSessionDebug(message: string, details?: UnknownRecord) {
+  if (!__DEV__) {
+    return;
+  }
+
+  if (details) {
+    console.log(`[session] ${message}`, details);
+    return;
+  }
+
+  console.log(`[session] ${message}`);
+}
+
+function classifyProfileLoadError(error: unknown): ProfileLoadError {
+  const status = readStatus(error);
+  const message = readMessage(error);
+  const normalizedMessage = message.toLowerCase();
+
+  if (status === 404) {
+    return {
+      kind: "not-found",
+      message: `No pudimos encontrar tu perfil. ${message}`,
+    };
+  }
+
+  if (status !== undefined && status >= 500) {
+    return {
+      kind: "server",
+      message: `El servidor no respondió correctamente. ${message}`,
+    };
+  }
+
+  if (normalizedMessage.includes("tard")) {
+    return {
+      kind: "timeout",
+      message: `La carga de tu perfil tardó demasiado. ${message}`,
+    };
+  }
+
+  if (
+    normalizedMessage.includes("no se pudo conectar") ||
+    normalizedMessage.includes("network")
+  ) {
+    return {
+      kind: "network",
+      message: `No pudimos comunicarnos con el servidor. ${message}`,
+    };
+  }
+
+  return {
+    kind: "unknown",
+    message,
+  };
+}
+
+function InitialLoadingScreen({ message }: { message: string }) {
+  return (
+    <Screen style={styles.loadingScreen}>
+      <LoadingState
+        message={message}
+        size="large"
+        style={styles.loadingState}
+      />
+    </Screen>
+  );
+}
+
+function ProfileErrorScreen({
+  error,
+  isSigningOut,
+  onRetry,
+  onLogout,
+}: {
+  error: ProfileLoadError;
+  isSigningOut: boolean;
+  onRetry: () => void;
+  onLogout: () => void;
+}) {
+  return (
+    <Screen style={styles.loadingScreen}>
+      <ErrorMessage
+        title="No pudimos preparar tu perfil"
+        message={error.message}
+        onRetry={onRetry}
+        retryLabel="Reintentar"
+        style={styles.profileErrorCard}
+      />
+
+      <AppButton
+        label={isSigningOut ? "Cerrando sesión…" : "Cerrar sesión"}
+        onPress={onLogout}
+        variant="secondary"
+        disabled={isSigningOut}
+        style={styles.profileErrorAction}
+      />
+    </Screen>
+  );
+}
 
 export function AppNavigator() {
-  const { isAuthenticated, isLoading, accessToken, user } = useAuth();
+  const { isAuthenticated, isLoading, accessToken, logoutLocal, user } =
+    useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
+  const [profileError, setProfileError] = useState<ProfileLoadError | null>(
+    null
+  );
+  const [profileRequestKey, setProfileRequestKey] = useState(0);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const [debugToast, setDebugToast] = useState<
     { title: string; message?: string } | null
   >(null);
+  const isMountedRef = useRef(true);
   const debugToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resolvedProfileKeyRef = useRef<string | null>(null);
+  const pendingProfileKeyRef = useRef<string | null>(null);
+  const profileKey =
+    isAuthenticated && accessToken
+      ? `${accessToken}:${user?.user_id ?? ""}`
+      : null;
+  const currentProfileKeyRef = useRef<string | null>(profileKey);
+  currentProfileKeyRef.current = profileKey;
+
+  const hasResolvedCurrentProfile =
+    profileKey !== null && resolvedProfileKeyRef.current === profileKey;
+  const currentProfile = hasResolvedCurrentProfile ? profile : null;
+
+  const resetProfileResolution = () => {
+    resolvedProfileKeyRef.current = null;
+    pendingProfileKeyRef.current = null;
+  };
+
+  const resetProfileState = () => {
+    setProfile(null);
+    setProfileError(null);
+    setIsProfileLoading(false);
+    resetProfileResolution();
+  };
+
+  const handleLogout = () => {
+    if (isSigningOut) {
+      return;
+    }
+
+    setIsSigningOut(true);
+    resetProfileState();
+
+    void logoutLocal()
+      .catch(() => undefined)
+      .finally(() => {
+        if (!isMountedRef.current) {
+          return;
+        }
+
+        resetProfileState();
+        setIsSigningOut(false);
+      });
+  };
+
+  const retryProfileLoad = () => {
+    if (!profileKey || isProfileLoading) {
+      return;
+    }
+
+    logSessionDebug("Reintentando carga de perfil", {
+      hasUserId: Boolean(user?.user_id),
+    });
+    setProfileError(null);
+    resetProfileResolution();
+    setProfileRequestKey((value) => value + 1);
+  };
 
   const showDebugToast = (title: string, message?: string) => {
-    if (!ENABLE_WS_DEBUG) return;
+    if (!isSocketDebugEnabled) {
+      return;
+    }
 
     setDebugToast({ title, message });
 
@@ -60,6 +273,8 @@ export function AppNavigator() {
 
   useEffect(() => {
     return () => {
+      isMountedRef.current = false;
+
       if (debugToastTimerRef.current) {
         clearTimeout(debugToastTimerRef.current);
       }
@@ -67,58 +282,159 @@ export function AppNavigator() {
   }, []);
 
   useEffect(() => {
-    let isActive = true;
-
     const loadProfile = async () => {
       if (isLoading) {
-        setProfile(null);
+        setProfileError(null);
         setIsProfileLoading(false);
         return;
       }
 
-      if (!isAuthenticated || !accessToken) {
-        setProfile(null);
+      if (!isAuthenticated || !accessToken || !profileKey) {
+        resetProfileState();
+        return;
+      }
+
+      if (resolvedProfileKeyRef.current === profileKey) {
         setIsProfileLoading(false);
+        return;
+      }
+
+      if (pendingProfileKeyRef.current === profileKey) {
+        setIsProfileLoading(true);
         return;
       }
 
       try {
+        pendingProfileKeyRef.current = profileKey;
+        setProfileError(null);
         setIsProfileLoading(true);
         const data = await getProfileBestEffort(accessToken, user?.user_id);
-        if (isActive) setProfile(data);
-      } catch {
-        if (isActive) setProfile(null);
+
+        if (
+          isMountedRef.current &&
+          currentProfileKeyRef.current === profileKey
+        ) {
+          resolvedProfileKeyRef.current = profileKey;
+          setProfile(data);
+          setProfileError(null);
+        }
+      } catch (error: unknown) {
+        const status = readStatus(error);
+
+        if (
+          status !== undefined &&
+          (status === 401 || status === 403) &&
+          isMountedRef.current &&
+          currentProfileKeyRef.current === profileKey
+        ) {
+          logSessionDebug("Perfil rechazo la sesion actual", {
+            status,
+            hasUserId: Boolean(user?.user_id),
+          });
+          resetProfileState();
+          setIsSigningOut(true);
+
+          void logoutLocal()
+            .catch(() => undefined)
+            .finally(() => {
+              if (!isMountedRef.current) {
+                return;
+              }
+
+              resetProfileState();
+              setIsSigningOut(false);
+            });
+          return;
+        }
+
+        if (
+          isMountedRef.current &&
+          currentProfileKeyRef.current === profileKey
+        ) {
+          setProfile(null);
+          const nextError = classifyProfileLoadError(error);
+          setProfileError(nextError);
+          logSessionDebug("La carga del perfil fallo", {
+            status: status ?? -1,
+            kind: nextError.kind,
+            hasUserId: Boolean(user?.user_id),
+          });
+        }
       } finally {
-        if (isActive) setIsProfileLoading(false);
+        if (pendingProfileKeyRef.current === profileKey) {
+          pendingProfileKeyRef.current = null;
+        }
+
+        if (
+          isMountedRef.current &&
+          currentProfileKeyRef.current === profileKey
+        ) {
+          setIsProfileLoading(false);
+        }
       }
     };
 
-    loadProfile();
-
-    return () => {
-      isActive = false;
-    };
-  }, [isLoading, isAuthenticated, accessToken, user?.user_id]);
+    void loadProfile();
+  }, [
+    accessToken,
+    isAuthenticated,
+    isLoading,
+    logoutLocal,
+    profileKey,
+    profileRequestKey,
+    user?.user_id,
+  ]);
 
   const shouldCreateRestaurant = useMemo(() => {
-    if (!isAuthenticated) return false;
-    if (profile?.role !== "admin") return false;
-    return !profile?.restaurantId;
-  }, [isAuthenticated, profile?.role, profile?.restaurantId]);
+    if (!isAuthenticated) {
+      return false;
+    }
+
+    if (currentProfile?.role !== "admin") {
+      return false;
+    }
+
+    return !currentProfile?.restaurantId;
+  }, [isAuthenticated, currentProfile?.restaurantId, currentProfile?.role]);
 
   const initialRouteName = useMemo(() => {
-    if (!isAuthenticated) return ROUTES.Welcome;
-    if (shouldCreateRestaurant) return ROUTES.CreateRestaurant;
-    if (profile?.role === "admin") return ROUTES.ManagerProfile;
+    if (!isAuthenticated) {
+      return ROUTES.Welcome;
+    }
+
+    if (shouldCreateRestaurant) {
+      return ROUTES.CreateRestaurant;
+    }
+
+    if (currentProfile?.role === "admin") {
+      return ROUTES.ManagerProfile;
+    }
+
     return ROUTES.Home;
-  }, [isAuthenticated, shouldCreateRestaurant, profile?.role]);
+  }, [currentProfile?.role, isAuthenticated, shouldCreateRestaurant]);
 
   if (isLoading) {
-    return null;
+    return <InitialLoadingScreen message="Cargando sesión…" />;
   }
 
-  if (isAuthenticated && isProfileLoading) {
-    return null;
+  if (
+    isAuthenticated &&
+    profileKey &&
+    !currentProfile &&
+    (isProfileLoading || (!hasResolvedCurrentProfile && !profileError))
+  ) {
+    return <InitialLoadingScreen message="Preparando tu perfil..." />;
+  }
+
+  if (isAuthenticated && profileKey && !currentProfile && profileError) {
+    return (
+      <ProfileErrorScreen
+        error={profileError}
+        isSigningOut={isSigningOut}
+        onRetry={retryProfileLoad}
+        onLogout={handleLogout}
+      />
+    );
   }
 
   const commonStackScreenOptions = {
@@ -133,12 +449,12 @@ export function AppNavigator() {
     headerShadowVisible: false,
   } as const;
 
-  const isStudent = isAuthenticated && profile?.role !== "admin";
+  const isStudent = isAuthenticated && currentProfile?.role !== "admin";
 
   return (
     <>
       {isStudent ? (
-        <StudentDrawerNavigator profile={profile} />
+        <StudentDrawerNavigator profile={currentProfile} />
       ) : (
         <Stack.Navigator
           key={initialRouteName}
@@ -203,12 +519,37 @@ export function AppNavigator() {
         </Stack.Navigator>
       )}
 
-      <DebugToast
-        visible={Boolean(debugToast)}
-        title={debugToast?.title ?? ""}
-        message={debugToast?.message}
-        onClose={() => setDebugToast(null)}
-      />
+      {isSocketDebugEnabled ? (
+        <DebugToast
+          visible={Boolean(debugToast)}
+          title={debugToast?.title ?? ""}
+          message={debugToast?.message}
+          onClose={() => setDebugToast(null)}
+        />
+      ) : null}
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  loadingScreen: {
+    justifyContent: "center",
+    paddingBottom: spacing.xxl,
+  },
+  loadingState: {
+    width: "100%",
+    maxWidth: 420,
+    alignSelf: "center",
+  },
+  profileErrorCard: {
+    width: "100%",
+    maxWidth: 420,
+    alignSelf: "center",
+  },
+  profileErrorAction: {
+    width: "100%",
+    maxWidth: 420,
+    alignSelf: "center",
+    marginTop: spacing.md,
+  },
+});

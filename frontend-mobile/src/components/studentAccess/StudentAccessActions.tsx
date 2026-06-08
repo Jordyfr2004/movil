@@ -1,5 +1,4 @@
 import React from "react";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Animated, StyleSheet, View } from "react-native";
 import { StudentAccessAuthButton } from "./StudentAccessAuthButton";
 import { StudentAccessLayoutMetrics } from "./studentAccessTheme";
@@ -8,13 +7,11 @@ import { useStudentAccessEntranceAnimation } from "./useStudentAccessEntranceAni
 type StudentAccessActionsProps = {
   metrics: StudentAccessLayoutMetrics;
   onMicrosoftPress: () => void;
-  onGmailPress: () => void;
 };
 
 export function StudentAccessActions({
   metrics,
   onMicrosoftPress,
-  onGmailPress,
 }: StudentAccessActionsProps) {
   const actionsEntrance = useStudentAccessEntranceAnimation(220);
 
@@ -31,26 +28,11 @@ export function StudentAccessActions({
       ]}
     >
       <StudentAccessAuthButton
-        label="Iniciar sesión con Microsoft"
-        accessibilityLabel="Iniciar sesión con Microsoft"
+        label="Ingresar con cuenta institucional"
+        accessibilityLabel="Ingresar con cuenta institucional"
         leftIcon={<StudentAccessMicrosoftIcon />}
         metrics={metrics}
         onPress={onMicrosoftPress}
-      />
-
-      <StudentAccessAuthButton
-        label="Iniciar sesión con Gmail"
-        accessibilityLabel="Iniciar sesión con Gmail"
-        leftIcon={
-          <MaterialCommunityIcons
-            name="gmail"
-            size={20}
-            color="#EA4335"
-            accessible={false}
-          />
-        }
-        metrics={metrics}
-        onPress={onGmailPress}
       />
     </Animated.View>
   );

@@ -19,10 +19,26 @@ import { RootStackParamList } from "../navigation/types";
 import { createPaymentIntent } from "../services/paymentService";
 import { cancelReservation } from "../services/reservationService";
 
+type UnknownRecord = Record<string, unknown>;
+
 type Props = NativeStackScreenProps<
   RootStackParamList,
   typeof ROUTES.MyReservations
 >;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === "object" && value !== null;
+}
+
+function readErrorMessage(error: unknown, fallback: string): string {
+  if (!isRecord(error)) {
+    return fallback;
+  }
+
+  return typeof error.message === "string" && error.message
+    ? error.message
+    : fallback;
+}
 
 export function MyReservationsScreen({}: Props) {
   const { accessToken } = useAuth();
@@ -61,8 +77,11 @@ export function MyReservationsScreen({}: Props) {
       setIsCancelling(true);
       await cancelReservation(accessToken, reservationId);
       await reload();
-    } catch (error: any) {
-      Alert.alert("Error", error?.message || "No se pudo cancelar la reserva");
+    } catch (error: unknown) {
+      Alert.alert(
+        "Error",
+        readErrorMessage(error, "No se pudo cancelar la reserva")
+      );
     } finally {
       setIsCancelling(false);
     }
@@ -125,8 +144,11 @@ export function MyReservationsScreen({}: Props) {
 
       Alert.alert("Pago completado", "Pago realizado. Actualizando reserva…");
       await reload();
-    } catch (error: any) {
-      Alert.alert("Error", error?.message || "No se pudo completar el pago");
+    } catch (error: unknown) {
+      Alert.alert(
+        "Error",
+        readErrorMessage(error, "No se pudo completar el pago")
+      );
     } finally {
       setPayingReservationId(null);
     }

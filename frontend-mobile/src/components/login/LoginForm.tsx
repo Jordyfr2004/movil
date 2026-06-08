@@ -1,21 +1,20 @@
 import React from "react";
-import { Animated, StyleSheet, View } from "react-native";
-import { LoginLayoutMetrics } from "./loginTheme";
+import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
+import { spacing } from "../../constants/spacing";
+import { typography } from "../../theme";
+import { LINK_ORANGE, LoginLayoutMetrics } from "./loginTheme";
 import { LoginPasswordInput } from "./LoginPasswordInput";
 import { LoginSubmitButton } from "./LoginSubmitButton";
 import { LoginTextInput } from "./LoginTextInput";
-import { RememberMeRow } from "./RememberMeRow";
 import { useEntranceAnimation } from "./useEntranceAnimation";
 
 type LoginFormProps = {
   email: string;
   password: string;
   loading: boolean;
-  rememberMe: boolean;
   metrics: LoginLayoutMetrics;
   onEmailChange: (value: string) => void;
   onPasswordChange: (value: string) => void;
-  onToggleRememberMe: () => void;
   onForgotPassword: () => void;
   onSubmit: () => void;
 };
@@ -24,11 +23,9 @@ export function LoginForm({
   email,
   password,
   loading,
-  rememberMe,
   metrics,
   onEmailChange,
   onPasswordChange,
-  onToggleRememberMe,
   onForgotPassword,
   onSubmit,
 }: LoginFormProps) {
@@ -66,11 +63,19 @@ export function LoginForm({
         />
       </View>
 
-      <RememberMeRow
-        rememberMe={rememberMe}
-        onToggleRememberMe={onToggleRememberMe}
-        onForgotPassword={onForgotPassword}
-      />
+      <View style={styles.forgotPasswordRow}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Olvidé mi contraseña"
+          onPress={onForgotPassword}
+          style={({ pressed }) => [
+            styles.forgotButton,
+            pressed && styles.pressablePressed,
+          ]}
+        >
+          <Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
+        </Pressable>
+      </View>
 
       <LoginSubmitButton
         loading={loading}
@@ -89,5 +94,23 @@ const styles = StyleSheet.create({
   },
   fieldsGroup: {
     width: "100%",
+  },
+  forgotPasswordRow: {
+    marginTop: 14,
+    alignItems: "flex-end",
+  },
+  forgotButton: {
+    paddingVertical: spacing.xs,
+  },
+  forgotText: {
+    color: LINK_ORANGE,
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: typography.weights.semiBold,
+    textAlign: "right",
+  },
+  pressablePressed: {
+    opacity: 0.96,
+    transform: [{ scale: 0.985 }],
   },
 });

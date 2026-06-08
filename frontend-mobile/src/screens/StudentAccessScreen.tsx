@@ -1,13 +1,10 @@
 import React, { useLayoutEffect } from "react";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { StatusBar, StyleSheet, useWindowDimensions, View } from "react-native";
 import {
-  Alert,
-  StatusBar,
-  StyleSheet,
-  useWindowDimensions,
-  View,
-} from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import {
   SCREEN_BACKGROUND,
   StudentAccessActions,
@@ -45,13 +42,6 @@ export function StudentAccessScreen({ navigation }: Props) {
     navigation.navigate(ROUTES.Login);
   };
 
-  const handleGmailPress = () => {
-    Alert.alert(
-      "Próximamente",
-      "El acceso con Gmail estará disponible pronto."
-    );
-  };
-
   return (
     <SafeAreaView edges={["bottom"]} style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={SCREEN_BACKGROUND} />
@@ -79,7 +69,6 @@ export function StudentAccessScreen({ navigation }: Props) {
             <StudentAccessActions
               metrics={metrics}
               onMicrosoftPress={handleMicrosoftPress}
-              onGmailPress={handleGmailPress}
             />
           </View>
 

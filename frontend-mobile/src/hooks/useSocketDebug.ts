@@ -1,6 +1,9 @@
 import { useEffect, useRef } from "react";
 import { ENABLE_WS_DEBUG, SOCKET_URL } from "../constants/api";
-import { acquireNotificationsSocket, releaseNotificationsSocket } from "../services/notificationsSocket";
+import {
+  acquireNotificationsSocket,
+  releaseNotificationsSocket,
+} from "../services/notificationsSocket";
 import type { Socket } from "socket.io-client";
 
 type MenuAvailablePayload = {
@@ -20,6 +23,13 @@ type UseSocketDebugOptions = {
   onError?: (message: string) => void;
 };
 
+const isSocketDebugEnabled = ENABLE_WS_DEBUG;
+
+function logSocketDebug(...args: Parameters<typeof console.log>) {
+  if (!isSocketDebugEnabled) return;
+  console.log(...args);
+}
+
 export function useSocketDebug(accessToken: string | null): void;
 export function useSocketDebug(
   accessToken: string | null,
@@ -29,7 +39,9 @@ export function useSocketDebug(
   accessToken: string | null,
   options: UseSocketDebugOptions = {}
 ) {
-  const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
+  const socketRef = useRef<
+    Socket<ServerToClientEvents, ClientToServerEvents> | null
+  >(null);
   const didNotifyConnect = useRef(false);
   const didNotifyError = useRef(false);
   const optionsRef = useRef<UseSocketDebugOptions>(options);
@@ -37,7 +49,7 @@ export function useSocketDebug(
   optionsRef.current = options;
 
   useEffect(() => {
-    if (!ENABLE_WS_DEBUG) return;
+    if (!isSocketDebugEnabled) return;
     if (!accessToken) return;
 
     const socket = acquireNotificationsSocket(accessToken) as Socket<
@@ -49,7 +61,7 @@ export function useSocketDebug(
 
     socket.on("connect", () => {
       didNotifyError.current = false;
-      console.log("[socket] connected:", { url: SOCKET_URL, id: socket.id });
+      logSocketDebug("[socket] connected:", { url: SOCKET_URL, id: socket.id });
 
       if (!didNotifyConnect.current) {
         didNotifyConnect.current = true;
@@ -58,7 +70,7 @@ export function useSocketDebug(
     });
 
     socket.on("connect_error", (error) => {
-      console.log("[socket] connect_error:", error?.message ?? error);
+      logSocketDebug("[socket] connect_error:", error?.message ?? error);
       if (didNotifyError.current) return;
       didNotifyError.current = true;
       optionsRef.current.onError?.(
@@ -67,12 +79,11 @@ export function useSocketDebug(
     });
 
     socket.on("disconnect", (reason) => {
-      // Silencioso para no spamear; dejamos consola para depurar.
-      console.log("[socket] disconnect:", reason);
+      logSocketDebug("[socket] disconnect:", reason);
     });
 
     socket.on("menu_available", (payload) => {
-      console.log("[socket] menu_available:", payload);
+      logSocketDebug("[socket] menu_available:", payload);
       optionsRef.current.onMenuAvailable?.(payload);
     });
 

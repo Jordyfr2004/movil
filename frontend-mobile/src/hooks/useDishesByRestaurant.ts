@@ -14,8 +14,13 @@ type MenuAvailablePayload = {
   message: string;
 };
 
+type SocketDish = {
+  restaurant_id?: string | number | null;
+  restaurantId?: string | number | null;
+};
+
 type DishChangedPayload = {
-  dish: any;
+  dish?: SocketDish | null;
 };
 
 type ServerToClientEvents = {
