@@ -1,8 +1,10 @@
 import React from "react";
-import { StyleSheet, Text } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { spacing } from "../../constants/spacing";
-import { colors, typography } from "../../theme";
+import { typography } from "../../theme";
+import { studentPalette } from "../../theme/studentPalette";
 import { Card } from "../Card";
 
 type RestaurantDetailSummaryProps = {
@@ -17,23 +19,55 @@ export function RestaurantDetailSummary({
   }
 
   return (
-    <Card>
-      <Text style={styles.cardTitle}>Descripción</Text>
+    <Card style={styles.card}>
+      <View style={styles.titleRow}>
+        <View style={styles.icon}>
+          <MaterialCommunityIcons
+            name="text-box-outline"
+            size={18}
+            color={studentPalette.primary}
+          />
+        </View>
+        <Text style={styles.cardTitle}>Descripción</Text>
+      </View>
       <Text style={styles.cardText}>{description}</Text>
     </Card>
   );
 }
 
 const styles = StyleSheet.create({
-  cardTitle: {
-    fontSize: typography.sizes.sm,
-    color: colors.textSecondary,
-    fontWeight: typography.weights.semiBold,
+  card: {
+    borderRadius: 18,
+    borderColor: studentPalette.border,
+    backgroundColor: studentPalette.card,
+    shadowColor: studentPalette.shadow,
+    shadowOpacity: 1,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 1,
+  },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
     marginBottom: spacing.sm,
+  },
+  icon: {
+    width: 34,
+    height: 34,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: studentPalette.primaryPale,
+  },
+  cardTitle: {
+    fontSize: typography.sizes.md,
+    color: studentPalette.textPrimary,
+    fontWeight: typography.weights.bold,
   },
   cardText: {
     fontSize: typography.sizes.md,
-    color: colors.textPrimary,
+    color: studentPalette.textSecondary,
     lineHeight: typography.lineHeights.md,
   },
 });

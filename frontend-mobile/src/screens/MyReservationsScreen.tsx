@@ -1,8 +1,9 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { Alert, FlatList, StyleSheet } from "react-native";
+import { Alert, FlatList, StyleSheet, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useStripe } from "@stripe/stripe-react-native";
+import Svg, { Path } from "react-native-svg";
 
 import {
   MyReservationCard,
@@ -18,6 +19,7 @@ import { ROUTES } from "../navigation/routes";
 import { RootStackParamList } from "../navigation/types";
 import { createPaymentIntent } from "../services/paymentService";
 import { cancelReservation } from "../services/reservationService";
+import { studentPalette } from "../theme/studentPalette";
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -154,10 +156,41 @@ export function MyReservationsScreen({}: Props) {
     }
   };
 
-  return (
-    <Screen style={styles.container}>
-      <MyReservationsHeader activeCount={activeCount} loading={loading} />
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <MyReservationsFeedback
+          error={null}
+          loading
+          onRetry={reload}
+          style={styles.feedbackState}
+        />
+      );
+    }
 
+    if (error) {
+      return (
+        <MyReservationsFeedback
+          error={error}
+          loading={false}
+          onRetry={reload}
+          style={styles.feedbackState}
+        />
+      );
+    }
+
+    if (reservations.length === 0) {
+      return (
+        <MyReservationsFeedback
+          error={null}
+          loading={false}
+          onRetry={reload}
+          style={styles.feedbackState}
+        />
+      );
+    }
+
+    return (
       <FlatList
         data={reservations}
         keyExtractor={(item) => String(item.id)}
@@ -172,15 +205,40 @@ export function MyReservationsScreen({}: Props) {
             onPay={handlePay}
           />
         )}
-        ListEmptyComponent={
-          <MyReservationsFeedback
-            error={error}
-            loading={loading}
-            onRetry={reload}
-            style={styles.feedbackState}
-          />
-        }
       />
+    );
+  };
+
+  return (
+    <Screen style={styles.container}>
+      <View
+        style={styles.backgroundDecor}
+        pointerEvents="none"
+        accessible={false}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      >
+        <Svg
+          width="100%"
+          height={150}
+          viewBox="0 0 360 150"
+          preserveAspectRatio="none"
+          style={styles.backgroundWave}
+        >
+          <Path
+            d="M0 0 H360 V70 C298 105 233 43 160 71 C95 96 47 101 0 80 Z"
+            fill={studentPalette.backgroundStrong}
+          />
+        </Svg>
+      </View>
+
+      <MyReservationsHeader
+        activeCount={activeCount}
+        hasError={Boolean(error)}
+        loading={loading}
+      />
+
+      {renderContent()}
     </Screen>
   );
 }
@@ -188,12 +246,31 @@ export function MyReservationsScreen({}: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: studentPalette.background,
+  },
+  backgroundDecor: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: "hidden",
+  },
+  backgroundWave: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    left: 0,
   },
   listContent: {
     gap: spacing.md,
-    paddingBottom: spacing.xl,
+    paddingBottom: spacing.xxl,
   },
   feedbackState: {
     marginTop: spacing.sm,
+    borderRadius: 22,
+    borderColor: studentPalette.border,
+    backgroundColor: studentPalette.card,
+    shadowColor: studentPalette.shadow,
+    shadowOpacity: 1,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 2,
   },
 });

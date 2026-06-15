@@ -2,6 +2,7 @@ import React from "react";
 import { StyleSheet, View } from "react-native";
 
 import { spacing } from "../../constants/spacing";
+import { studentPalette } from "../../theme/studentPalette";
 import { AppButton } from "../AppButton";
 
 type MyReservationActionsProps = {
@@ -29,6 +30,7 @@ export function MyReservationActions({
         variant="primary"
         size="sm"
         disabled={isPaymentInProgress || isCancelling}
+        style={styles.payButton}
         accessibilityLabel={
           isPaying
             ? `Procesando pago de ${reservationTitle}`
@@ -42,6 +44,7 @@ export function MyReservationActions({
         variant="danger"
         size="sm"
         disabled={isCancelling || isPaying}
+        style={styles.cancelButton}
         accessibilityLabel={
           isCancelling
             ? `Cancelando reserva de ${reservationTitle}`
@@ -57,7 +60,27 @@ const styles = StyleSheet.create({
   cardFooter: {
     marginTop: spacing.lg,
     flexDirection: "row",
-    justifyContent: "flex-end",
+    flexWrap: "wrap",
     gap: spacing.sm,
+  },
+  payButton: {
+    flex: 1,
+    minWidth: 112,
+    minHeight: 44,
+    borderRadius: 14,
+    backgroundColor: studentPalette.primary,
+    shadowColor: studentPalette.primary,
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 2,
+  },
+  cancelButton: {
+    flex: 1,
+    minWidth: 112,
+    minHeight: 44,
+    borderRadius: 14,
+    backgroundColor: studentPalette.card,
+    borderColor: studentPalette.danger,
   },
 });

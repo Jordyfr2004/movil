@@ -1,9 +1,11 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { spacing } from "../../constants/spacing";
 import type { Dish } from "../../services/dishService";
-import { colors, typography } from "../../theme";
+import { typography } from "../../theme";
+import { studentPalette } from "../../theme/studentPalette";
 import { Card } from "../Card";
 import { RestaurantDishCard } from "./RestaurantDishCard";
 import { RestaurantDishesFeedback } from "./RestaurantDishesFeedback";
@@ -31,10 +33,21 @@ export function RestaurantDishesSection({
 }: RestaurantDishesSectionProps) {
   return (
     <Card style={styles.menuCard}>
-      <Text style={styles.menuTitle}>Menú del día</Text>
-      <Text style={styles.menuSubtitle}>
-        Platos disponibles para reservar.
-      </Text>
+      <View style={styles.menuHeader}>
+        <View style={styles.menuIcon}>
+          <MaterialCommunityIcons
+            name="food-outline"
+            size={20}
+            color={studentPalette.card}
+          />
+        </View>
+        <View style={styles.menuHeaderText}>
+          <Text style={styles.menuTitle}>Menú del día</Text>
+          <Text style={styles.menuSubtitle}>
+            Platos disponibles para reservar.
+          </Text>
+        </View>
+      </View>
 
       {loading ? (
         <RestaurantDishesFeedback variant="loading" style={styles.feedbackState} />
@@ -72,24 +85,51 @@ export function RestaurantDishesSection({
 
 const styles = StyleSheet.create({
   menuCard: {
-    marginTop: spacing.lg,
+    marginTop: spacing.md,
+    padding: 0,
+    borderWidth: 0,
+    backgroundColor: "transparent",
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  menuHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+  },
+  menuIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: studentPalette.primary,
+    shadowColor: studentPalette.primary,
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 2,
+  },
+  menuHeaderText: {
+    flex: 1,
   },
   menuTitle: {
-    fontSize: typography.sizes.md,
+    fontSize: typography.sizes.lg,
     fontWeight: typography.weights.bold,
-    color: colors.textPrimary,
+    color: studentPalette.textPrimary,
+    lineHeight: typography.lineHeights.lg,
   },
   menuSubtitle: {
     marginTop: spacing.xs,
     fontSize: typography.sizes.sm,
-    color: colors.textSecondary,
+    color: studentPalette.textSecondary,
     lineHeight: typography.lineHeights.sm,
   },
   menuList: {
-    marginTop: spacing.lg,
+    marginTop: spacing.md,
     gap: spacing.md,
   },
   feedbackState: {
-    marginTop: spacing.lg,
+    marginTop: spacing.md,
   },
 });

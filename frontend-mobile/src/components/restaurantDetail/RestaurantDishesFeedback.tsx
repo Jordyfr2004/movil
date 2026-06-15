@@ -2,7 +2,7 @@ import React from "react";
 import { StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 
 import { spacing } from "../../constants/spacing";
-import { colors } from "../../theme";
+import { studentPalette } from "../../theme/studentPalette";
 import { EmptyState } from "../EmptyState";
 import { ErrorMessage } from "../ErrorMessage";
 
@@ -57,13 +57,13 @@ const styles = StyleSheet.create({
   skeletonLineLg: {
     height: 14,
     borderRadius: 10,
-    backgroundColor: colors.surfaceMuted,
+    backgroundColor: studentPalette.primarySoft,
     width: "70%",
   },
   skeletonLineSm: {
     height: 12,
     borderRadius: 10,
-    backgroundColor: colors.surfaceMuted,
+    backgroundColor: studentPalette.primarySoft,
     width: "45%",
   },
 });

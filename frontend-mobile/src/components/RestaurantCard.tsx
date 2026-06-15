@@ -1,7 +1,9 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Restaurant } from "../types/models";
-import { colors, typography } from "../theme";
+import { typography } from "../theme";
+import { studentPalette } from "../theme/studentPalette";
 import { spacing } from "../constants/spacing";
 import { Card } from "./Card";
 import { StatusBadge } from "./StatusBadge";
@@ -22,6 +24,8 @@ export function RestaurantCard({
 
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Ver restaurante ${restaurant.name}`}
       onPress={onPress ? () => onPress(restaurant) : undefined}
       disabled={isDisabled}
       style={({ pressed }) => [
@@ -29,20 +33,27 @@ export function RestaurantCard({
         isDisabled && styles.disabled,
       ]}
     >
-      <Card>
+      <Card style={styles.card}>
         <View style={styles.topRow}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{initial}</Text>
           </View>
 
           <View style={styles.headerText}>
-            <Text style={styles.name} numberOfLines={1}>
+            <Text style={styles.name} numberOfLines={2}>
               {restaurant.name}
             </Text>
             {restaurant.location ? (
-              <Text style={styles.location} numberOfLines={1}>
-                {restaurant.location}
-              </Text>
+              <View style={styles.locationRow}>
+                <MaterialCommunityIcons
+                  name="map-marker-outline"
+                  size={15}
+                  color={studentPalette.primary}
+                />
+                <Text style={styles.location} numberOfLines={2}>
+                  {restaurant.location}
+                </Text>
+              </View>
             ) : null}
           </View>
 
@@ -58,12 +69,36 @@ export function RestaurantCard({
           </Text>
         ) : null}
 
-        {restaurant.openingTime && restaurant.closingTime ? (
+        {(restaurant.openingTime && restaurant.closingTime) || !isDisabled ? (
           <View style={styles.footer}>
-            <Text style={styles.timeLabel}>Horario</Text>
-            <Text style={styles.timeValue}>
-              {restaurant.openingTime} - {restaurant.closingTime}
-            </Text>
+            {restaurant.openingTime && restaurant.closingTime ? (
+              <View style={styles.schedule}>
+                <View style={styles.scheduleIcon}>
+                  <MaterialCommunityIcons
+                    name="clock-outline"
+                    size={17}
+                    color={studentPalette.primary}
+                  />
+                </View>
+                <View style={styles.scheduleText}>
+                  <Text style={styles.timeLabel}>Horario</Text>
+                  <Text style={styles.timeValue} numberOfLines={1}>
+                    {restaurant.openingTime} - {restaurant.closingTime}
+                  </Text>
+                </View>
+              </View>
+            ) : null}
+
+            {!isDisabled ? (
+              <View style={styles.cardAction}>
+                <Text style={styles.cardActionText}>Ver menú</Text>
+                <MaterialCommunityIcons
+                  name="chevron-right"
+                  size={19}
+                  color={studentPalette.card}
+                />
+              </View>
+            ) : null}
           </View>
         ) : null}
       </Card>
@@ -72,30 +107,43 @@ export function RestaurantCard({
 }
 
 const styles = StyleSheet.create({
+  card: {
+    borderRadius: 20,
+    borderColor: studentPalette.border,
+    backgroundColor: studentPalette.card,
+    padding: spacing.lg,
+    shadowColor: studentPalette.shadow,
+    shadowOpacity: 1,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 7 },
+    elevation: 2,
+  },
   pressed: {
-    opacity: 0.96,
-    transform: [{ scale: 0.995 }],
+    opacity: 0.94,
+    transform: [{ scale: 0.992 }],
   },
   disabled: {
     opacity: 0.65,
   },
   topRow: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
+    alignItems: "flex-start",
+    gap: spacing.sm,
   },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: colors.primarySoft,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: studentPalette.primaryPale,
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 1,
+    borderColor: studentPalette.border,
   },
   avatarText: {
-    fontSize: typography.sizes.md,
+    fontSize: typography.sizes.lg,
     fontWeight: typography.weights.bold,
-    color: colors.primary,
+    color: studentPalette.primary,
   },
   headerText: {
     flex: 1,
@@ -104,34 +152,85 @@ const styles = StyleSheet.create({
   name: {
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.bold,
-    color: colors.textPrimary,
+    color: studentPalette.textPrimary,
+    lineHeight: typography.lineHeights.md,
+  },
+  locationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
   },
   location: {
+    flex: 1,
     fontSize: typography.sizes.sm,
-    color: colors.textSecondary,
+    color: studentPalette.textSecondary,
+    lineHeight: typography.lineHeights.sm,
   },
   description: {
     marginTop: spacing.md,
     fontSize: typography.sizes.sm,
-    color: colors.textMuted,
+    color: studentPalette.textSecondary,
     lineHeight: typography.lineHeights.sm,
   },
   footer: {
     marginTop: spacing.md,
     flexDirection: "row",
+    flexWrap: "wrap",
     justifyContent: "space-between",
     alignItems: "center",
+    gap: spacing.sm,
     paddingTop: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: studentPalette.border,
+  },
+  schedule: {
+    flex: 1,
+    minWidth: 128,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  scheduleText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  scheduleIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: studentPalette.primaryPale,
   },
   timeLabel: {
-    fontSize: typography.sizes.sm,
-    color: colors.textSecondary,
+    fontSize: typography.sizes.xs,
+    color: studentPalette.textMuted,
+    lineHeight: typography.lineHeights.xs,
   },
   timeValue: {
     fontSize: typography.sizes.sm,
-    color: colors.textPrimary,
+    color: studentPalette.textPrimary,
     fontWeight: typography.weights.semiBold,
+    lineHeight: typography.lineHeights.sm,
+  },
+  cardAction: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    minHeight: 40,
+    marginLeft: "auto",
+    paddingHorizontal: spacing.md,
+    borderRadius: 14,
+    backgroundColor: studentPalette.primary,
+    shadowColor: studentPalette.primary,
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 2,
+  },
+  cardActionText: {
+    fontSize: typography.sizes.sm,
+    color: studentPalette.card,
+    fontWeight: typography.weights.bold,
   },
 });

@@ -1,7 +1,11 @@
 import { httpClient } from "../api";
+import { isApiError } from "../api/apiError";
 import { Reservation, ReservationItem, ReservationStatus } from "../types/models";
 
 type UnknownRecord = Record<string, unknown>;
+type ReservationRequestErrorType = "timeout" | "red" | "401" | "500" | "otro";
+
+const MY_RESERVATIONS_ENDPOINT = "/reservations/my";
 
 type ReservationItemApi = {
   id: string;
@@ -31,6 +35,42 @@ type CreateReservationPayload = {
 
 function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === "object" && value !== null;
+}
+
+function classifyReservationRequestError(
+  error: unknown
+): ReservationRequestErrorType {
+  if (isApiError(error)) {
+    if (error.status === 401) return "401";
+    if (error.status !== undefined && error.status >= 500) return "500";
+  }
+
+  const message = (
+    error instanceof Error ? error.message : String(error)
+  ).toLowerCase();
+
+  if (message.includes("tard") || message.includes("timeout")) {
+    return "timeout";
+  }
+
+  if (
+    message.includes("network") ||
+    message.includes("red") ||
+    message.includes("no se pudo conectar")
+  ) {
+    return "red";
+  }
+
+  return "otro";
+}
+
+function logMyReservationsDebug(
+  message: string,
+  details: UnknownRecord
+): void {
+  if (__DEV__) {
+    console.log(`[reservations] ${message}`, details);
+  }
 }
 
 function unwrapData(value: unknown): unknown {
@@ -110,16 +150,44 @@ function normalizeReservation(payload: unknown): Reservation {
 }
 
 export async function getMyReservations(accessToken: string): Promise<Reservation[]> {
-  const result = await httpClient.get<ApiEnvelope<ReservationApi[]>>(
-    "/reservations/my",
-    {
-      accessToken,
-    }
-  );
+  logMyReservationsDebug("Request start", {
+    endpoint: MY_RESERVATIONS_ENDPOINT,
+    hasAccessToken: Boolean(accessToken.trim()),
+  });
 
-  const payload = unwrapData(result);
-  const list = Array.isArray(payload) ? payload : [];
-  return list.map(normalizeReservation).filter((r) => Boolean(r.id));
+  try {
+    const result = await httpClient.get<ApiEnvelope<ReservationApi[]>>(
+      MY_RESERVATIONS_ENDPOINT,
+      {
+        accessToken,
+      }
+    );
+
+    const payload = unwrapData(result);
+    const list = Array.isArray(payload) ? payload : [];
+    const reservations = list
+      .map(normalizeReservation)
+      .filter((reservation) => Boolean(reservation.id));
+
+    logMyReservationsDebug("Request success", {
+      count: reservations.length,
+      endpoint: MY_RESERVATIONS_ENDPOINT,
+    });
+
+    return reservations;
+  } catch (error: unknown) {
+    logMyReservationsDebug("Request failed", {
+      endpoint: MY_RESERVATIONS_ENDPOINT,
+      errorType: classifyReservationRequestError(error),
+      message:
+        error instanceof Error
+          ? error.message
+          : "Error desconocido al cargar reservas",
+      status: isApiError(error) ? (error.status ?? null) : null,
+    });
+
+    throw error;
+  }
 }
 
 export async function createReservation(

@@ -1,7 +1,8 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { Alert, StyleSheet } from "react-native";
+import { Alert, ScrollView, StyleSheet, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import Svg, { Path } from "react-native-svg";
 
 import {
   RestaurantDetailHeader,
@@ -9,6 +10,7 @@ import {
   RestaurantDishesSection,
 } from "../components/restaurantDetail";
 import { Screen } from "../components/Screen";
+import { spacing } from "../constants/spacing";
 import { useAuth } from "../context/AuthContext";
 import { useDishesByRestaurant } from "../hooks/useDishesByRestaurant";
 import { ROUTES } from "../navigation/routes";
@@ -17,6 +19,7 @@ import {
   createReservation,
   getMyReservations,
 } from "../services/reservationService";
+import { studentPalette } from "../theme/studentPalette";
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -157,18 +160,44 @@ export function RestaurantDetailScreen({ navigation, route }: Props) {
 
   return (
     <Screen style={styles.container}>
-      <RestaurantDetailHeader initial={initial} restaurant={restaurant} />
-      <RestaurantDetailSummary description={restaurant.description} />
-      <RestaurantDishesSection
-        dishes={dishes}
-        error={error}
-        isCheckingReservation={isCheckingReservation}
-        isReservingDishId={isReservingDishId}
-        loading={loading}
-        onReload={reload}
-        onReserve={handleReserve}
-        reservedDishIdSet={reservedDishIdSet}
-      />
+      <View
+        style={styles.backgroundDecor}
+        pointerEvents="none"
+        accessible={false}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      >
+        <Svg
+          width="100%"
+          height={150}
+          viewBox="0 0 360 150"
+          preserveAspectRatio="none"
+          style={styles.backgroundWave}
+        >
+          <Path
+            d="M0 0 H360 V72 C292 104 229 42 158 70 C91 97 43 103 0 82 Z"
+            fill={studentPalette.backgroundStrong}
+          />
+        </Svg>
+      </View>
+
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <RestaurantDetailHeader initial={initial} restaurant={restaurant} />
+        <RestaurantDetailSummary description={restaurant.description} />
+        <RestaurantDishesSection
+          dishes={dishes}
+          error={error}
+          isCheckingReservation={isCheckingReservation}
+          isReservingDishId={isReservingDishId}
+          loading={loading}
+          onReload={reload}
+          onReserve={handleReserve}
+          reservedDishIdSet={reservedDishIdSet}
+        />
+      </ScrollView>
     </Screen>
   );
 }
@@ -176,5 +205,19 @@ export function RestaurantDetailScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: studentPalette.background,
+  },
+  backgroundDecor: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: "hidden",
+  },
+  backgroundWave: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    left: 0,
+  },
+  content: {
+    paddingBottom: spacing.xxl,
   },
 });
