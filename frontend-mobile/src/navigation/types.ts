@@ -19,6 +19,7 @@ export type RootStackParamList = {
   [ROUTES.RestaurantDetail]: { restaurant: Restaurant };
   [ROUTES.MyReservations]: undefined;
   [ROUTES.Profile]: undefined;
+  [ROUTES.Register]: undefined;
 };
 
 export type StudentStackParamList = Pick<
