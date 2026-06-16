@@ -77,6 +77,10 @@ export function LoginScreen({ navigation }: Props) {
     console.log(`[login-screen] ${message}`);
   };
 
+  const handleRegister = () => {
+    navigation.navigate(ROUTES.Register);
+  };
+
   const handleLogin = async () => {
     const normalizedEmail = email.trim().toLowerCase();
     const normalizedPassword = password.trim();
@@ -172,6 +176,7 @@ export function LoginScreen({ navigation }: Props) {
                   onEmailChange={setEmail}
                   onPasswordChange={setPassword}
                   onForgotPassword={handleForgotPassword}
+                  onRegister={handleRegister}
                   onSubmit={handleLogin}
                 />
               </View>

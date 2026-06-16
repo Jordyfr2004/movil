@@ -27,6 +27,7 @@ import { colors, typography } from "../theme";
 import { ROUTES } from "./routes";
 import { StudentDrawerNavigator } from "./StudentDrawerNavigator";
 import { RootStackParamList } from "./types";
+import RegisterScreen from "../screens/RegisterScreen";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const isSocketDebugEnabled = ENABLE_WS_DEBUG;
@@ -467,14 +468,14 @@ export function AppNavigator() {
             options={{ headerShown: false }}
           />
           <Stack.Screen
-            name={ROUTES.StudentAccess}
-            component={StudentAccessScreen}
-            options={{ title: "Acceso estudiante" }}
-          />
-          <Stack.Screen
             name={ROUTES.Login}
             component={LoginScreen}
             options={{ title: "Iniciar sesión" }}
+          />
+          <Stack.Screen
+            name={ROUTES.Register}
+            component={RegisterScreen}
+            options={{ title: "Registrarse" }}
           />
           <Stack.Screen
             name={ROUTES.CreateRestaurant}

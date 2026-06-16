@@ -9,4 +9,5 @@ export const ROUTES = {
   RestaurantDetail: "RestaurantDetail",
   MyReservations: "MyReservations",
   Profile: "Profile",
+  Register: "Register",
 } as const;

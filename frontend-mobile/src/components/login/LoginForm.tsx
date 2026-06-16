@@ -16,6 +16,7 @@ type LoginFormProps = {
   onEmailChange: (value: string) => void;
   onPasswordChange: (value: string) => void;
   onForgotPassword: () => void;
+  onRegister: () => void;
   onSubmit: () => void;
 };
 
@@ -27,6 +28,7 @@ export function LoginForm({
   onEmailChange,
   onPasswordChange,
   onForgotPassword,
+  onRegister,
   onSubmit,
 }: LoginFormProps) {
   const formEntrance = useEntranceAnimation(200);
@@ -77,6 +79,20 @@ export function LoginForm({
         </Pressable>
       </View>
 
+      <View style={styles.registerRow}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Registrarse"
+          onPress={onRegister}
+          style={({ pressed }) => [
+            styles.forgotButton,
+            pressed && styles.pressablePressed,
+          ]}
+        >
+          <Text style={styles.forgotText}>¿No tienes cuenta? Regístrate</Text>
+        </Pressable>
+      </View>
+
       <LoginSubmitButton
         loading={loading}
         metrics={metrics}
@@ -98,6 +114,10 @@ const styles = StyleSheet.create({
   forgotPasswordRow: {
     marginTop: 14,
     alignItems: "flex-end",
+  },
+  registerRow: {
+    marginTop: 14,
+    alignItems: "center",
   },
   forgotButton: {
     paddingVertical: spacing.xs,
