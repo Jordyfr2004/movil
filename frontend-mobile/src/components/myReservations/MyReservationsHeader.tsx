@@ -3,13 +3,11 @@ import { StyleSheet, Text, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Svg, { Path } from "react-native-svg";
 
-import {
-  DecorCupIcon,
-  DecorLeafIcon,
-} from "../login/LoginDecorIcons";
 import { spacing } from "../../constants/spacing";
 import { typography } from "../../theme";
 import { studentPalette } from "../../theme/studentPalette";
+import { Card } from "../Card";
+import { StudentStatusPill } from "../StudentStatusPill";
 
 type MyReservationsHeaderProps = {
   activeCount: number;
@@ -23,7 +21,7 @@ export function MyReservationsHeader({
   loading,
 }: MyReservationsHeaderProps) {
   return (
-    <View style={styles.header}>
+    <Card style={styles.header}>
       <View
         style={styles.decor}
         pointerEvents="none"
@@ -33,61 +31,61 @@ export function MyReservationsHeader({
       >
         <Svg
           width="100%"
-          height={82}
-          viewBox="0 0 360 82"
+          height={58}
+          viewBox="0 0 360 58"
           preserveAspectRatio="none"
           style={styles.decorWave}
         >
           <Path
-            d="M0 47 C72 22 139 72 217 53 C284 36 326 23 360 37 V82 H0 Z"
+            d="M0 34 C72 16 139 52 217 36 C284 22 326 18 360 28 V58 H0 Z"
             fill={studentPalette.primaryPale}
           />
         </Svg>
-        <View style={styles.decorCup}>
-          <DecorCupIcon color={studentPalette.decorOrange} size={42} />
-        </View>
-        <View style={styles.decorLeaf}>
-          <DecorLeafIcon color={studentPalette.decorOrangeSoft} size={42} />
-        </View>
+        <View style={styles.decorCircle} />
       </View>
 
       <View style={styles.headingRow}>
-        <View style={styles.icon}>
-          <MaterialCommunityIcons
-            name="calendar-check-outline"
-            size={22}
-            color={studentPalette.primary}
-          />
+        <View style={styles.titleGroup}>
+          <View style={styles.icon}>
+            <MaterialCommunityIcons
+              name="calendar-check-outline"
+              size={20}
+              color={studentPalette.primary}
+            />
+          </View>
+          <Text style={styles.title}>Mis reservas</Text>
         </View>
-        <Text style={styles.eyebrow}>TU ACTIVIDAD</Text>
+
+        {!loading && !hasError ? (
+          <StudentStatusPill
+            label={`${activeCount} activa${activeCount === 1 ? "" : "s"}`}
+            tone={activeCount > 0 ? "warning" : "neutral"}
+          />
+        ) : null}
       </View>
 
-      <Text style={styles.title}>Mis reservas</Text>
-      {!loading && !hasError ? (
-        <Text style={styles.subtitle}>
-          {activeCount > 0
-            ? `Tienes ${activeCount} reserva${activeCount === 1 ? "" : "s"} activa${activeCount === 1 ? "" : "s"}.`
-            : "No tienes reservas activas por ahora."}
-        </Text>
-      ) : null}
-    </View>
+      <Text style={styles.subtitle}>
+        {loading || hasError
+          ? "Estamos actualizando tu historial."
+          : "Reservas activas e historial en un solo lugar."}
+      </Text>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
   header: {
     position: "relative",
-    marginBottom: spacing.lg,
-    padding: spacing.lg,
+    marginBottom: spacing.md,
+    padding: spacing.md,
     borderRadius: 22,
-    borderWidth: 1,
     borderColor: studentPalette.border,
-    backgroundColor: studentPalette.card,
+    backgroundColor: studentPalette.cardMuted,
     shadowColor: studentPalette.shadow,
     shadowOpacity: 1,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 3,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
     overflow: "hidden",
   },
   decor: {
@@ -99,49 +97,46 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
   },
-  decorCup: {
+  decorCircle: {
     position: "absolute",
-    top: 8,
-    right: 12,
-    transform: [{ rotate: "8deg" }],
-  },
-  decorLeaf: {
-    position: "absolute",
-    right: 58,
-    bottom: -2,
-    transform: [{ rotate: "-12deg" }],
+    width: 96,
+    height: 96,
+    borderRadius: 999,
+    right: -34,
+    top: -28,
+    backgroundColor: "rgba(247, 101, 2, 0.07)",
   },
   headingRow: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     gap: spacing.sm,
-    marginBottom: spacing.sm,
+  },
+  titleGroup: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
   },
   icon: {
     width: 36,
     height: 36,
-    borderRadius: 12,
+    borderRadius: 13,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: studentPalette.card,
     borderWidth: 1,
     borderColor: studentPalette.border,
   },
-  eyebrow: {
-    fontSize: typography.sizes.xs,
-    color: studentPalette.primary,
-    fontWeight: typography.weights.bold,
-    letterSpacing: 1.2,
-  },
   title: {
-    fontSize: typography.sizes.xl,
+    flex: 1,
+    fontSize: 26,
     fontWeight: typography.weights.bold,
     color: studentPalette.textPrimary,
-    lineHeight: typography.lineHeights.xl,
-    letterSpacing: -0.3,
+    lineHeight: 32,
   },
   subtitle: {
-    maxWidth: "88%",
     marginTop: spacing.sm,
     fontSize: typography.sizes.sm,
     color: studentPalette.textSecondary,

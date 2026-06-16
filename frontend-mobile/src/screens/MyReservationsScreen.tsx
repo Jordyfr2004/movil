@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { Alert, FlatList, StyleSheet, View } from "react-native";
+import { Alert, FlatList, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useStripe } from "@stripe/stripe-react-native";
@@ -11,15 +11,24 @@ import {
   MyReservationsHeader,
 } from "../components/myReservations";
 import { Screen } from "../components/Screen";
+import {
+  StudentStatusPill,
+  StudentStatusTone,
+} from "../components/StudentStatusPill";
 import { spacing } from "../constants/spacing";
 import { STRIPE_PUBLISHABLE_KEY } from "../constants/stripe";
 import { useAuth } from "../context/AuthContext";
-import { useReservations } from "../hooks/useReservations";
+import {
+  ReservationListItem,
+  useReservations,
+} from "../hooks/useReservations";
 import { ROUTES } from "../navigation/routes";
 import { RootStackParamList } from "../navigation/types";
 import { createPaymentIntent } from "../services/paymentService";
 import { cancelReservation } from "../services/reservationService";
+import { typography } from "../theme";
 import { studentPalette } from "../theme/studentPalette";
+import type { ReservationStatus } from "../types/models";
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -27,6 +36,58 @@ type Props = NativeStackScreenProps<
   RootStackParamList,
   typeof ROUTES.MyReservations
 >;
+
+type ReservationSectionConfig = {
+  key: string;
+  title: string;
+  subtitle: string;
+  statuses: ReservationStatus[];
+  tone: StudentStatusTone;
+};
+
+type ReservationListRow =
+  | {
+      type: "section";
+      key: string;
+      count: number;
+      section: ReservationSectionConfig;
+    }
+  | {
+      type: "reservation";
+      key: string;
+      reservation: ReservationListItem;
+    };
+
+const RESERVATION_SECTIONS: ReservationSectionConfig[] = [
+  {
+    key: "pending_payment",
+    title: "Pendiente de pago",
+    subtitle: "Reservas por completar",
+    statuses: ["pending_payment"],
+    tone: "warning",
+  },
+  {
+    key: "confirmed",
+    title: "Confirmadas",
+    subtitle: "Listas para retirar",
+    statuses: ["confirmed"],
+    tone: "success",
+  },
+  {
+    key: "cancelled",
+    title: "Canceladas",
+    subtitle: "Canceladas o expiradas",
+    statuses: ["cancelled", "expired"],
+    tone: "danger",
+  },
+  {
+    key: "completed",
+    title: "Completadas",
+    subtitle: "Historial finalizado",
+    statuses: ["completed"],
+    tone: "info",
+  },
+];
 
 function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === "object" && value !== null;
@@ -63,6 +124,32 @@ export function MyReservationsScreen({}: Props) {
         reservation.status === "confirmed" ||
         reservation.status === "pending_payment"
     ).length;
+  }, [reservations]);
+
+  const reservationRows = useMemo<ReservationListRow[]>(() => {
+    return RESERVATION_SECTIONS.flatMap((section) => {
+      const items = reservations.filter((reservation) =>
+        section.statuses.includes(reservation.status)
+      );
+
+      if (items.length === 0) {
+        return [];
+      }
+
+      return [
+        {
+          type: "section",
+          key: `section-${section.key}`,
+          count: items.length,
+          section,
+        },
+        ...items.map((reservation) => ({
+          type: "reservation" as const,
+          key: `reservation-${reservation.id}`,
+          reservation,
+        })),
+      ];
+    });
   }, [reservations]);
 
   const handleCancel = async (reservationId: string) => {
@@ -144,7 +231,7 @@ export function MyReservationsScreen({}: Props) {
         throw new Error(presented.error.message);
       }
 
-      Alert.alert("Pago completado", "Pago realizado. Actualizando reserva…");
+      Alert.alert("Pago completado", "Pago realizado. Actualizando reserva...");
       await reload();
     } catch (error: unknown) {
       Alert.alert(
@@ -192,19 +279,26 @@ export function MyReservationsScreen({}: Props) {
 
     return (
       <FlatList
-        data={reservations}
-        keyExtractor={(item) => String(item.id)}
+        data={reservationRows}
+        keyExtractor={(item) => item.key}
         contentContainerStyle={styles.listContent}
-        renderItem={({ item }) => (
-          <MyReservationCard
-            isCancelling={isCancelling}
-            isPaymentInProgress={Boolean(payingReservationId)}
-            isPaying={payingReservationId === item.id}
-            reservation={item}
-            onCancel={confirmCancel}
-            onPay={handlePay}
-          />
-        )}
+        renderItem={({ item }) =>
+          item.type === "section" ? (
+            <ReservationSectionHeader
+              count={item.count}
+              section={item.section}
+            />
+          ) : (
+            <MyReservationCard
+              isCancelling={isCancelling}
+              isPaymentInProgress={Boolean(payingReservationId)}
+              isPaying={payingReservationId === item.reservation.id}
+              reservation={item.reservation}
+              onCancel={confirmCancel}
+              onPay={handlePay}
+            />
+          )
+        }
       />
     );
   };
@@ -220,13 +314,13 @@ export function MyReservationsScreen({}: Props) {
       >
         <Svg
           width="100%"
-          height={150}
-          viewBox="0 0 360 150"
+          height={120}
+          viewBox="0 0 360 120"
           preserveAspectRatio="none"
           style={styles.backgroundWave}
         >
           <Path
-            d="M0 0 H360 V70 C298 105 233 43 160 71 C95 96 47 101 0 80 Z"
+            d="M0 0 H360 V62 C298 88 233 36 160 58 C95 80 47 84 0 66 Z"
             fill={studentPalette.backgroundStrong}
           />
         </Svg>
@@ -241,6 +335,55 @@ export function MyReservationsScreen({}: Props) {
       {renderContent()}
     </Screen>
   );
+}
+
+function ReservationSectionHeader({
+  count,
+  section,
+}: {
+  count: number;
+  section: ReservationSectionConfig;
+}) {
+  const sectionStyle = getSectionStyle(section.tone);
+
+  return (
+    <View style={styles.statusSection}>
+      <View style={[styles.statusAccent, sectionStyle.accent]} />
+      <View style={styles.statusSectionText}>
+        <Text style={[styles.statusSectionTitle, sectionStyle.title]}>
+          {section.title}
+        </Text>
+        <Text style={styles.statusSectionSubtitle}>{section.subtitle}</Text>
+      </View>
+      <StudentStatusPill label={String(count)} tone={section.tone} />
+    </View>
+  );
+}
+
+function getSectionStyle(tone: StudentStatusTone) {
+  switch (tone) {
+    case "success":
+      return {
+        accent: styles.accentSuccess,
+        title: styles.titleSuccess,
+      };
+    case "warning":
+      return {
+        accent: styles.accentWarning,
+        title: styles.titleWarning,
+      };
+    case "danger":
+      return {
+        accent: styles.accentDanger,
+        title: styles.titleMuted,
+      };
+    case "info":
+    default:
+      return {
+        accent: styles.accentInfo,
+        title: styles.titleMuted,
+      };
+  }
 }
 
 const styles = StyleSheet.create({
@@ -259,18 +402,65 @@ const styles = StyleSheet.create({
     left: 0,
   },
   listContent: {
-    gap: spacing.md,
+    gap: spacing.sm,
     paddingBottom: spacing.xxl,
+  },
+  statusSection: {
+    marginTop: spacing.sm,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  statusAccent: {
+    width: 4,
+    height: 32,
+    borderRadius: 999,
+  },
+  accentWarning: {
+    backgroundColor: "rgba(217, 119, 6, 0.48)",
+  },
+  accentSuccess: {
+    backgroundColor: "rgba(35, 148, 71, 0.42)",
+  },
+  accentDanger: {
+    backgroundColor: "rgba(214, 40, 40, 0.28)",
+  },
+  accentInfo: {
+    backgroundColor: "rgba(70, 98, 122, 0.28)",
+  },
+  statusSectionText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  statusSectionTitle: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.bold,
+    color: studentPalette.textPrimary,
+    lineHeight: typography.lineHeights.md,
+  },
+  titleWarning: {
+    color: studentPalette.warning,
+  },
+  titleSuccess: {
+    color: studentPalette.success,
+  },
+  titleMuted: {
+    color: studentPalette.textSecondary,
+  },
+  statusSectionSubtitle: {
+    fontSize: typography.sizes.xs,
+    color: studentPalette.textMuted,
+    lineHeight: typography.lineHeights.xs,
   },
   feedbackState: {
     marginTop: spacing.sm,
-    borderRadius: 22,
+    borderRadius: 20,
     borderColor: studentPalette.border,
     backgroundColor: studentPalette.card,
     shadowColor: studentPalette.shadow,
     shadowOpacity: 1,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 2,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 1,
   },
 });

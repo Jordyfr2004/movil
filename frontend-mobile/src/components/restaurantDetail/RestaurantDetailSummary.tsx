@@ -24,7 +24,7 @@ export function RestaurantDetailSummary({
         <View style={styles.icon}>
           <MaterialCommunityIcons
             name="text-box-outline"
-            size={18}
+            size={17}
             color={studentPalette.primary}
           />
         </View>
@@ -37,13 +37,14 @@ export function RestaurantDetailSummary({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 18,
+    marginBottom: spacing.md,
+    borderRadius: 20,
     borderColor: studentPalette.border,
     backgroundColor: studentPalette.card,
     shadowColor: studentPalette.shadow,
     shadowOpacity: 1,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
     elevation: 1,
   },
   titleRow: {
@@ -53,21 +54,24 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   icon: {
-    width: 34,
-    height: 34,
-    borderRadius: 11,
+    width: 32,
+    height: 32,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: studentPalette.primaryPale,
+    borderWidth: 1,
+    borderColor: studentPalette.border,
   },
   cardTitle: {
     fontSize: typography.sizes.md,
     color: studentPalette.textPrimary,
     fontWeight: typography.weights.bold,
+    lineHeight: typography.lineHeights.md,
   },
   cardText: {
-    fontSize: typography.sizes.md,
+    fontSize: typography.sizes.sm,
     color: studentPalette.textSecondary,
-    lineHeight: typography.lineHeights.md,
+    lineHeight: typography.lineHeights.sm,
   },
 });

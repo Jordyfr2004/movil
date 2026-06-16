@@ -1,8 +1,16 @@
 import React from "react";
-import { StyleSheet } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
+import { spacing } from "../../constants/spacing";
+import { typography } from "../../theme";
 import { studentPalette } from "../../theme/studentPalette";
-import { AppButton } from "../AppButton";
 
 type RestaurantReserveButtonProps = {
   dishName: string;
@@ -20,7 +28,7 @@ export function RestaurantReserveButton({
   onPress,
 }: RestaurantReserveButtonProps) {
   const label = isReserving
-    ? "Reservando…"
+    ? "Reservando..."
     : isReserved
       ? "Ya reservaste"
       : "Reservar";
@@ -36,35 +44,89 @@ export function RestaurantReserveButton({
     : "Crea una reserva para este plato.";
 
   return (
-    <AppButton
-      label={label}
-      variant={isReserved ? "secondary" : "primary"}
-      size="sm"
+    <Pressable
+      accessibilityHint={accessibilityHint}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: Boolean(disabled) }}
       disabled={disabled}
       onPress={onPress}
-      style={[styles.button, isReserved && styles.reservedButton]}
-      accessibilityLabel={accessibilityLabel}
-      accessibilityHint={accessibilityHint}
-    />
+      style={({ pressed }) => [
+        styles.button,
+        isReserved ? styles.reservedButton : styles.primaryButton,
+        pressed && !disabled && styles.pressed,
+        disabled && !isReserved && styles.disabled,
+      ]}
+    >
+      <View style={styles.content}>
+        {isReserving ? (
+          <ActivityIndicator size="small" color={studentPalette.card} />
+        ) : isReserved ? (
+          <MaterialCommunityIcons
+            name="check-circle-outline"
+            size={16}
+            color={studentPalette.neutral}
+          />
+        ) : null}
+        <Text
+          style={[
+            styles.label,
+            isReserved ? styles.reservedLabel : styles.primaryLabel,
+          ]}
+          numberOfLines={1}
+        >
+          {label}
+        </Text>
+      </View>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   button: {
-    minWidth: 108,
-    minHeight: 40,
-    borderRadius: 14,
+    minWidth: 110,
+    minHeight: 38,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: spacing.md,
+  },
+  primaryButton: {
     backgroundColor: studentPalette.primary,
     shadowColor: studentPalette.primary,
-    shadowOpacity: 0.18,
+    shadowOpacity: 0.14,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
     elevation: 2,
   },
   reservedButton: {
-    backgroundColor: studentPalette.primaryPale,
-    borderColor: studentPalette.border,
-    shadowOpacity: 0,
-    elevation: 0,
+    minWidth: 126,
+    backgroundColor: studentPalette.neutralSoft,
+    borderWidth: 1,
+    borderColor: studentPalette.neutralBorder,
+  },
+  pressed: {
+    opacity: 0.94,
+    transform: [{ scale: 0.99 }],
+  },
+  disabled: {
+    opacity: 0.55,
+  },
+  content: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.xs,
+  },
+  label: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.bold,
+    lineHeight: typography.lineHeights.sm,
+  },
+  primaryLabel: {
+    color: studentPalette.card,
+  },
+  reservedLabel: {
+    color: studentPalette.neutral,
   },
 });

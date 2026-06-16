@@ -16,11 +16,7 @@ import { DrawerActions } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Svg, { Path } from "react-native-svg";
 
-import {
-  DecorBowlIcon,
-  DecorCupIcon,
-  DecorLeafIcon,
-} from "../components/login/LoginDecorIcons";
+import { StudentVisualPlaceholder } from "../components/StudentVisualPlaceholder";
 import { spacing } from "../constants/spacing";
 import { useAuth } from "../context/AuthContext";
 import { UserProfile } from "../services/userService";
@@ -99,36 +95,30 @@ function StudentDrawerContent({
       >
         <Svg
           width="100%"
-          height={154}
-          viewBox="0 0 320 154"
+          height={124}
+          viewBox="0 0 320 124"
           preserveAspectRatio="none"
           style={styles.drawerWave}
         >
           <Path
-            d="M0 0 H320 V84 C252 122 199 56 132 88 C78 114 39 110 0 91 Z"
+            d="M0 0 H320 V72 C252 96 199 44 132 68 C78 90 39 86 0 70 Z"
             fill={studentPalette.backgroundStrong}
           />
         </Svg>
-        <View style={styles.drawerCup}>
-          <DecorCupIcon color={studentPalette.decorOrangeSoft} size={42} />
-        </View>
-        <View style={styles.drawerLeaf}>
-          <DecorLeafIcon color={studentPalette.decorOrangeSoft} size={38} />
-        </View>
+        <View style={styles.decorCircle} />
       </View>
 
       <View style={styles.drawerBrand}>
         <View style={styles.drawerBrandIcon}>
           <MaterialCommunityIcons
-            name="silverware-fork-knife"
-            size={18}
-            color={studentPalette.card}
+            name="school-outline"
+            size={22}
+            color={studentPalette.primary}
           />
         </View>
-        <View style={styles.drawerBrandText}>
-          <Text style={styles.drawerBrandTitle}>Menú estudiantil</Text>
-          <Text style={styles.drawerBrandSubtitle}>Tu espacio de reservas</Text>
-        </View>
+        <Text style={styles.drawerBrandTitle}>
+          Menú <Text style={styles.drawerBrandAccent}>estudiantil</Text>
+        </Text>
       </View>
 
       <Pressable
@@ -136,16 +126,19 @@ function StudentDrawerContent({
         accessibilityLabel="Ir al perfil"
         onPress={() => handleGoTo(ROUTES.Profile)}
         style={({ pressed }) => [
-          styles.userRow,
-          pressed && styles.userRowPressed,
+          styles.userCard,
+          pressed && styles.cardPressed,
         ]}
       >
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{initial}</Text>
-        </View>
+        <StudentVisualPlaceholder
+          initial={initial}
+          label={`Perfil de ${displayName}`}
+          size="sm"
+          style={styles.avatar}
+          variant="profile"
+        />
 
         <View style={styles.userText}>
-          <Text style={styles.profileLabel}>PERFIL</Text>
           <Text style={styles.userName} numberOfLines={1}>
             {displayName}
           </Text>
@@ -155,50 +148,40 @@ function StudentDrawerContent({
             </Text>
           )}
         </View>
-      </Pressable>
 
-      <View style={styles.divider} />
-
-      <Text style={styles.sectionLabel}>TU CUENTA</Text>
-
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Ir a Mis reservas"
-        onPress={() => handleGoTo(ROUTES.MyReservations)}
-        style={({ pressed }) => [
-          styles.drawerItem,
-          pressed && styles.drawerItemPressed,
-        ]}
-      >
-        <View style={styles.drawerItemIcon}>
-          <MaterialCommunityIcons
-            name="calendar-check-outline"
-            size={20}
-            color={studentPalette.primary}
-          />
-        </View>
-        <Text style={styles.drawerItemText}>Mis reservas</Text>
         <MaterialCommunityIcons
           name="chevron-right"
-          size={20}
-          color={studentPalette.primary}
+          size={21}
+          color={studentPalette.textMuted}
         />
       </Pressable>
+
+      <View style={styles.menuCard}>
+        <DrawerMenuItem
+          iconName="calendar-check-outline"
+          label="Mis reservas"
+          onPress={() => handleGoTo(ROUTES.MyReservations)}
+        />
+        <View style={styles.itemDivider} />
+        <DrawerMenuItem
+          iconName="account-outline"
+          label="Mi perfil"
+          onPress={() => handleGoTo(ROUTES.Profile)}
+        />
+      </View>
 
       <View style={styles.grow} />
 
       <View
-        style={styles.drawerFooterArt}
+        style={styles.footerDecor}
         pointerEvents="none"
         accessible={false}
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
       >
-        <DecorBowlIcon color={studentPalette.decorOrange} size={52} />
-        <DecorLeafIcon color={studentPalette.decorOrangeSoft} size={42} />
+        <View style={styles.footerBuilding} />
+        <View style={styles.footerSeal} />
       </View>
-
-      <View style={styles.divider} />
 
       <Pressable
         accessibilityRole="button"
@@ -206,23 +189,64 @@ function StudentDrawerContent({
         onPress={handleLogout}
         disabled={isLoggingOut}
         style={({ pressed }) => [
-          styles.drawerItem,
-          pressed && styles.drawerItemPressed,
-          isLoggingOut && styles.drawerItemDisabled,
+          styles.logoutItem,
+          pressed && styles.cardPressed,
+          isLoggingOut && styles.itemDisabled,
         ]}
       >
-        <View style={styles.drawerItemIconDanger}>
+        <View style={styles.logoutIcon}>
           <MaterialCommunityIcons
             name="logout-variant"
             size={20}
-            color={studentPalette.danger}
+            color={studentPalette.primary}
           />
         </View>
-        <Text style={styles.drawerItemTextDanger}>
+        <Text style={styles.logoutText}>
           {isLoggingOut ? "Cerrando sesión..." : "Cerrar sesión"}
         </Text>
+        <MaterialCommunityIcons
+          name="chevron-right"
+          size={21}
+          color={studentPalette.textMuted}
+        />
       </Pressable>
     </DrawerContentScrollView>
+  );
+}
+
+function DrawerMenuItem({
+  iconName,
+  label,
+  onPress,
+}: {
+  iconName: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.drawerItem,
+        pressed && styles.drawerItemPressed,
+      ]}
+    >
+      <View style={styles.drawerItemIcon}>
+        <MaterialCommunityIcons
+          name={iconName}
+          size={20}
+          color={studentPalette.primary}
+        />
+      </View>
+      <Text style={styles.drawerItemText}>{label}</Text>
+      <MaterialCommunityIcons
+        name="chevron-right"
+        size={21}
+        color={studentPalette.textMuted}
+      />
+    </Pressable>
   );
 }
 
@@ -232,7 +256,7 @@ export function StudentDrawerNavigator({
   profile: UserProfile | null;
 }) {
   const { width } = useWindowDimensions();
-  const drawerWidth = Math.max(260, Math.min(300, Math.round(width * 0.78)));
+  const drawerWidth = Math.max(276, Math.min(320, Math.round(width * 0.82)));
 
   return (
     <Drawer.Navigator
@@ -257,9 +281,9 @@ export function StudentDrawerNavigator({
 
 const styles = StyleSheet.create({
   contentContainer: {
-    paddingTop: spacing.xl,
+    paddingTop: spacing.lg,
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.lg,
+    paddingBottom: spacing.xxl,
     flexGrow: 1,
     backgroundColor: studentPalette.background,
   },
@@ -268,7 +292,7 @@ const styles = StyleSheet.create({
     top: 0,
     right: 0,
     left: 0,
-    height: 154,
+    height: 124,
     overflow: "hidden",
   },
   drawerWave: {
@@ -277,28 +301,20 @@ const styles = StyleSheet.create({
     right: 0,
     left: 0,
   },
-  drawerCup: {
+  decorCircle: {
     position: "absolute",
-    top: 10,
-    right: 14,
-    transform: [{ rotate: "8deg" }],
-  },
-  drawerLeaf: {
-    position: "absolute",
-    top: 68,
-    right: 54,
-    transform: [{ rotate: "-10deg" }],
+    width: 96,
+    height: 96,
+    borderRadius: 999,
+    right: -36,
+    top: -28,
+    backgroundColor: "rgba(247, 101, 2, 0.07)",
   },
   drawerBrand: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.md,
-    marginBottom: spacing.xl,
-    paddingHorizontal: spacing.xs,
-  },
-  drawerBrandText: {
-    flex: 1,
-    minWidth: 0,
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
   },
   drawerBrandIcon: {
     width: 40,
@@ -306,84 +322,52 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: studentPalette.primary,
-    shadowColor: studentPalette.primary,
-    shadowOpacity: 0.22,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 3,
+    backgroundColor: studentPalette.card,
+    borderWidth: 1,
+    borderColor: studentPalette.border,
+    shadowColor: studentPalette.shadow,
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 1,
   },
   drawerBrandTitle: {
-    fontSize: typography.sizes.md,
+    flex: 1,
+    fontSize: typography.sizes.lg,
     color: studentPalette.textPrimary,
     fontWeight: typography.weights.bold,
-    lineHeight: typography.lineHeights.md,
+    lineHeight: typography.lineHeights.lg,
   },
-  drawerBrandSubtitle: {
-    fontSize: typography.sizes.xs,
-    color: studentPalette.textSecondary,
-    lineHeight: typography.lineHeights.xs,
+  drawerBrandAccent: {
+    color: studentPalette.primary,
   },
-  grow: {
-    flex: 1,
-  },
-  drawerFooterArt: {
-    height: 60,
+  userCard: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.md,
-    opacity: 0.9,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: studentPalette.border,
-    marginTop: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  userRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-    padding: spacing.md,
+    gap: spacing.sm,
+    padding: spacing.sm,
     borderRadius: 20,
     backgroundColor: studentPalette.card,
     borderWidth: 1,
     borderColor: studentPalette.border,
     shadowColor: studentPalette.shadow,
     shadowOpacity: 1,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
     elevation: 2,
   },
-  userRowPressed: {
-    backgroundColor: studentPalette.primaryPale,
+  cardPressed: {
+    backgroundColor: studentPalette.primaryFaint,
   },
   avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    backgroundColor: studentPalette.primaryPale,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: studentPalette.border,
-  },
-  avatarText: {
-    fontSize: typography.sizes.lg,
-    fontWeight: typography.weights.bold,
-    color: studentPalette.primary,
+    width: 54,
+    height: 54,
+    borderRadius: 999,
   },
   userText: {
     flex: 1,
+    minWidth: 0,
     gap: 2,
-  },
-  profileLabel: {
-    fontSize: 10,
-    color: studentPalette.primary,
-    fontWeight: typography.weights.bold,
-    letterSpacing: 1,
-    lineHeight: 14,
   },
   userName: {
     fontSize: typography.sizes.md,
@@ -396,28 +380,37 @@ const styles = StyleSheet.create({
     color: studentPalette.textSecondary,
     lineHeight: typography.lineHeights.sm,
   },
-  drawerItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-    minHeight: 56,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: 16,
+  menuCard: {
+    marginTop: spacing.lg,
+    borderRadius: 20,
     backgroundColor: studentPalette.card,
     borderWidth: 1,
     borderColor: studentPalette.border,
     shadowColor: studentPalette.shadow,
     shadowOpacity: 1,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
     elevation: 2,
+    overflow: "hidden",
+  },
+  drawerItem: {
+    minHeight: 56,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
   },
   drawerItemPressed: {
-    backgroundColor: studentPalette.primaryPale,
+    backgroundColor: studentPalette.primaryFaint,
   },
-  drawerItemDisabled: {
-    opacity: 0.7,
+  drawerItemIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: studentPalette.primaryPale,
   },
   drawerItemText: {
     flex: 1,
@@ -426,36 +419,73 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.semiBold,
     lineHeight: typography.lineHeights.md,
   },
-  drawerItemTextDanger: {
-    flex: 1,
-    fontSize: typography.sizes.md,
-    color: studentPalette.danger,
-    fontWeight: typography.weights.semiBold,
-    lineHeight: typography.lineHeights.md,
+  itemDivider: {
+    height: 1,
+    marginLeft: 58,
+    backgroundColor: studentPalette.border,
   },
-  sectionLabel: {
-    marginBottom: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    fontSize: 10,
-    color: studentPalette.textSecondary,
-    fontWeight: typography.weights.bold,
-    letterSpacing: 1.1,
-    lineHeight: 14,
+  grow: {
+    height: spacing.xl,
   },
-  drawerItemIcon: {
-    width: 36,
-    height: 36,
+  footerDecor: {
+    minHeight: 42,
+    justifyContent: "flex-end",
+    marginBottom: spacing.md,
+    opacity: 0.28,
+  },
+  footerBuilding: {
+    height: 34,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    backgroundColor: "rgba(247, 101, 2, 0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(247, 101, 2, 0.10)",
+  },
+  footerSeal: {
+    position: "absolute",
+    right: 36,
+    bottom: 18,
+    width: 42,
+    height: 42,
+    borderRadius: 999,
+    borderWidth: 5,
+    borderColor: "rgba(247, 101, 2, 0.12)",
+    backgroundColor: "rgba(255, 255, 255, 0.44)",
+  },
+  logoutItem: {
+    minHeight: 56,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: 18,
+    backgroundColor: studentPalette.card,
+    borderWidth: 1,
+    borderColor: studentPalette.border,
+    shadowColor: studentPalette.shadow,
+    shadowOpacity: 1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 2,
+    marginBottom: spacing.md,
+  },
+  logoutIcon: {
+    width: 34,
+    height: 34,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: studentPalette.primaryPale,
   },
-  drawerItemIconDanger: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: studentPalette.dangerSoft,
+  logoutText: {
+    flex: 1,
+    fontSize: typography.sizes.md,
+    color: studentPalette.primary,
+    fontWeight: typography.weights.semiBold,
+    lineHeight: typography.lineHeights.md,
+  },
+  itemDisabled: {
+    opacity: 0.7,
   },
 });

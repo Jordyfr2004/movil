@@ -8,12 +8,10 @@ import { Card } from "../components/Card";
 import { EmptyState } from "../components/EmptyState";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { LoadingState } from "../components/LoadingState";
-import {
-  DecorCupIcon,
-  DecorLeafIcon,
-} from "../components/login/LoginDecorIcons";
 import { RestaurantCard } from "../components/RestaurantCard";
 import { Screen } from "../components/Screen";
+import { StudentSectionHeader } from "../components/StudentSectionHeader";
+import { StudentVisualPlaceholder } from "../components/StudentVisualPlaceholder";
 import { spacing } from "../constants/spacing";
 import { useAuth } from "../context/AuthContext";
 import { useRestaurants } from "../hooks/useRestaurants";
@@ -45,13 +43,13 @@ export function HomeScreen({ navigation }: Props) {
       >
         <Svg
           width="100%"
-          height={150}
-          viewBox="0 0 360 150"
+          height={130}
+          viewBox="0 0 360 130"
           preserveAspectRatio="none"
           style={styles.backgroundWave}
         >
           <Path
-            d="M0 0 H360 V70 C285 112 218 30 138 67 C82 93 39 94 0 72 Z"
+            d="M0 0 H360 V68 C292 96 224 42 145 66 C83 88 38 86 0 66 Z"
             fill={studentPalette.backgroundStrong}
           />
         </Svg>
@@ -67,60 +65,60 @@ export function HomeScreen({ navigation }: Props) {
         >
           <Svg
             width="100%"
-            height={92}
-            viewBox="0 0 360 92"
+            height={62}
+            viewBox="0 0 360 62"
             preserveAspectRatio="none"
             style={styles.heroWave}
           >
             <Path
-              d="M0 55 C70 25 140 82 215 58 C282 37 322 25 360 42 V92 H0 Z"
+              d="M0 38 C70 18 140 54 215 38 C282 24 322 18 360 28 V62 H0 Z"
               fill={studentPalette.primaryPale}
             />
           </Svg>
-          <View style={styles.heroCup}>
-            <DecorCupIcon color={studentPalette.decorOrange} size={42} />
-          </View>
-          <View style={styles.heroLeaf}>
-            <DecorLeafIcon color={studentPalette.decorOrangeSoft} size={46} />
-          </View>
+          <View style={styles.heroGlow} />
         </View>
 
-        <View style={styles.heroEyebrow}>
-          <View style={styles.heroIcon}>
-            <MaterialCommunityIcons
-              name="silverware-fork-knife"
-              size={18}
-              color={studentPalette.primary}
-            />
-          </View>
-          <Text style={styles.heroEyebrowText}>DESCUBRE Y RESERVA</Text>
-        </View>
+        <View style={styles.heroContent}>
+          <View style={styles.heroCopy}>
+            <View style={styles.heroEyebrow}>
+              <View style={styles.heroIcon}>
+                <MaterialCommunityIcons
+                  name="silverware-fork-knife"
+                  size={17}
+                  color={studentPalette.primary}
+                />
+              </View>
+              <Text style={styles.heroEyebrowText}>Reserva estudiantil</Text>
+            </View>
 
-        <Text style={styles.greeting}>
-          Hola{displayName ? `, ${displayName}` : ""}
-        </Text>
-        <Text style={styles.heroTitle}>
-          Elige un restaurante y reserva tu menú.
-        </Text>
-        <Text style={styles.heroSubtitle}>
-          Revisa horarios, disponibilidad y confirma tu cupo.
-        </Text>
+            <Text style={styles.greeting}>
+              Hola{displayName ? `, ${displayName}` : ""}
+            </Text>
+            <Text style={styles.heroTitle}>
+              Elige un restaurante y reserva tu menú
+            </Text>
+            <Text style={styles.heroSubtitle}>
+              Revisa horarios, disponibilidad y confirma tu cupo.
+            </Text>
+          </View>
+
+          <StudentVisualPlaceholder
+            iconName="food"
+            label="Reserva de comida"
+            size="md"
+            style={styles.heroVisual}
+            variant="dish"
+          />
+        </View>
       </Card>
 
-      <View style={styles.sectionHeader}>
-        <View style={styles.sectionTitleGroup}>
-          <Text style={styles.sectionTitle}>Restaurantes</Text>
-          <Text style={styles.sectionSubtitle}>
-            Opciones disponibles cerca de ti
-          </Text>
-        </View>
-
-        <View style={styles.sectionMetaBadge}>
-          <Text style={styles.sectionMeta}>
-            {loading ? "..." : restaurants.length}
-          </Text>
-        </View>
-      </View>
+      <StudentSectionHeader
+        count={loading ? "..." : restaurants.length}
+        iconName="silverware-fork-knife"
+        style={styles.sectionHeader}
+        subtitle="Opciones disponibles cerca de ti"
+        title="Restaurantes"
+      />
 
       <FlatList
         data={restaurants}
@@ -156,8 +154,43 @@ export function HomeScreen({ navigation }: Props) {
             />
           )
         }
+        ListFooterComponent={
+          !loading && !error && restaurants.length <= 1 ? (
+            <ReservationStepsCard />
+          ) : null
+        }
       />
     </Screen>
+  );
+}
+
+function ReservationStepsCard() {
+  const steps = [
+    { iconName: "storefront-outline" as const, label: "Elige restaurante" },
+    { iconName: "food-outline" as const, label: "Selecciona plato" },
+    { iconName: "check-circle-outline" as const, label: "Confirma cupo" },
+  ];
+
+  return (
+    <Card style={styles.stepsCard}>
+      <Text style={styles.stepsTitle}>Reserva en 3 pasos</Text>
+      <View style={styles.stepsRow}>
+        {steps.map((step) => (
+          <View key={step.label} style={styles.stepItem}>
+            <View style={styles.stepIcon}>
+              <MaterialCommunityIcons
+                name={step.iconName}
+                size={17}
+                color={studentPalette.primary}
+              />
+            </View>
+            <Text style={styles.stepLabel} numberOfLines={2}>
+              {step.label}
+            </Text>
+          </View>
+        ))}
+      </View>
+    </Card>
   );
 }
 
@@ -177,16 +210,16 @@ const styles = StyleSheet.create({
     left: 0,
   },
   hero: {
-    marginBottom: spacing.lg,
-    padding: spacing.lg,
+    marginBottom: spacing.md,
+    padding: spacing.md,
     borderRadius: 22,
     borderColor: studentPalette.border,
-    backgroundColor: studentPalette.card,
+    backgroundColor: studentPalette.cardMuted,
     shadowColor: studentPalette.shadow,
     shadowOpacity: 1,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 3,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
     overflow: "hidden",
   },
   heroArt: {
@@ -198,28 +231,34 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
   },
-  heroCup: {
+  heroGlow: {
     position: "absolute",
-    top: 8,
-    right: 14,
-    transform: [{ rotate: "7deg" }],
+    width: 104,
+    height: 104,
+    borderRadius: 999,
+    right: -38,
+    top: -30,
+    backgroundColor: "rgba(247, 101, 2, 0.07)",
   },
-  heroLeaf: {
-    position: "absolute",
-    right: 54,
-    bottom: 2,
-    transform: [{ rotate: "-9deg" }],
+  heroContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  heroCopy: {
+    flex: 1,
+    minWidth: 0,
   },
   heroEyebrow: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   heroIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 11,
+    width: 30,
+    height: 30,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: studentPalette.primaryPale,
@@ -230,74 +269,39 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.xs,
     color: studentPalette.primary,
     fontWeight: typography.weights.bold,
-    letterSpacing: 1.1,
+    letterSpacing: 0,
   },
   greeting: {
     fontSize: typography.sizes.sm,
-    color: studentPalette.textSecondary,
+    color: studentPalette.primary,
     fontWeight: typography.weights.semiBold,
     marginBottom: spacing.xs,
   },
   heroTitle: {
-    maxWidth: "92%",
-    fontSize: typography.sizes.xl,
+    maxWidth: 232,
+    fontSize: 24,
     fontWeight: typography.weights.bold,
     color: studentPalette.textPrimary,
-    lineHeight: typography.lineHeights.xl,
-    letterSpacing: -0.3,
+    lineHeight: 30,
   },
   heroSubtitle: {
-    maxWidth: "90%",
-    marginTop: spacing.sm,
+    maxWidth: 230,
+    marginTop: spacing.xs,
     fontSize: typography.sizes.sm,
     color: studentPalette.textSecondary,
     lineHeight: typography.lineHeights.sm,
+  },
+  heroVisual: {
+    width: 72,
+    height: 88,
+    minHeight: 88,
+    borderRadius: 20,
   },
   sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.md,
-    marginBottom: spacing.lg,
-  },
-  sectionTitleGroup: {
-    flex: 1,
-    gap: 2,
-  },
-  sectionTitle: {
-    fontSize: typography.sizes.lg,
-    fontWeight: typography.weights.bold,
-    color: studentPalette.textPrimary,
-    lineHeight: typography.lineHeights.lg,
-  },
-  sectionSubtitle: {
-    fontSize: typography.sizes.sm,
-    color: studentPalette.textSecondary,
-    lineHeight: typography.lineHeights.sm,
-  },
-  sectionMetaBadge: {
-    minWidth: 36,
-    height: 36,
-    paddingHorizontal: spacing.sm,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: studentPalette.card,
-    borderWidth: 1,
-    borderColor: studentPalette.border,
-    shadowColor: studentPalette.shadow,
-    shadowOpacity: 1,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
-  },
-  sectionMeta: {
-    fontSize: typography.sizes.sm,
-    color: studentPalette.primary,
-    fontWeight: typography.weights.bold,
+    marginBottom: spacing.md,
   },
   listContent: {
-    gap: spacing.md,
+    gap: spacing.sm,
     paddingBottom: spacing.xxl,
   },
   feedbackState: {
@@ -307,8 +311,51 @@ const styles = StyleSheet.create({
     backgroundColor: studentPalette.card,
     shadowColor: studentPalette.shadow,
     shadowOpacity: 1,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
     elevation: 2,
+  },
+  stepsCard: {
+    marginTop: spacing.sm,
+    padding: spacing.md,
+    borderRadius: 20,
+    borderColor: studentPalette.border,
+    backgroundColor: studentPalette.card,
+    shadowColor: studentPalette.shadow,
+    shadowOpacity: 1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 1,
+  },
+  stepsTitle: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.bold,
+    color: studentPalette.textPrimary,
+    lineHeight: typography.lineHeights.md,
+    marginBottom: spacing.sm,
+  },
+  stepsRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+  },
+  stepItem: {
+    flex: 1,
+    gap: spacing.xs,
+  },
+  stepIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: studentPalette.primaryPale,
+    borderWidth: 1,
+    borderColor: studentPalette.border,
+  },
+  stepLabel: {
+    fontSize: typography.sizes.xs,
+    color: studentPalette.textSecondary,
+    lineHeight: typography.lineHeights.xs,
+    fontWeight: typography.weights.semiBold,
   },
 });

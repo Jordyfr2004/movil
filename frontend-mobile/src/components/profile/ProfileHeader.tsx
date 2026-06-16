@@ -1,36 +1,65 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { spacing } from "../../constants/spacing";
-import { colors, typography } from "../../theme";
+import { typography } from "../../theme";
+import { studentPalette } from "../../theme/studentPalette";
 
 export function ProfileHeader() {
   return (
     <View style={styles.header}>
-      <Text style={styles.title} accessibilityRole="header">
-        Mi perfil
-      </Text>
-      <Text style={styles.subtitle}>
-        Información de tu cuenta y acceso rápido a tu sesión.
-      </Text>
+      <View style={styles.titleRow}>
+        <View style={styles.icon}>
+          <MaterialCommunityIcons
+            name="account-outline"
+            size={20}
+            color={studentPalette.primary}
+          />
+        </View>
+        <View style={styles.copy}>
+          <Text style={styles.title} accessibilityRole="header">
+            Cuenta estudiantil
+          </Text>
+          <Text style={styles.subtitle}>Datos básicos y acceso rápido.</Text>
+        </View>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   header: {
-    gap: spacing.xs,
-    marginBottom: spacing.lg,
+    marginBottom: spacing.xs,
+  },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  icon: {
+    width: 36,
+    height: 36,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: studentPalette.card,
+    borderWidth: 1,
+    borderColor: studentPalette.border,
+  },
+  copy: {
+    flex: 1,
+    minWidth: 0,
   },
   title: {
-    fontSize: typography.sizes.xl,
+    fontSize: 22,
     fontWeight: typography.weights.bold,
-    color: colors.textPrimary,
-    lineHeight: typography.lineHeights.xl,
+    color: studentPalette.textPrimary,
+    lineHeight: 28,
   },
   subtitle: {
-    fontSize: typography.sizes.md,
-    color: colors.textSecondary,
-    lineHeight: typography.lineHeights.md,
+    fontSize: typography.sizes.sm,
+    color: studentPalette.textSecondary,
+    lineHeight: typography.lineHeights.sm,
   },
 });

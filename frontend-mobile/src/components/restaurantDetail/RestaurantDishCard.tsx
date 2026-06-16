@@ -1,11 +1,12 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { spacing } from "../../constants/spacing";
 import type { Dish } from "../../services/dishService";
 import { typography } from "../../theme";
 import { studentPalette } from "../../theme/studentPalette";
+import { StudentStatusPill } from "../StudentStatusPill";
+import { StudentVisualPlaceholder } from "../StudentVisualPlaceholder";
 import { RestaurantReserveButton } from "./RestaurantReserveButton";
 
 type RestaurantDishCardProps = {
@@ -28,84 +29,84 @@ export function RestaurantDishCard({
   const dishId = String(dish.id);
 
   return (
-    <View style={styles.dishRow}>
-      <View style={styles.dishHeader}>
-        <View style={styles.dishIcon}>
-          <MaterialCommunityIcons
-            name="silverware"
-            size={20}
-            color={studentPalette.primary}
-          />
-        </View>
+    <View style={styles.card}>
+      <StudentVisualPlaceholder
+        iconName="food-variant"
+        label={`Plato ${dish.name}`}
+        size="sm"
+        style={styles.visual}
+        variant="dish"
+      />
 
-        <View style={styles.dishText}>
+      <View style={styles.content}>
+        <View style={styles.titleRow}>
           <Text style={styles.dishName} numberOfLines={2}>
             {dish.name}
           </Text>
-          {dish.description ? (
-            <Text style={styles.dishMeta} numberOfLines={2}>
-              {dish.description}
-            </Text>
+          {!dish.isAvailable || !dish.isActive ? (
+            <StudentStatusPill label="No disponible" tone="neutral" />
           ) : null}
         </View>
-      </View>
 
-      <View style={styles.dishActions}>
-        <View style={styles.priceGroup}>
-          <Text style={styles.priceLabel}>Precio</Text>
+        {dish.description ? (
+          <Text style={styles.dishMeta} numberOfLines={2}>
+            {dish.description}
+          </Text>
+        ) : null}
+
+        <View style={styles.bottomRow}>
           <Text style={styles.dishPrice} numberOfLines={1}>
             ${dish.price}
           </Text>
-        </View>
 
-        <RestaurantReserveButton
-          dishName={dish.name}
-          disabled={isReservationBusy || isReserved || isCheckingReservation}
-          isReserved={isReserved}
-          isReserving={isReserving}
-          onPress={() => onReserve(dishId)}
-        />
+          <RestaurantReserveButton
+            dishName={dish.name}
+            disabled={isReservationBusy || isReserved || isCheckingReservation}
+            isReserved={isReserved}
+            isReserving={isReserving}
+            onPress={() => onReserve(dishId)}
+          />
+        </View>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  dishRow: {
-    gap: spacing.md,
-    padding: 14,
-    borderRadius: 18,
+  card: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    padding: spacing.sm,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: studentPalette.border,
     backgroundColor: studentPalette.card,
     shadowColor: studentPalette.shadow,
     shadowOpacity: 1,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 1,
   },
-  dishHeader: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: spacing.md,
+  visual: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
   },
-  dishIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: studentPalette.primaryPale,
-    borderWidth: 1,
-    borderColor: studentPalette.border,
-  },
-  dishText: {
+  content: {
     flex: 1,
+    minWidth: 0,
     gap: 2,
   },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: spacing.sm,
+  },
   dishName: {
+    flex: 1,
     fontSize: typography.sizes.md,
-    fontWeight: typography.weights.semiBold,
+    fontWeight: typography.weights.bold,
     color: studentPalette.textPrimary,
     lineHeight: typography.lineHeights.md,
   },
@@ -114,28 +115,19 @@ const styles = StyleSheet.create({
     color: studentPalette.textSecondary,
     lineHeight: typography.lineHeights.sm,
   },
-  dishActions: {
+  bottomRow: {
+    marginTop: spacing.xs,
     flexDirection: "row",
-    flexWrap: "wrap",
     alignItems: "center",
     justifyContent: "space-between",
     gap: spacing.sm,
-    paddingTop: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: studentPalette.border,
-  },
-  priceGroup: {
-    flex: 1,
-    minWidth: 76,
-  },
-  priceLabel: {
-    fontSize: typography.sizes.xs,
-    color: studentPalette.textMuted,
-    lineHeight: typography.lineHeights.xs,
   },
   dishPrice: {
-    fontSize: typography.sizes.md,
+    flex: 1,
+    minWidth: 58,
+    fontSize: 18,
     fontWeight: typography.weights.bold,
     color: studentPalette.primary,
+    lineHeight: 24,
   },
 });

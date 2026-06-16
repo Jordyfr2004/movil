@@ -22,9 +22,21 @@ export function RestaurantDishesFeedback({
   if (variant === "loading") {
     return (
       <View style={[styles.menuLoading, style]}>
-        <View style={styles.skeletonLineLg} />
-        <View style={styles.skeletonLineSm} />
-        <View style={styles.skeletonLineLg} />
+        <View style={styles.skeletonCard}>
+          <View style={styles.skeletonVisual} />
+          <View style={styles.skeletonText}>
+            <View style={styles.skeletonLineLg} />
+            <View style={styles.skeletonLineSm} />
+            <View style={styles.skeletonLineMd} />
+          </View>
+        </View>
+        <View style={styles.skeletonCard}>
+          <View style={styles.skeletonVisual} />
+          <View style={styles.skeletonText}>
+            <View style={styles.skeletonLineLg} />
+            <View style={styles.skeletonLineSm} />
+          </View>
+        </View>
       </View>
     );
   }
@@ -35,7 +47,7 @@ export function RestaurantDishesFeedback({
         title="No se pudieron cargar los platos"
         message={error ?? "No se pudieron cargar los platos"}
         onRetry={onRetry}
-        style={style}
+        style={[styles.feedbackCard, style]}
       />
     );
   }
@@ -45,7 +57,7 @@ export function RestaurantDishesFeedback({
       title="No hay platos disponibles"
       message="Vuelve más tarde para ver el menú."
       iconName="food-off-outline"
-      style={style}
+      style={[styles.feedbackCard, style]}
     />
   );
 }
@@ -54,16 +66,47 @@ const styles = StyleSheet.create({
   menuLoading: {
     gap: spacing.sm,
   },
+  skeletonCard: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    padding: spacing.sm,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: studentPalette.border,
+    backgroundColor: studentPalette.card,
+  },
+  skeletonVisual: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: studentPalette.primaryPale,
+  },
+  skeletonText: {
+    flex: 1,
+    justifyContent: "center",
+    gap: spacing.sm,
+  },
   skeletonLineLg: {
-    height: 14,
+    height: 12,
     borderRadius: 10,
     backgroundColor: studentPalette.primarySoft,
     width: "70%",
   },
-  skeletonLineSm: {
-    height: 12,
+  skeletonLineMd: {
+    height: 10,
     borderRadius: 10,
-    backgroundColor: studentPalette.primarySoft,
-    width: "45%",
+    backgroundColor: studentPalette.primaryPale,
+    width: "55%",
+  },
+  skeletonLineSm: {
+    height: 10,
+    borderRadius: 10,
+    backgroundColor: studentPalette.primaryPale,
+    width: "42%",
+  },
+  feedbackCard: {
+    borderRadius: 20,
+    borderColor: studentPalette.border,
+    backgroundColor: studentPalette.card,
   },
 });

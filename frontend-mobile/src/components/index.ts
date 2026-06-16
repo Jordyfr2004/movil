@@ -7,4 +7,7 @@ export * from "./ErrorMessage";
 export * from "./LoadingState";
 export * from "./RestaurantCard";
 export * from "./Screen";
+export * from "./StudentSectionHeader";
+export * from "./StudentStatusPill";
+export * from "./StudentVisualPlaceholder";
 export * from "./StatusBadge";

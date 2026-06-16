@@ -3,16 +3,13 @@ import { StyleSheet, Text, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Svg, { Path } from "react-native-svg";
 
-import {
-  DecorBowlIcon,
-  DecorLeafIcon,
-} from "../login/LoginDecorIcons";
 import { spacing } from "../../constants/spacing";
 import { typography } from "../../theme";
 import { studentPalette } from "../../theme/studentPalette";
 import type { Restaurant } from "../../types/models";
 import { Card } from "../Card";
-import { StatusBadge } from "../StatusBadge";
+import { StudentStatusPill } from "../StudentStatusPill";
+import { StudentVisualPlaceholder } from "../StudentVisualPlaceholder";
 import { RestaurantDetailSchedule } from "./RestaurantDetailSchedule";
 
 type RestaurantDetailHeaderProps = {
@@ -35,85 +32,77 @@ export function RestaurantDetailHeader({
       >
         <Svg
           width="100%"
-          height={84}
-          viewBox="0 0 360 84"
+          height={58}
+          viewBox="0 0 360 58"
           preserveAspectRatio="none"
           style={styles.heroWave}
         >
           <Path
-            d="M0 48 C78 24 144 74 224 53 C290 36 329 24 360 38 V84 H0 Z"
+            d="M0 34 C78 16 146 52 224 36 C288 22 329 18 360 28 V58 H0 Z"
             fill={studentPalette.primaryPale}
           />
         </Svg>
-        <View style={styles.heroBowl}>
-          <DecorBowlIcon color={studentPalette.decorOrange} size={44} />
-        </View>
-        <View style={styles.heroLeaf}>
-          <DecorLeafIcon color={studentPalette.decorOrangeSoft} size={40} />
-        </View>
+        <View style={styles.heroGlow} />
       </View>
 
-      <View style={styles.topLine}>
-        <Text style={styles.eyebrow}>RESTAURANTE</Text>
-        <StatusBadge
-          label={restaurant.isActive ? "Abierto" : "Cerrado"}
-          tone={restaurant.isActive ? "success" : "danger"}
+      <View style={styles.contentRow}>
+        <StudentVisualPlaceholder
+          initial={initial}
+          label={`Restaurante ${restaurant.name}`}
+          size="md"
+          style={styles.visual}
+          variant="restaurant"
         />
-      </View>
-
-      <View style={styles.heroHeader}>
-        <View style={styles.avatar}>
-          <MaterialCommunityIcons
-            name="silverware-fork-knife"
-            size={24}
-            color={studentPalette.primary}
-          />
-          <Text style={styles.avatarText}>{initial}</Text>
-        </View>
 
         <View style={styles.heroText}>
           <Text style={styles.name} numberOfLines={2}>
             {restaurant.name}
           </Text>
+
           {restaurant.location ? (
             <View style={styles.locationRow}>
               <MaterialCommunityIcons
                 name="map-marker-outline"
                 size={16}
-                color={studentPalette.primary}
+                color={studentPalette.textMuted}
               />
               <Text style={styles.location} numberOfLines={2}>
                 {restaurant.location}
               </Text>
             </View>
           ) : null}
+
+          <View style={styles.metaRow}>
+            <StudentStatusPill
+              label={restaurant.isActive ? "Abierto" : "Cerrado"}
+              tone={restaurant.isActive ? "success" : "danger"}
+            />
+
+            {restaurant.openingTime && restaurant.closingTime ? (
+              <RestaurantDetailSchedule
+                openingTime={restaurant.openingTime}
+                closingTime={restaurant.closingTime}
+              />
+            ) : null}
+          </View>
         </View>
       </View>
-
-      {restaurant.openingTime && restaurant.closingTime ? (
-        <View style={styles.metaRow}>
-          <RestaurantDetailSchedule
-            openingTime={restaurant.openingTime}
-            closingTime={restaurant.closingTime}
-          />
-        </View>
-      ) : null}
     </Card>
   );
 }
 
 const styles = StyleSheet.create({
   hero: {
-    marginBottom: spacing.lg,
-    padding: spacing.lg,
+    marginBottom: spacing.md,
+    padding: spacing.md,
     borderRadius: 22,
     borderColor: studentPalette.border,
-    backgroundColor: studentPalette.card,
+    backgroundColor: studentPalette.cardMuted,
     shadowColor: studentPalette.shadow,
     shadowOpacity: 1,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 3,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
     overflow: "hidden",
   },
   heroDecor: {
@@ -125,71 +114,40 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
   },
-  heroBowl: {
+  heroGlow: {
     position: "absolute",
-    top: 42,
-    right: 14,
-    transform: [{ rotate: "4deg" }],
+    width: 96,
+    height: 96,
+    borderRadius: 999,
+    right: -34,
+    top: -28,
+    backgroundColor: "rgba(247, 101, 2, 0.07)",
   },
-  heroLeaf: {
-    position: "absolute",
-    right: 64,
-    bottom: -2,
-    transform: [{ rotate: "-12deg" }],
-  },
-  topLine: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  eyebrow: {
-    flex: 1,
-    fontSize: typography.sizes.xs,
-    color: studentPalette.primary,
-    fontWeight: typography.weights.bold,
-    letterSpacing: 1.2,
-  },
-  heroHeader: {
+  contentRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.md,
   },
-  avatar: {
-    width: 54,
-    height: 54,
-    borderRadius: 17,
-    backgroundColor: studentPalette.card,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: studentPalette.border,
-    shadowColor: studentPalette.shadow,
-    shadowOpacity: 1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 1,
-  },
-  avatarText: {
-    marginTop: -2,
-    fontSize: typography.sizes.xs,
-    fontWeight: typography.weights.bold,
-    color: studentPalette.primary,
+  visual: {
+    width: 82,
+    height: 86,
+    minHeight: 86,
+    borderRadius: 20,
   },
   heroText: {
     flex: 1,
-    gap: 2,
+    minWidth: 0,
+    gap: spacing.xs,
   },
   name: {
-    fontSize: typography.sizes.xl,
+    fontSize: 24,
     fontWeight: typography.weights.bold,
     color: studentPalette.textPrimary,
-    lineHeight: typography.lineHeights.xl,
+    lineHeight: 30,
   },
   locationRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: spacing.xs,
   },
   location: {
@@ -199,6 +157,10 @@ const styles = StyleSheet.create({
     lineHeight: typography.lineHeights.sm,
   },
   metaRow: {
-    marginTop: spacing.md,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: spacing.xs,
+    marginTop: spacing.xs,
   },
 });

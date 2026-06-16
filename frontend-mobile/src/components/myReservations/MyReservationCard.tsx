@@ -8,6 +8,8 @@ import { typography } from "../../theme";
 import { studentPalette } from "../../theme/studentPalette";
 import { formatReservationDate } from "../../utils/date";
 import { Card } from "../Card";
+import { StudentStatusPill } from "../StudentStatusPill";
+import { StudentVisualPlaceholder } from "../StudentVisualPlaceholder";
 import { MyReservationActions } from "./MyReservationActions";
 import { getReservationStatusBadge } from "./getReservationStatusBadge";
 
@@ -38,94 +40,47 @@ export function MyReservationCard({
 }: MyReservationCardProps) {
   const badge = getReservationStatusBadge(reservation.status);
   const shouldShowActions = reservation.status === "pending_payment";
-  const isActive =
-    reservation.status === "confirmed" ||
-    reservation.status === "pending_payment";
-  const isCancelled =
-    reservation.status === "cancelled" || reservation.status === "expired";
+  const statusStyle = getStatusStyle(reservation.status);
 
   return (
-    <Card
-      style={[
-        styles.card,
-        isActive && styles.cardActive,
-        isCancelled && styles.cardCancelled,
-      ]}
-    >
-      <View
-        style={[
-          styles.stateBar,
-          isCancelled
-            ? styles.stateBarCancelled
-            : isActive
-              ? styles.stateBarActive
-              : styles.stateBarNeutral,
-        ]}
-        pointerEvents="none"
-      />
+    <Card style={[styles.card, statusStyle.card]}>
+      <View style={[styles.stateMark, statusStyle.mark]} pointerEvents="none" />
 
-      <View style={styles.cardHeader}>
-        <Text style={styles.eyebrow}>RESERVA</Text>
+      <View style={styles.mainRow}>
+        <StudentVisualPlaceholder
+          iconName={statusStyle.iconName}
+          label={`Reserva ${reservation.title}`}
+          size="sm"
+          style={styles.visual}
+          variant={reservation.status === "pending_payment" ? "reservation" : "dish"}
+        />
 
-        <View
-          style={[
-            styles.badge,
-            badge.tone === "success"
-              ? styles.badgeSuccess
-              : styles.badgeDanger,
-          ]}
-        >
-          <Text
-            style={[
-              styles.badgeText,
-              badge.tone === "success"
-                ? styles.badgeTextSuccess
-                : styles.badgeTextDanger,
-            ]}
-          >
-            {badge.label}
-          </Text>
-        </View>
-      </View>
+        <View style={styles.content}>
+          <View style={styles.titleRow}>
+            <Text style={styles.cardTitle} numberOfLines={2}>
+              {reservation.title}
+            </Text>
+            <StudentStatusPill
+              label={badge.label}
+              style={styles.statusPill}
+              tone={badge.tone}
+            />
+          </View>
 
-      <View style={styles.titleGroup}>
-        <View style={[styles.icon, isCancelled && styles.iconCancelled]}>
-          <MaterialCommunityIcons
-            name="silverware"
-            size={19}
-            color={
-              isCancelled ? studentPalette.danger : studentPalette.primary
-            }
-          />
-        </View>
-        <Text style={styles.cardTitle} numberOfLines={2}>
-          {reservation.title}
-        </Text>
-      </View>
-
-      <View
-        style={[styles.metaBlock, isCancelled && styles.metaBlockCancelled]}
-      >
-        <View style={styles.metaRow}>
-          <MaterialCommunityIcons
-            name="storefront-outline"
-            size={17}
-            color={studentPalette.primary}
-          />
-          <Text style={styles.cardSubtitle} numberOfLines={2}>
+          <Text style={styles.restaurantName} numberOfLines={1}>
             {reservation.restaurantName}
           </Text>
-        </View>
 
-        <View style={styles.metaRow}>
-          <MaterialCommunityIcons
-            name="calendar-blank-outline"
-            size={17}
-            color={studentPalette.primary}
-          />
-          <Text style={styles.cardDate}>
-            {formatReservationDate(reservation.reservationDate)}
-          </Text>
+          <View style={styles.metaRow}>
+            <MaterialCommunityIcons
+              name="calendar-blank-outline"
+              size={15}
+              color={studentPalette.textMuted}
+            />
+            <Text style={styles.cardDate} numberOfLines={1}>
+              {formatReservationDate(reservation.reservationDate)}
+            </Text>
+          </View>
         </View>
       </View>
 
@@ -143,75 +98,101 @@ export function MyReservationCard({
   );
 }
 
+function getStatusStyle(status: ReservationStatus) {
+  switch (status) {
+    case "confirmed":
+      return {
+        card: styles.cardConfirmed,
+        mark: styles.markConfirmed,
+        iconName: "check-circle-outline" as const,
+      };
+    case "pending_payment":
+      return {
+        card: styles.cardPending,
+        mark: styles.markPending,
+        iconName: "clock-outline" as const,
+      };
+    case "completed":
+      return {
+        card: styles.cardCompleted,
+        mark: styles.markCompleted,
+        iconName: "calendar-check-outline" as const,
+      };
+    case "expired":
+    case "cancelled":
+    default:
+      return {
+        card: styles.cardCancelled,
+        mark: styles.markCancelled,
+        iconName: "close-circle-outline" as const,
+      };
+  }
+}
+
 const styles = StyleSheet.create({
   card: {
     position: "relative",
     borderRadius: 20,
     borderColor: studentPalette.border,
     backgroundColor: studentPalette.card,
+    padding: spacing.sm,
     shadowColor: studentPalette.shadow,
     shadowOpacity: 1,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 7 },
-    elevation: 2,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 1,
     overflow: "hidden",
   },
-  cardActive: {
-    borderColor: studentPalette.primarySoft,
+  cardPending: {
+    borderColor: studentPalette.warningBorder,
+  },
+  cardConfirmed: {
+    borderColor: "rgba(35, 148, 71, 0.24)",
   },
   cardCancelled: {
-    borderColor: "rgba(214, 69, 80, 0.22)",
-    backgroundColor: "#FFFCFC",
+    borderColor: "rgba(214, 40, 40, 0.18)",
   },
-  stateBar: {
+  cardCompleted: {
+    borderColor: "rgba(70, 98, 122, 0.20)",
+  },
+  stateMark: {
     position: "absolute",
     top: 0,
     bottom: 0,
     left: 0,
-    width: 4,
+    width: 2,
   },
-  stateBarActive: {
-    backgroundColor: studentPalette.primary,
+  markPending: {
+    backgroundColor: "rgba(217, 119, 6, 0.56)",
   },
-  stateBarCancelled: {
-    backgroundColor: studentPalette.danger,
+  markConfirmed: {
+    backgroundColor: "rgba(35, 148, 71, 0.42)",
   },
-  stateBarNeutral: {
-    backgroundColor: studentPalette.border,
+  markCancelled: {
+    backgroundColor: "rgba(214, 40, 40, 0.34)",
   },
-  cardHeader: {
+  markCompleted: {
+    backgroundColor: "rgba(70, 98, 122, 0.34)",
+  },
+  mainRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
     gap: spacing.sm,
-    marginBottom: spacing.md,
   },
-  eyebrow: {
+  visual: {
+    width: 58,
+    height: 58,
+    borderRadius: 16,
+  },
+  content: {
     flex: 1,
-    fontSize: 10,
-    color: studentPalette.textMuted,
-    fontWeight: typography.weights.bold,
-    letterSpacing: 1.1,
-    lineHeight: 14,
+    minWidth: 0,
+    gap: 2,
   },
-  titleGroup: {
+  titleRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: spacing.sm,
-  },
-  icon: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: studentPalette.primaryPale,
-    borderWidth: 1,
-    borderColor: studentPalette.border,
-  },
-  iconCancelled: {
-    backgroundColor: studentPalette.dangerSoft,
-    borderColor: "rgba(214, 69, 80, 0.16)",
   },
   cardTitle: {
     flex: 1,
@@ -220,56 +201,23 @@ const styles = StyleSheet.create({
     color: studentPalette.textPrimary,
     lineHeight: typography.lineHeights.md,
   },
-  badge: {
-    maxWidth: 136,
-    borderRadius: 999,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
-    borderWidth: 1,
+  statusPill: {
+    maxWidth: 132,
   },
-  badgeSuccess: {
-    backgroundColor: studentPalette.successSoft,
-    borderColor: "rgba(46, 125, 79, 0.18)",
-  },
-  badgeDanger: {
-    backgroundColor: studentPalette.dangerSoft,
-    borderColor: "rgba(214, 69, 80, 0.18)",
-  },
-  badgeText: {
-    fontSize: typography.sizes.xs,
-    fontWeight: typography.weights.semiBold,
-    textAlign: "center",
-  },
-  badgeTextSuccess: {
-    color: studentPalette.success,
-  },
-  badgeTextDanger: {
-    color: studentPalette.danger,
-  },
-  metaBlock: {
-    marginTop: spacing.md,
-    gap: spacing.sm,
-    padding: spacing.md,
-    borderRadius: 16,
-    backgroundColor: studentPalette.primaryPale,
-  },
-  metaBlockCancelled: {
-    backgroundColor: "#FAF4F1",
-  },
-  metaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  cardSubtitle: {
-    flex: 1,
+  restaurantName: {
     fontSize: typography.sizes.sm,
     color: studentPalette.textSecondary,
     lineHeight: typography.lineHeights.sm,
   },
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+  },
   cardDate: {
+    flex: 1,
     fontSize: typography.sizes.sm,
-    color: studentPalette.textSecondary,
+    color: studentPalette.textMuted,
     lineHeight: typography.lineHeights.sm,
   },
 });

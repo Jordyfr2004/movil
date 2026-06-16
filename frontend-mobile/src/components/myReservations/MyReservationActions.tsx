@@ -25,7 +25,7 @@ export function MyReservationActions({
   return (
     <View style={styles.cardFooter}>
       <AppButton
-        label={isPaying ? "Procesando…" : "Pagar"}
+        label={isPaying ? "Procesando..." : "Pagar"}
         onPress={onPay}
         variant="primary"
         size="sm"
@@ -39,7 +39,7 @@ export function MyReservationActions({
         accessibilityHint="Abre el flujo de pago para completar la reserva."
       />
       <AppButton
-        label={isCancelling ? "Cancelando…" : "Cancelar"}
+        label={isCancelling ? "Cancelando..." : "Cancelar"}
         onPress={onCancel}
         variant="danger"
         size="sm"
@@ -58,29 +58,32 @@ export function MyReservationActions({
 
 const styles = StyleSheet.create({
   cardFooter: {
-    marginTop: spacing.lg,
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: studentPalette.border,
     flexDirection: "row",
     flexWrap: "wrap",
     gap: spacing.sm,
   },
   payButton: {
     flex: 1,
-    minWidth: 112,
-    minHeight: 44,
-    borderRadius: 14,
+    minWidth: 104,
+    minHeight: 40,
+    borderRadius: 13,
     backgroundColor: studentPalette.primary,
     shadowColor: studentPalette.primary,
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.14,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
     elevation: 2,
   },
   cancelButton: {
     flex: 1,
-    minWidth: 112,
-    minHeight: 44,
-    borderRadius: 14,
+    minWidth: 104,
+    minHeight: 40,
+    borderRadius: 13,
     backgroundColor: studentPalette.card,
-    borderColor: studentPalette.danger,
+    borderColor: studentPalette.dangerBorder,
   },
 });

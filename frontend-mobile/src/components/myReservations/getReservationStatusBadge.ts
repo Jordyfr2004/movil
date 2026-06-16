@@ -1,10 +1,9 @@
+import type { StudentStatusTone } from "../StudentStatusPill";
 import type { ReservationStatus } from "../../types/models";
-
-type ReservationStatusTone = "success" | "danger";
 
 export type ReservationStatusBadge = {
   label: string;
-  tone: ReservationStatusTone;
+  tone: StudentStatusTone;
 };
 
 export function getReservationStatusBadge(
@@ -14,9 +13,9 @@ export function getReservationStatusBadge(
     case "confirmed":
       return { label: "Confirmada", tone: "success" };
     case "pending_payment":
-      return { label: "Pendiente de pago", tone: "success" };
+      return { label: "Pendiente de pago", tone: "warning" };
     case "completed":
-      return { label: "Completada", tone: "success" };
+      return { label: "Completada", tone: "info" };
     case "expired":
       return { label: "Expirada", tone: "danger" };
     case "cancelled":

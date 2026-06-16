@@ -169,13 +169,13 @@ export function RestaurantDetailScreen({ navigation, route }: Props) {
       >
         <Svg
           width="100%"
-          height={150}
-          viewBox="0 0 360 150"
+          height={120}
+          viewBox="0 0 360 120"
           preserveAspectRatio="none"
           style={styles.backgroundWave}
         >
           <Path
-            d="M0 0 H360 V72 C292 104 229 42 158 70 C91 97 43 103 0 82 Z"
+            d="M0 0 H360 V62 C292 88 229 36 158 58 C91 80 43 84 0 66 Z"
             fill={studentPalette.backgroundStrong}
           />
         </Svg>
