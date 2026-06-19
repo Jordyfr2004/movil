@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, FlatList, ListRenderItem, StyleSheet } from "react-native";
+import { Alert, FlatList, ListRenderItem, StyleSheet, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import Svg, { Path } from "react-native-svg";
+
 import {
   ManagerDishCard,
   ManagerDishesFeedback,
@@ -20,6 +22,7 @@ import {
 } from "../services/dishService";
 import { getRestaurantById } from "../services/restaurantService";
 import { getProfileBestEffort, UserProfile } from "../services/userService";
+import { studentPalette } from "../theme/studentPalette";
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
@@ -269,6 +272,27 @@ export function ManagerProfileScreen({ navigation }: Props) {
 
   return (
     <Screen style={styles.container}>
+      <View
+        style={styles.backgroundDecor}
+        pointerEvents="none"
+        accessible={false}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      >
+        <Svg
+          width="100%"
+          height={126}
+          viewBox="0 0 360 126"
+          preserveAspectRatio="none"
+          style={styles.backgroundWave}
+        >
+          <Path
+            d="M0 0 H360 V66 C292 94 224 40 148 64 C84 86 38 86 0 66 Z"
+            fill={studentPalette.backgroundStrong}
+          />
+        </Svg>
+      </View>
+
       <FlatList
         data={dishes}
         keyExtractor={(item) => String(item.id)}
@@ -309,11 +333,30 @@ export function ManagerProfileScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: studentPalette.background,
+  },
+  backgroundDecor: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: "hidden",
+  },
+  backgroundWave: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    left: 0,
   },
   scrollContent: {
-    paddingBottom: spacing.lg,
+    paddingBottom: spacing.xxl,
   },
   feedbackState: {
-    marginTop: spacing.lg,
+    marginTop: spacing.sm,
+    borderRadius: 22,
+    borderColor: studentPalette.border,
+    backgroundColor: studentPalette.card,
+    shadowColor: studentPalette.shadow,
+    shadowOpacity: 1,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
   },
 });

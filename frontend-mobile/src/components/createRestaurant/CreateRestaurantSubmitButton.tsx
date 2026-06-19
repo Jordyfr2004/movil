@@ -15,7 +15,7 @@ export function CreateRestaurantSubmitButton({
   isSubmitting,
   onPress,
 }: CreateRestaurantSubmitButtonProps) {
-  const label = isSubmitting ? "Creando…" : "Crear restaurante";
+  const label = isSubmitting ? "Creando..." : "Crear restaurante";
 
   return (
     <View style={styles.actions}>
@@ -24,7 +24,7 @@ export function CreateRestaurantSubmitButton({
         onPress={onPress}
         disabled={disabled}
         accessibilityLabel={label}
-        accessibilityHint="Guarda el restaurante y continúa al perfil del manager."
+        accessibilityHint="Guarda el restaurante y continúa al perfil del encargado."
       />
     </View>
   );

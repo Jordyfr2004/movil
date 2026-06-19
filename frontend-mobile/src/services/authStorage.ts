@@ -1,8 +1,11 @@
 import * as SecureStore from "expo-secure-store";
 
+import type { UserProfile } from "./userService";
+
 const ACCESS_TOKEN_KEY = "access_token";
 const REFRESH_TOKEN_KEY = "refresh_token";
 const AUTH_USER_KEY = "auth_user";
+const USER_PROFILE_KEY = "user_profile";
 
 export type StoredAuthUser = {
   user_id: string;
@@ -14,6 +17,7 @@ export type StoredSession = {
   accessToken: string | null;
   refreshToken: string | null;
   user: StoredAuthUser | null;
+  profile: UserProfile | null;
 };
 
 function isStoredAuthUser(value: unknown): value is StoredAuthUser {
@@ -30,6 +34,33 @@ function isStoredAuthUser(value: unknown): value is StoredAuthUser {
   );
 }
 
+function isStoredUserProfile(value: unknown): value is UserProfile {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const candidate = value as Partial<UserProfile>;
+
+  return (
+    candidate.id === undefined ||
+    typeof candidate.id === "string" ||
+    typeof candidate.id === "number"
+  ) && (
+    candidate.fullName === undefined ||
+    typeof candidate.fullName === "string"
+  ) && (
+    candidate.email === undefined ||
+    typeof candidate.email === "string"
+  ) && (
+    candidate.role === undefined ||
+    typeof candidate.role === "string"
+  ) && (
+    candidate.restaurantId === undefined ||
+    candidate.restaurantId === null ||
+    typeof candidate.restaurantId === "string"
+  );
+}
+
 export async function saveTokens(accessToken: string, refreshToken: string) {
   await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, accessToken);
   await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
@@ -37,6 +68,10 @@ export async function saveTokens(accessToken: string, refreshToken: string) {
 
 export async function saveAuthUser(user: StoredAuthUser) {
   await SecureStore.setItemAsync(AUTH_USER_KEY, JSON.stringify(user));
+}
+
+export async function saveUserProfile(profile: UserProfile) {
+  await SecureStore.setItemAsync(USER_PROFILE_KEY, JSON.stringify(profile));
 }
 
 export async function getAccessToken() {
@@ -62,6 +97,21 @@ export async function getAuthUser(): Promise<StoredAuthUser | null> {
   }
 }
 
+export async function getUserProfile(): Promise<UserProfile | null> {
+  const rawProfile = await SecureStore.getItemAsync(USER_PROFILE_KEY);
+
+  if (!rawProfile) {
+    return null;
+  }
+
+  try {
+    const parsedProfile: unknown = JSON.parse(rawProfile);
+    return isStoredUserProfile(parsedProfile) ? parsedProfile : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getTokens() {
   const accessToken = await getAccessToken();
   const refreshToken = await getRefreshToken();
@@ -73,16 +123,18 @@ export async function getTokens() {
 }
 
 export async function getStoredSession(): Promise<StoredSession> {
-  const [accessToken, refreshToken, user] = await Promise.all([
+  const [accessToken, refreshToken, user, profile] = await Promise.all([
     getAccessToken(),
     getRefreshToken(),
     getAuthUser(),
+    getUserProfile(),
   ]);
 
   return {
     accessToken,
     refreshToken,
     user,
+    profile,
   };
 }
 
@@ -90,4 +142,5 @@ export async function clearTokens() {
   await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
   await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
   await SecureStore.deleteItemAsync(AUTH_USER_KEY);
+  await SecureStore.deleteItemAsync(USER_PROFILE_KEY);
 }

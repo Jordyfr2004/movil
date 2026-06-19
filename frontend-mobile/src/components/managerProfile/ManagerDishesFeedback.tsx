@@ -1,5 +1,6 @@
 import React from "react";
 import { StyleProp, ViewStyle } from "react-native";
+
 import { EmptyState } from "../EmptyState";
 import { ErrorMessage } from "../ErrorMessage";
 import { LoadingState } from "../LoadingState";
@@ -18,7 +19,7 @@ export function ManagerDishesFeedback({
   style,
 }: ManagerDishesFeedbackProps) {
   if (isLoadingDishes) {
-    return <LoadingState message="Cargando tus platos…" style={style} />;
+    return <LoadingState message="Cargando tus platos..." style={style} />;
   }
 
   if (dishesError) {

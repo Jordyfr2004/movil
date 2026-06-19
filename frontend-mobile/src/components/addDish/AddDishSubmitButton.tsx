@@ -18,7 +18,7 @@ export function AddDishSubmitButton({
   onPress,
 }: AddDishSubmitButtonProps) {
   const label = isSubmitting
-    ? "Guardando…"
+    ? "Guardando..."
     : isEditMode
       ? "Guardar cambios"
       : "Guardar plato";

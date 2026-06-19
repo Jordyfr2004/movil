@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { StyleSheet } from "react-native";
+import { Alert, StyleSheet } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 import { ENABLE_WS_DEBUG } from "../constants/api";
@@ -22,6 +22,7 @@ import { AddDishScreen } from "../screens/AddDishScreen";
 import { RestaurantDetailScreen } from "../screens/RestaurantDetailScreen";
 import { MyReservationsScreen } from "../screens/MyReservationsScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
+import { getUserProfile, saveUserProfile } from "../services/authStorage";
 import { getProfileBestEffort, UserProfile } from "../services/userService";
 import { colors, typography } from "../theme";
 import { ROUTES } from "./routes";
@@ -38,6 +39,7 @@ type ProfileLoadErrorKind =
   | "network"
   | "server"
   | "not-found"
+  | "expired"
   | "unknown";
 
 type ProfileLoadError = {
@@ -55,6 +57,10 @@ function readStatus(error: unknown): number | undefined {
   }
 
   return typeof error.status === "number" ? error.status : undefined;
+}
+
+function isExpiredSessionStatus(status: number | undefined) {
+  return status === 401 || status === 403;
 }
 
 function readMessage(error: unknown): string {
@@ -89,6 +95,13 @@ function classifyProfileLoadError(error: unknown): ProfileLoadError {
   const message = readMessage(error);
   const normalizedMessage = message.toLowerCase();
 
+  if (isExpiredSessionStatus(status)) {
+    return {
+      kind: "expired",
+      message: "Tu sesión expiró. Vuelve a iniciar sesión.",
+    };
+  }
+
   if (status === 404) {
     return {
       kind: "not-found",
@@ -103,7 +116,10 @@ function classifyProfileLoadError(error: unknown): ProfileLoadError {
     };
   }
 
-  if (normalizedMessage.includes("tard")) {
+  if (
+    normalizedMessage.includes("tard") ||
+    normalizedMessage.includes("timeout")
+  ) {
     return {
       kind: "timeout",
       message: `La carga de tu perfil tardó demasiado. ${message}`,
@@ -123,6 +139,56 @@ function classifyProfileLoadError(error: unknown): ProfileLoadError {
   return {
     kind: "unknown",
     message,
+  };
+}
+
+function isTransientProfileError(error: ProfileLoadError) {
+  return error.kind === "timeout" || error.kind === "network";
+}
+
+function doesProfileBelongToUser(
+  profile: UserProfile,
+  user: { user_id: string; email: string } | null
+) {
+  if (!user) {
+    return true;
+  }
+
+  const profileId = profile.id === undefined ? "" : String(profile.id);
+  const profileEmail = profile.email?.trim().toLowerCase() ?? "";
+  const userEmail = user.email.trim().toLowerCase();
+
+  return (
+    (!profileId || profileId === user.user_id) &&
+    (!profileEmail || profileEmail === userEmail)
+  );
+}
+
+async function getLocalProfileFallback(
+  user: { user_id: string; email: string } | null
+): Promise<{
+  profile: UserProfile;
+  source: "stored-profile" | "stored-user";
+} | null> {
+  const storedProfile = await getUserProfile();
+
+  if (storedProfile && doesProfileBelongToUser(storedProfile, user)) {
+    return {
+      profile: storedProfile,
+      source: "stored-profile",
+    };
+  }
+
+  if (!user) {
+    return null;
+  }
+
+  return {
+    profile: {
+      id: user.user_id,
+      email: user.email,
+    },
+    source: "stored-user",
   };
 }
 
@@ -309,6 +375,12 @@ export function AppNavigator() {
         pendingProfileKeyRef.current = profileKey;
         setProfileError(null);
         setIsProfileLoading(true);
+        logSessionDebug("Preparando perfil autenticado", {
+          endpoint: user?.user_id ? "/users/me; fallback /users/:id si 404" : "/users/me",
+          hasAccessToken: Boolean(accessToken),
+          hasStoredUser: Boolean(user),
+          hasUserId: Boolean(user?.user_id),
+        });
         const data = await getProfileBestEffort(accessToken, user?.user_id);
 
         if (
@@ -318,17 +390,21 @@ export function AppNavigator() {
           resolvedProfileKeyRef.current = profileKey;
           setProfile(data);
           setProfileError(null);
+          void saveUserProfile(data).catch((storageError: unknown) => {
+            logSessionDebug("No se pudo guardar el perfil local", {
+              message: readMessage(storageError),
+            });
+          });
         }
       } catch (error: unknown) {
         const status = readStatus(error);
 
         if (
-          status !== undefined &&
-          (status === 401 || status === 403) &&
+          isExpiredSessionStatus(status) &&
           isMountedRef.current &&
           currentProfileKeyRef.current === profileKey
         ) {
-          logSessionDebug("Perfil rechazo la sesion actual", {
+          logSessionDebug("Perfil rechazó la sesión actual", {
             status,
             hasUserId: Boolean(user?.user_id),
           });
@@ -344,6 +420,10 @@ export function AppNavigator() {
 
               resetProfileState();
               setIsSigningOut(false);
+              Alert.alert(
+                "Sesión expirada",
+                "Tu sesión expiró. Vuelve a iniciar sesión."
+              );
             });
           return;
         }
@@ -352,14 +432,43 @@ export function AppNavigator() {
           isMountedRef.current &&
           currentProfileKeyRef.current === profileKey
         ) {
-          setProfile(null);
           const nextError = classifyProfileLoadError(error);
-          setProfileError(nextError);
           logSessionDebug("La carga del perfil fallo", {
             status: status ?? -1,
             kind: nextError.kind,
+            hasAccessToken: Boolean(accessToken),
+            hasStoredUser: Boolean(user),
             hasUserId: Boolean(user?.user_id),
           });
+
+          if (isTransientProfileError(nextError)) {
+            try {
+              const fallback = await getLocalProfileFallback(user);
+
+              if (
+                fallback &&
+                isMountedRef.current &&
+                currentProfileKeyRef.current === profileKey
+              ) {
+                resolvedProfileKeyRef.current = profileKey;
+                setProfile(fallback.profile);
+                setProfileError(null);
+                logSessionDebug("Usando perfil local temporal", {
+                  source: fallback.source,
+                  hasRole: Boolean(fallback.profile.role),
+                  hasRestaurantId: Boolean(fallback.profile.restaurantId),
+                });
+                return;
+              }
+            } catch (fallbackError: unknown) {
+              logSessionDebug("No se pudo leer perfil local temporal", {
+                message: readMessage(fallbackError),
+              });
+            }
+          }
+
+          setProfile(null);
+          setProfileError(nextError);
         }
       } finally {
         if (pendingProfileKeyRef.current === profileKey) {
@@ -383,6 +492,7 @@ export function AppNavigator() {
     logoutLocal,
     profileKey,
     profileRequestKey,
+    user?.email,
     user?.user_id,
   ]);
 
@@ -466,6 +576,11 @@ export function AppNavigator() {
             name={ROUTES.Welcome}
             component={WelcomeScreen}
             options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name={ROUTES.StudentAccess}
+            component={StudentAccessScreen}
+            options={{ title: "Acceso estudiante" }}
           />
           <Stack.Screen
             name={ROUTES.Login}

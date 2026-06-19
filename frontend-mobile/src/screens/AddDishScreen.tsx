@@ -1,13 +1,16 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Alert, StyleSheet } from "react-native";
+import { Alert, ScrollView, StyleSheet, View } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import Svg, { Path } from "react-native-svg";
 
 import { AddDishForm, AddDishHeader } from "../components/addDish";
 import { Screen } from "../components/Screen";
+import { spacing } from "../constants/spacing";
 import { useAuth } from "../context/AuthContext";
 import { ROUTES } from "../navigation/routes";
 import { RootStackParamList } from "../navigation/types";
 import { createDish, updateDish } from "../services/dishService";
+import { studentPalette } from "../theme/studentPalette";
 
 type Props = NativeStackScreenProps<RootStackParamList, typeof ROUTES.AddDish>;
 
@@ -117,19 +120,46 @@ export function AddDishScreen({ navigation, route }: Props) {
 
   return (
     <Screen style={styles.container}>
-      <AddDishHeader isEditMode={isEditMode} />
-      <AddDishForm
-        canSubmit={canSubmit}
-        description={description}
-        isEditMode={isEditMode}
-        isSubmitting={isSubmitting}
-        name={name}
-        price={price}
-        onDescriptionChange={setDescription}
-        onNameChange={setName}
-        onPriceChange={(value) => setPrice(normalizePriceInput(value))}
-        onSubmit={handleSubmit}
-      />
+      <View
+        style={styles.backgroundDecor}
+        pointerEvents="none"
+        accessible={false}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      >
+        <Svg
+          width="100%"
+          height={120}
+          viewBox="0 0 360 120"
+          preserveAspectRatio="none"
+          style={styles.backgroundWave}
+        >
+          <Path
+            d="M0 0 H360 V62 C292 88 229 36 158 58 C91 80 43 84 0 66 Z"
+            fill={studentPalette.backgroundStrong}
+          />
+        </Svg>
+      </View>
+
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <AddDishHeader isEditMode={isEditMode} />
+        <AddDishForm
+          canSubmit={canSubmit}
+          description={description}
+          isEditMode={isEditMode}
+          isSubmitting={isSubmitting}
+          name={name}
+          price={price}
+          onDescriptionChange={setDescription}
+          onNameChange={setName}
+          onPriceChange={(value) => setPrice(normalizePriceInput(value))}
+          onSubmit={handleSubmit}
+        />
+      </ScrollView>
     </Screen>
   );
 }
@@ -137,5 +167,19 @@ export function AddDishScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: studentPalette.background,
+  },
+  backgroundDecor: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: "hidden",
+  },
+  backgroundWave: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    left: 0,
+  },
+  content: {
+    paddingBottom: spacing.xxl,
   },
 });

@@ -1,6 +1,16 @@
 import React, { useState, useLayoutEffect } from 'react';
-import { View, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { Button, TextInput, Text } from 'react-native-paper';
+import {
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
 import { httpClient } from '../api/httpClient';
@@ -12,11 +22,37 @@ type RegisterScreenProps = NativeStackScreenProps<
   typeof ROUTES.Register
 >;
 
+type UnknownRecord = Record<string, unknown>;
+
 const STEPS = {
   FULL_NAME: 0,
   EMAIL: 1,
   PASSWORD: 2,
 };
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === 'object' && value !== null;
+}
+
+function readRegisterErrorMessage(error: unknown) {
+  if (!isRecord(error)) {
+    return 'Algo salió mal';
+  }
+
+  const response = error.response;
+  if (!isRecord(response)) {
+    return 'Algo salió mal';
+  }
+
+  const data = response.data;
+  if (!isRecord(data)) {
+    return 'Algo salió mal';
+  }
+
+  return typeof data.message === 'string' && data.message.trim().length > 0
+    ? data.message
+    : 'Algo salió mal';
+}
 
 const RegisterScreen = ({ navigation }: RegisterScreenProps) => {
   useLayoutEffect(() => {
@@ -73,9 +109,8 @@ const RegisterScreen = ({ navigation }: RegisterScreenProps) => {
       });
       Alert.alert('Éxito', 'Usuario registrado correctamente.');
       navigation.navigate(ROUTES.Login);
-    } catch (error: any) {
-      console.error(JSON.stringify(error.response, null, 2));
-      Alert.alert('Error', error.response?.data?.message || 'Algo salió mal');
+    } catch (error: unknown) {
+      Alert.alert('Error', readRegisterErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -85,41 +120,53 @@ const RegisterScreen = ({ navigation }: RegisterScreenProps) => {
     switch (step) {
       case STEPS.FULL_NAME:
         return (
-          <TextInput
-            label="Nombre Completo"
-            value={fullName}
-            onChangeText={setFullName}
-            mode="outlined"
-            style={styles.input}
-          />
+          <View style={styles.field}>
+            <Text style={styles.inputLabel}>Nombre Completo</Text>
+            <TextInput
+              value={fullName}
+              onChangeText={setFullName}
+              style={styles.input}
+              placeholder="Nombre Completo"
+              placeholderTextColor="#7A746F"
+              autoCapitalize="words"
+            />
+          </View>
         );
       case STEPS.EMAIL:
         return (
-          <TextInput
-            label="Correo Electrónico"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            mode="outlined"
-            style={styles.input}
-          />
+          <View style={styles.field}>
+            <Text style={styles.inputLabel}>Correo Electrónico</Text>
+            <TextInput
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              style={styles.input}
+              placeholder="Correo Electrónico"
+              placeholderTextColor="#7A746F"
+            />
+          </View>
         );
       case STEPS.PASSWORD:
         return (
-          <TextInput
-            label="Contraseña"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            mode="outlined"
-            style={styles.input}
-          />
+          <View style={styles.field}>
+            <Text style={styles.inputLabel}>Contraseña</Text>
+            <TextInput
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              style={styles.input}
+              placeholder="Contraseña"
+              placeholderTextColor="#7A746F"
+            />
+          </View>
         );
       default:
         return null;
     }
   };
+
+  const buttonLabel = step === STEPS.PASSWORD ? 'Registrar' : 'Siguiente';
 
   return (
     <KeyboardAvoidingView
@@ -133,14 +180,22 @@ const RegisterScreen = ({ navigation }: RegisterScreenProps) => {
         <View style={styles.content}>
           <Text style={styles.stepText}>{`Paso ${step + 1} de 3`}</Text>
           {getStepContent()}
-          <Button
-            mode="contained"
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={buttonLabel}
+            accessibilityState={{ busy: loading }}
             onPress={handleNext}
-            loading={loading}
-            style={styles.button}
+            style={({ pressed }) => [
+              styles.button,
+              pressed && styles.buttonPressed,
+            ]}
           >
-            {step === STEPS.PASSWORD ? 'Registrar' : 'Siguiente'}
-          </Button>
+            {loading ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <Text style={styles.buttonText}>{buttonLabel}</Text>
+            )}
+          </Pressable>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -160,16 +215,49 @@ const styles = StyleSheet.create({
   content: {
     padding: 16,
   },
-  input: {
+  field: {
     marginBottom: 16,
   },
+  inputLabel: {
+    marginBottom: 6,
+    fontSize: 14,
+    color: '#4B4744',
+    fontWeight: '600',
+  },
+  input: {
+    minHeight: 52,
+    borderWidth: 1,
+    borderColor: '#D8D0C8',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    color: '#141312',
+    fontSize: 16,
+  },
   button: {
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 16,
+    borderRadius: 14,
+    backgroundColor: '#E56B4C',
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+  },
+  buttonPressed: {
+    opacity: 0.92,
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
   },
   stepText: {
     textAlign: 'center',
     marginBottom: 20,
     fontSize: 16,
+    color: '#141312',
   },
 });
 

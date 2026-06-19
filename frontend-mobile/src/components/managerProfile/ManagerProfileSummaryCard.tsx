@@ -1,135 +1,228 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+
 import { AppButton } from "../AppButton";
 import { Card } from "../Card";
-import { StatusBadge } from "../StatusBadge";
+import { StudentStatusPill } from "../StudentStatusPill";
+import { StudentVisualPlaceholder } from "../StudentVisualPlaceholder";
 import { spacing } from "../../constants/spacing";
-import { colors, typography } from "../../theme";
+import { typography } from "../../theme";
 import {
   MANAGER_AVATAR_RADIUS,
   MANAGER_AVATAR_SIZE,
   MANAGER_ROLE_LABEL,
+  managerPalette,
 } from "./managerProfileTheme";
+
+type IconName = React.ComponentProps<typeof MaterialCommunityIcons>["name"];
 
 type ManagerProfileSummaryCardProps = {
   displayName: string;
   displayEmail: string;
   initial: string;
   restaurantName: string;
+  dishesCount: number;
   isLoggingOut: boolean;
   onAddDishPress: () => void;
   onLogoutPress: () => void;
 };
+
+type SummaryMetricProps = {
+  iconName: IconName;
+  label: string;
+  value: string;
+};
+
+function SummaryMetric({ iconName, label, value }: SummaryMetricProps) {
+  return (
+    <View style={styles.metric}>
+      <View style={styles.metricIcon}>
+        <MaterialCommunityIcons
+          name={iconName}
+          size={17}
+          color={managerPalette.primary}
+        />
+      </View>
+      <View style={styles.metricText}>
+        <Text style={styles.metricLabel}>{label}</Text>
+        <Text style={styles.metricValue} numberOfLines={2}>
+          {value}
+        </Text>
+      </View>
+    </View>
+  );
+}
 
 export function ManagerProfileSummaryCard({
   displayName,
   displayEmail,
   initial,
   restaurantName,
+  dishesCount,
   isLoggingOut,
   onAddDishPress,
   onLogoutPress,
 }: ManagerProfileSummaryCardProps) {
+  const dishesLabel = `${dishesCount} plato${dishesCount === 1 ? "" : "s"}`;
+
   return (
-    <Card>
+    <Card style={styles.card}>
       <View style={styles.profileRow}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{initial}</Text>
-        </View>
+        <StudentVisualPlaceholder
+          initial={initial}
+          label={`Encargado ${displayName}`}
+          size="sm"
+          style={styles.avatar}
+          variant="profile"
+        />
 
         <View style={styles.profileText}>
           <Text style={styles.name} numberOfLines={1}>
             {displayName}
           </Text>
           <Text style={styles.email} numberOfLines={1}>
-            {displayEmail}
+            {displayEmail || "-"}
           </Text>
         </View>
 
-        <StatusBadge label={MANAGER_ROLE_LABEL} tone="success" />
+        <StudentStatusPill
+          iconName="shield-account-outline"
+          label={MANAGER_ROLE_LABEL}
+          tone="primary"
+        />
       </View>
 
-      <View style={styles.divider} />
-
-      <View style={styles.field}>
-        <Text style={styles.label}>Restaurante</Text>
-        <Text style={styles.value} numberOfLines={2}>
-          {restaurantName || "-"}
-        </Text>
+      <View style={styles.metricsGrid}>
+        <SummaryMetric
+          iconName="storefront-outline"
+          label="Restaurante"
+          value={restaurantName || "-"}
+        />
+        <SummaryMetric
+          iconName="food-variant"
+          label="Carta"
+          value={dishesLabel}
+        />
       </View>
 
       <View style={styles.actions}>
         <AppButton
           label="Añadir platos"
           accessibilityLabel="Añadir platos al restaurante"
+          accessibilityHint="Abre el formulario para crear un nuevo plato."
           onPress={onAddDishPress}
+          style={styles.primaryAction}
         />
 
-        <AppButton
-          label={isLoggingOut ? "Cerrando sesión…" : "Cerrar sesión"}
-          accessibilityLabel={isLoggingOut ? "Cerrando sesión" : "Cerrar sesión"}
-          onPress={onLogoutPress}
-          variant="danger"
-          disabled={isLoggingOut}
-        />
+        <View style={styles.secondaryActions}>
+          <AppButton
+            label={isLoggingOut ? "Cerrando sesión..." : "Cerrar sesión"}
+            accessibilityLabel={
+              isLoggingOut ? "Cerrando sesión" : "Cerrar sesión"
+            }
+            accessibilityHint="Cierra tu sesión de encargado."
+            onPress={onLogoutPress}
+            variant="danger"
+            size="sm"
+            disabled={isLoggingOut}
+            style={styles.logoutButton}
+          />
+        </View>
       </View>
     </Card>
   );
 }
 
 const styles = StyleSheet.create({
+  card: {
+    padding: spacing.md,
+    borderRadius: 22,
+    borderColor: managerPalette.border,
+    backgroundColor: managerPalette.card,
+    shadowColor: managerPalette.shadow,
+    shadowOpacity: 1,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
+  },
   profileRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.md,
+    gap: spacing.sm,
   },
   avatar: {
     width: MANAGER_AVATAR_SIZE,
     height: MANAGER_AVATAR_SIZE,
     borderRadius: MANAGER_AVATAR_RADIUS,
-    backgroundColor: colors.primarySoft,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarText: {
-    fontSize: typography.sizes.lg,
-    fontWeight: typography.weights.bold,
-    color: colors.primary,
   },
   profileText: {
     flex: 1,
+    minWidth: 0,
     gap: 2,
   },
   name: {
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.bold,
-    color: colors.textPrimary,
+    color: managerPalette.textPrimary,
     lineHeight: typography.lineHeights.md,
   },
   email: {
     fontSize: typography.sizes.sm,
-    color: colors.textSecondary,
+    color: managerPalette.textSecondary,
     lineHeight: typography.lineHeights.sm,
   },
-  divider: {
-    height: 1,
-    backgroundColor: colors.border,
-    marginVertical: spacing.lg,
+  metricsGrid: {
+    marginTop: spacing.lg,
+    flexDirection: "row",
+    gap: spacing.sm,
   },
-  field: {
-    gap: spacing.xs,
+  metric: {
+    flex: 1,
+    minWidth: 0,
+    gap: spacing.sm,
+    padding: spacing.md,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: managerPalette.border,
+    backgroundColor: managerPalette.primaryFaint,
   },
-  label: {
-    fontSize: typography.sizes.sm,
-    color: colors.textMuted,
+  metricIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: managerPalette.card,
+    borderWidth: 1,
+    borderColor: managerPalette.primarySoft,
   },
-  value: {
-    fontSize: typography.sizes.md,
-    color: colors.textPrimary,
+  metricText: {
+    gap: 2,
+  },
+  metricLabel: {
+    fontSize: typography.sizes.xs,
+    color: managerPalette.textMuted,
     fontWeight: typography.weights.semiBold,
+    lineHeight: typography.lineHeights.xs,
+  },
+  metricValue: {
+    fontSize: typography.sizes.sm,
+    color: managerPalette.textPrimary,
+    fontWeight: typography.weights.bold,
+    lineHeight: typography.lineHeights.sm,
   },
   actions: {
     marginTop: spacing.lg,
     gap: spacing.sm,
+  },
+  primaryAction: {
+    borderRadius: 16,
+  },
+  secondaryActions: {
+    alignItems: "flex-start",
+  },
+  logoutButton: {
+    paddingHorizontal: spacing.lg,
   },
 });

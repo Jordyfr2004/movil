@@ -34,6 +34,7 @@ export function ManagerProfileListHeader({
         displayEmail={displayEmail}
         initial={initial}
         restaurantName={restaurantName}
+        dishesCount={dishesCount}
         isLoggingOut={isLoggingOut}
         onAddDishPress={onAddDishPress}
         onLogoutPress={onLogoutPress}
