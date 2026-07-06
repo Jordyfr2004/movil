@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import {
   Alert,
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -14,6 +15,7 @@ import {
 } from "@react-navigation/drawer";
 import { DrawerActions } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 
 import { StudentVisualPlaceholder } from "../components/StudentVisualPlaceholder";
@@ -25,6 +27,8 @@ import { studentPalette } from "../theme/studentPalette";
 import { ROUTES } from "./routes";
 import { StudentStackNavigator } from "./StudentStackNavigator";
 import { StudentDrawerParamList } from "./types";
+
+const DRAWER_BACKGROUND_IMAGE = require("../assets/images/menu_drawer_uleam_transparente.png");
 
 const Drawer = createDrawerNavigator<StudentDrawerParamList>();
 
@@ -42,6 +46,7 @@ function StudentDrawerContent({
 }: StudentDrawerContentProps) {
   const { user, logout } = useAuth();
   const { navigation } = props;
+  const insets = useSafeAreaInsets();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const displayName = useMemo(() => {
@@ -84,7 +89,13 @@ function StudentDrawerContent({
   return (
     <DrawerContentScrollView
       {...props}
-      contentContainerStyle={styles.contentContainer}
+      contentContainerStyle={[
+        styles.contentContainer,
+        {
+          paddingTop: Math.max(insets.top + spacing.lg, spacing.xxl),
+          paddingBottom: Math.max(insets.bottom + spacing.lg, spacing.xxl),
+        },
+      ]}
     >
       <View
         style={styles.drawerDecor}
@@ -95,13 +106,13 @@ function StudentDrawerContent({
       >
         <Svg
           width="100%"
-          height={124}
-          viewBox="0 0 320 124"
+          height={150}
+          viewBox="0 0 320 150"
           preserveAspectRatio="none"
           style={styles.drawerWave}
         >
           <Path
-            d="M0 0 H320 V72 C252 96 199 44 132 68 C78 90 39 86 0 70 Z"
+            d="M0 0 H320 V80 C252 104 199 52 132 76 C78 98 39 94 0 78 Z"
             fill={studentPalette.backgroundStrong}
           />
         </Svg>
@@ -158,11 +169,19 @@ function StudentDrawerContent({
 
       <View style={styles.menuCard}>
         <DrawerMenuItem
+          iconName="home"
+          label="Inicio"
+          onPress={() => navigation.dispatch(DrawerActions.closeDrawer())}
+        />
+        <View style={styles.itemDivider} />
+
+        <DrawerMenuItem
           iconName="calendar-check-outline"
           label="Mis reservas"
           onPress={() => handleGoTo(ROUTES.MyReservations)}
         />
         <View style={styles.itemDivider} />
+
         <DrawerMenuItem
           iconName="account-outline"
           label="Mi perfil"
@@ -179,8 +198,11 @@ function StudentDrawerContent({
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
       >
-        <View style={styles.footerBuilding} />
-        <View style={styles.footerSeal} />
+        <Image
+          source={DRAWER_BACKGROUND_IMAGE}
+          resizeMode="contain"
+          style={styles.footerDecorImage}
+        />
       </View>
 
       <Pressable
@@ -281,9 +303,7 @@ export function StudentDrawerNavigator({
 
 const styles = StyleSheet.create({
   contentContainer: {
-    paddingTop: spacing.lg,
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xxl,
     flexGrow: 1,
     backgroundColor: studentPalette.background,
   },
@@ -292,7 +312,7 @@ const styles = StyleSheet.create({
     top: 0,
     right: 0,
     left: 0,
-    height: 124,
+    height: 150,
     overflow: "hidden",
   },
   drawerWave: {
@@ -303,12 +323,12 @@ const styles = StyleSheet.create({
   },
   decorCircle: {
     position: "absolute",
-    width: 96,
-    height: 96,
+    width: 120,
+    height: 120,
     borderRadius: 999,
-    right: -36,
-    top: -28,
-    backgroundColor: "rgba(247, 101, 2, 0.07)",
+    right: -40,
+    top: -26,
+    backgroundColor: "rgba(247, 101, 2, 0.08)",
   },
   drawerBrand: {
     flexDirection: "row",
@@ -425,32 +445,21 @@ const styles = StyleSheet.create({
     backgroundColor: studentPalette.border,
   },
   grow: {
-    height: spacing.xl,
+    flex: 1,
+    minHeight: spacing.xl,
   },
   footerDecor: {
-    minHeight: 42,
-    justifyContent: "flex-end",
+    height: 315,
+    marginTop: spacing.lg,
     marginBottom: spacing.md,
-    opacity: 0.28,
+    justifyContent: "flex-end",
+    alignItems: "center",
+    overflow: "visible",
+    opacity: 0.78,
   },
-  footerBuilding: {
-    height: 34,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    backgroundColor: "rgba(247, 101, 2, 0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(247, 101, 2, 0.10)",
-  },
-  footerSeal: {
-    position: "absolute",
-    right: 36,
-    bottom: 18,
-    width: 42,
-    height: 42,
-    borderRadius: 999,
-    borderWidth: 5,
-    borderColor: "rgba(247, 101, 2, 0.12)",
-    backgroundColor: "rgba(255, 255, 255, 0.44)",
+  footerDecorImage: {
+    width: 430,
+    height: 330,
   },
   logoutItem: {
     minHeight: 56,
