@@ -1,185 +1,153 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Alert, ScrollView, StyleSheet, View } from "react-native";
-import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import Svg, { Path } from "react-native-svg";
+import { httpClient } from "../api";
 
-import { AddDishForm, AddDishHeader } from "../components/addDish";
-import { Screen } from "../components/Screen";
-import { spacing } from "../constants/spacing";
-import { useAuth } from "../context/AuthContext";
-import { ROUTES } from "../navigation/routes";
-import { RootStackParamList } from "../navigation/types";
-import { createDish, updateDish } from "../services/dishService";
-import { studentPalette } from "../theme/studentPalette";
+type UnknownRecord = Record<string, unknown>;
 
-type Props = NativeStackScreenProps<RootStackParamList, typeof ROUTES.AddDish>;
+export type DishImageFile = {
+  uri: string;
+  name: string;
+  type: string;
+};
 
-function normalizePriceInput(value: string) {
-  return value.replace(/[^0-9.]/g, "");
+export type Dish = {
+  id: string;
+  restaurantId: string;
+  name: string;
+  description?: string;
+  price: string;
+  isAvailable: boolean;
+  isActive: boolean;
+  imageUrl?: string;
+};
+
+type CreateDishPayload = {
+  name: string;
+  description?: string;
+  price: string;
+  is_available?: boolean;
+  is_active?: boolean;
+  image?: DishImageFile | null;
+};
+
+type UpdateDishPayload = Partial<Omit<CreateDishPayload, "image">>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === "object" && value !== null;
 }
 
-export function AddDishScreen({ navigation, route }: Props) {
-  const { accessToken } = useAuth();
-  const dish = route.params?.dish;
-  const isEditMode = Boolean(dish?.id);
+function unwrapData(value: unknown): unknown {
+  if (isRecord(value) && value.data !== undefined) return value.data;
+  return value;
+}
 
-  const [name, setName] = useState(dish?.name ?? "");
-  const [description, setDescription] = useState(dish?.description ?? "");
-  const [price, setPrice] = useState(dish?.price ?? "");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+function readTrimmedString(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : undefined;
+}
 
-  useEffect(() => {
-    navigation.setOptions({
-      title: isEditMode ? "Editar plato" : "Añadir plato",
-    });
-  }, [navigation, isEditMode]);
+function parseBoolean(value: unknown, fallback: boolean) {
+  if (value === undefined || value === null) return fallback;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value === 1;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true" || normalized === "1") return true;
+    if (normalized === "false" || normalized === "0") return false;
+  }
+  return Boolean(value);
+}
 
-  const canSubmit = useMemo(() => {
-    const safePrice = normalizePriceInput(price).trim();
-    const hasValidPrice = safePrice.length > 0 && !Number.isNaN(Number(safePrice));
+function normalizeDish(item: unknown): Dish {
+  const api = isRecord(item) ? item : {};
 
-    return (
-      Boolean(accessToken) &&
-      name.trim().length > 2 &&
-      hasValidPrice &&
-      !isSubmitting
-    );
-  }, [accessToken, name, price, isSubmitting]);
-
-  const handleSubmit = async () => {
-    if (!accessToken) {
-      Alert.alert("Sesión no disponible", "Vuelve a iniciar sesión.");
-      return;
-    }
-
-    const trimmedName = name.trim();
-    const trimmedDescription = description.trim();
-    const safePrice = normalizePriceInput(price).trim();
-
-    if (trimmedName.length < 3) {
-      Alert.alert("Nombre inválido", "Ingresa un nombre de al menos 3 caracteres.");
-      return;
-    }
-
-    if (!safePrice || Number.isNaN(Number(safePrice))) {
-      Alert.alert("Precio inválido", "Ingresa un precio válido.");
-      return;
-    }
-
-    if (isSubmitting) {
-      return;
-    }
-
-    try {
-      setIsSubmitting(true);
-
-      if (isEditMode && dish?.id) {
-        await updateDish(accessToken, dish.id, {
-          name: trimmedName,
-          description: trimmedDescription.length ? trimmedDescription : undefined,
-          price: safePrice,
-        });
-
-        Alert.alert("Listo", "Plato actualizado correctamente.", [
-          {
-            text: "Volver",
-            onPress: () => navigation.goBack(),
-          },
-        ]);
-
-        return;
-      }
-
-      await createDish(accessToken, {
-        name: trimmedName,
-        description: trimmedDescription.length ? trimmedDescription : undefined,
-        price: safePrice,
-        is_available: true,
-        is_active: true,
-      });
-
-      Alert.alert("Listo", "Plato añadido correctamente.", [
-        {
-          text: "Volver",
-          onPress: () => navigation.goBack(),
-        },
-      ]);
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : isEditMode
-            ? "No se pudo actualizar el plato"
-            : "No se pudo añadir el plato";
-
-      Alert.alert("Error", message);
-    } finally {
-      setIsSubmitting(false);
-    }
+  return {
+    id: String(api.id ?? ""),
+    restaurantId: String(api.restaurant_id ?? api.restaurantId ?? ""),
+    name: typeof api.name === "string" ? api.name : "",
+    description: readTrimmedString(api.description),
+    price: typeof api.price === "string" ? api.price : String(api.price ?? ""),
+    isAvailable: parseBoolean(api.is_available ?? api.isAvailable, true),
+    isActive: parseBoolean(api.is_active ?? api.isActive, true),
+    imageUrl: readTrimmedString(api.image_url ?? api.imageUrl),
   };
-
-  return (
-    <Screen style={styles.container}>
-      <View
-        style={styles.backgroundDecor}
-        pointerEvents="none"
-        accessible={false}
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-      >
-        <Svg
-          width="100%"
-          height={120}
-          viewBox="0 0 360 120"
-          preserveAspectRatio="none"
-          style={styles.backgroundWave}
-        >
-          <Path
-            d="M0 0 H360 V62 C292 88 229 36 158 58 C91 80 43 84 0 66 Z"
-            fill={studentPalette.backgroundStrong}
-          />
-        </Svg>
-      </View>
-
-      <ScrollView
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        <AddDishHeader isEditMode={isEditMode} />
-        <AddDishForm
-          canSubmit={canSubmit}
-          description={description}
-          isEditMode={isEditMode}
-          isSubmitting={isSubmitting}
-          name={name}
-          price={price}
-          onDescriptionChange={setDescription}
-          onNameChange={setName}
-          onPriceChange={(value) => setPrice(normalizePriceInput(value))}
-          onSubmit={handleSubmit}
-        />
-      </ScrollView>
-    </Screen>
-  );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: studentPalette.background,
-  },
-  backgroundDecor: {
-    ...StyleSheet.absoluteFillObject,
-    overflow: "hidden",
-  },
-  backgroundWave: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    left: 0,
-  },
-  content: {
-    paddingBottom: spacing.xxl,
-  },
-});
+export async function createDish(
+  accessToken: string,
+  payload: CreateDishPayload
+): Promise<Dish> {
+  const formData = new FormData();
+
+  formData.append("name", payload.name);
+  formData.append("price", payload.price);
+  formData.append("is_available", String(payload.is_available ?? true));
+  formData.append("is_active", String(payload.is_active ?? true));
+
+  if (payload.description) {
+    formData.append("description", payload.description);
+  }
+
+  if (payload.image) {
+    formData.append("image", payload.image as unknown as Blob);
+  }
+
+  const result = await httpClient.post<unknown>("/dishes", formData, {
+    accessToken,
+  });
+
+  return normalizeDish(unwrapData(result));
+}
+
+export async function getPublicDishesByRestaurant(
+  restaurantId: string
+): Promise<Dish[]> {
+  if (!restaurantId) return [];
+
+  const result = await httpClient.get<unknown>(
+    `/dishes/restaurant/${encodeURIComponent(restaurantId)}`
+  );
+
+  const payload = unwrapData(result);
+  const list = Array.isArray(payload) ? payload : [];
+
+  return list.map(normalizeDish).filter((dish) => dish.id && dish.name);
+}
+
+export async function getManagerDishes(accessToken: string): Promise<Dish[]> {
+  const result = await httpClient.get<unknown>("/dishes", { accessToken });
+
+  const payload = unwrapData(result);
+  const list = Array.isArray(payload) ? payload : [];
+
+  return list.map(normalizeDish).filter((dish) => dish.id && dish.name);
+}
+
+export async function updateDish(
+  accessToken: string,
+  dishId: string,
+  payload: UpdateDishPayload
+): Promise<Dish> {
+  const result = await httpClient.patch<unknown>(
+    `/dishes/${encodeURIComponent(dishId)}`,
+    payload,
+    { accessToken }
+  );
+
+  return normalizeDish(unwrapData(result));
+}
+
+export async function deleteDish(
+  accessToken: string,
+  dishId: string
+): Promise<{ message?: string }> {
+  const result = await httpClient.delete<unknown>(
+    `/dishes/${encodeURIComponent(dishId)}`,
+    { accessToken }
+  );
+
+  const payload = unwrapData(result);
+  if (!isRecord(payload)) return {};
+
+  const message = readTrimmedString(payload.message);
+  return message ? { message } : {};
+}

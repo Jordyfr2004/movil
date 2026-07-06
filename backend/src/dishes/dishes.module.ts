@@ -6,11 +6,12 @@ import { Dish } from './entities/dish.entity';
 import { User } from '../users/entities/user.entity';
 import { AuthModule } from '../auth/auth.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { StorageModule} from '../storage/storage.module'
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Dish, User]),
-    AuthModule, NotificationsModule,
+    AuthModule, NotificationsModule, StorageModule,
   ],
   controllers: [DishesController],
   providers: [DishesService],

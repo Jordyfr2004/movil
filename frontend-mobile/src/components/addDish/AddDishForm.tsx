@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { spacing } from "../../constants/spacing";
 import { studentPalette } from "../../theme/studentPalette";
@@ -13,11 +13,13 @@ import { AddDishSubmitButton } from "./AddDishSubmitButton";
 type AddDishFormProps = {
   canSubmit: boolean;
   description: string;
+  imageUri: string | null;
   isEditMode: boolean;
   isSubmitting: boolean;
   name: string;
   price: string;
   onDescriptionChange: (value: string) => void;
+  onImagePick: () => void;
   onNameChange: (value: string) => void;
   onPriceChange: (value: string) => void;
   onSubmit: () => void;
@@ -26,11 +28,13 @@ type AddDishFormProps = {
 export function AddDishForm({
   canSubmit,
   description,
+  imageUri,
   isEditMode,
   isSubmitting,
   name,
   price,
   onDescriptionChange,
+  onImagePick,
   onNameChange,
   onPriceChange,
   onSubmit,
@@ -44,6 +48,18 @@ export function AddDishForm({
       />
 
       <View style={styles.fields}>
+        {!isEditMode && (
+          <View style={styles.imageBlock}>
+            <Pressable style={styles.imagePicker} onPress={onImagePick}>
+              {imageUri ? (
+                <Image source={{ uri: imageUri }} style={styles.previewImage} />
+              ) : (
+                <Text style={styles.imageText}>Seleccionar imagen del plato</Text>
+              )}
+            </Pressable>
+          </View>
+        )}
+
         <AddDishNameField value={name} onChangeText={onNameChange} />
         <AddDishDescriptionField
           value={description}
@@ -77,5 +93,27 @@ const styles = StyleSheet.create({
   },
   fields: {
     gap: spacing.md,
+  },
+  imageBlock: {
+    gap: spacing.xs,
+  },
+  imagePicker: {
+    height: 150,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: studentPalette.borderStrong,
+    backgroundColor: studentPalette.primaryFaint,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  imageText: {
+    color: studentPalette.textSecondary,
+    fontWeight: "700",
+  },
+  previewImage: {
+    width: "100%",
+    height: "100%",
   },
 });

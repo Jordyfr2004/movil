@@ -2,6 +2,12 @@ import { httpClient } from "../api";
 
 type UnknownRecord = Record<string, unknown>;
 
+export type DishImageFile = {
+  uri: string;
+  name: string;
+  type: string;
+};
+
 export type Dish = {
   id: string;
   restaurantId: string;
@@ -10,6 +16,7 @@ export type Dish = {
   price: string;
   isAvailable: boolean;
   isActive: boolean;
+  imageUrl?: string;
 };
 
 type CreateDishPayload = {
@@ -18,19 +25,17 @@ type CreateDishPayload = {
   price: string;
   is_available?: boolean;
   is_active?: boolean;
+  image?: DishImageFile | null;
 };
 
-type UpdateDishPayload = Partial<CreateDishPayload>;
+type UpdateDishPayload = Partial<Omit<CreateDishPayload, "image">>;
 
 function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === "object" && value !== null;
 }
 
 function unwrapData(value: unknown): unknown {
-  if (isRecord(value) && value.data !== undefined) {
-    return value.data;
-  }
-
+  if (isRecord(value) && value.data !== undefined) return value.data;
   return value;
 }
 
@@ -55,17 +60,42 @@ function parseBoolean(value: unknown, fallback: boolean) {
 function normalizeDish(item: unknown): Dish {
   const api = isRecord(item) ? item : {};
 
-  const descriptionValue = api.description ?? api.descriptionText;
-
   return {
     id: String(api.id ?? ""),
     restaurantId: String(api.restaurant_id ?? api.restaurantId ?? ""),
     name: typeof api.name === "string" ? api.name : "",
-    description: readTrimmedString(descriptionValue),
+    description: readTrimmedString(api.description),
     price: typeof api.price === "string" ? api.price : String(api.price ?? ""),
     isAvailable: parseBoolean(api.is_available ?? api.isAvailable, true),
     isActive: parseBoolean(api.is_active ?? api.isActive, true),
+    imageUrl: readTrimmedString(api.image_url ?? api.imageUrl),
   };
+}
+
+export async function createDish(
+  accessToken: string,
+  payload: CreateDishPayload
+): Promise<Dish> {
+  const formData = new FormData();
+
+  formData.append("name", payload.name);
+  formData.append("price", payload.price);
+  formData.append("is_available", String(payload.is_available ?? true));
+  formData.append("is_active", String(payload.is_active ?? true));
+
+  if (payload.description) {
+    formData.append("description", payload.description);
+  }
+
+  if (payload.image) {
+    formData.append("image", payload.image as unknown as Blob);
+  }
+
+  const result = await httpClient.post<unknown>("/dishes", formData, {
+    accessToken,
+  });
+
+  return normalizeDish(unwrapData(result));
 }
 
 export async function getPublicDishesByRestaurant(
@@ -80,33 +110,16 @@ export async function getPublicDishesByRestaurant(
   const payload = unwrapData(result);
   const list = Array.isArray(payload) ? payload : [];
 
-  return list
-    .map(normalizeDish)
-    .filter((dish) => Boolean(dish.id) && Boolean(dish.name));
-}
-
-export async function createDish(
-  accessToken: string,
-  payload: CreateDishPayload
-): Promise<Dish> {
-  const result = await httpClient.post<unknown>("/dishes", payload, {
-    accessToken,
-  });
-
-  return normalizeDish(unwrapData(result));
+  return list.map(normalizeDish).filter((dish) => dish.id && dish.name);
 }
 
 export async function getManagerDishes(accessToken: string): Promise<Dish[]> {
-  const result = await httpClient.get<unknown>("/dishes", {
-    accessToken,
-  });
+  const result = await httpClient.get<unknown>("/dishes", { accessToken });
 
   const payload = unwrapData(result);
   const list = Array.isArray(payload) ? payload : [];
 
-  return list
-    .map(normalizeDish)
-    .filter((dish) => Boolean(dish.id) && Boolean(dish.name));
+  return list.map(normalizeDish).filter((dish) => dish.id && dish.name);
 }
 
 export async function updateDish(
@@ -117,9 +130,7 @@ export async function updateDish(
   const result = await httpClient.patch<unknown>(
     `/dishes/${encodeURIComponent(dishId)}`,
     payload,
-    {
-      accessToken,
-    }
+    { accessToken }
   );
 
   return normalizeDish(unwrapData(result));
@@ -131,20 +142,12 @@ export async function deleteDish(
 ): Promise<{ message?: string }> {
   const result = await httpClient.delete<unknown>(
     `/dishes/${encodeURIComponent(dishId)}`,
-    {
-      accessToken,
-    }
+    { accessToken }
   );
 
   const payload = unwrapData(result);
-  if (!isRecord(payload)) {
-    return {};
-  }
+  if (!isRecord(payload)) return {};
 
   const message = readTrimmedString(payload.message);
-  if (!message) {
-    return {};
-  }
-
-  return { message };
+  return message ? { message } : {};
 }

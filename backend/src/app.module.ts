@@ -11,6 +11,7 @@ import { ReservationsModule } from './reservations/reservations.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { PaymentsModule } from './payments/payments.module';
+import { StorageModule } from './storage/storage.module';
 
 
 @Module({
@@ -29,8 +30,8 @@ import { PaymentsModule } from './payments/payments.module';
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_NAME'),
         autoLoadEntities: true,
-        //synchronize: true//
-        synchronize: configService.get<string>('TYPEORM_SYNCHRONIZE') === 'true',
+        synchronize: true//
+        //synchronize: configService.get<string>('TYPEORM_SYNCHRONIZE') === 'true',
       }),
     }),
     UsersModule,
@@ -40,6 +41,7 @@ import { PaymentsModule } from './payments/payments.module';
     ReservationsModule,
     NotificationsModule,
     PaymentsModule,
+    StorageModule,
   ],
   controllers: [AppController],
   providers: [AppService],

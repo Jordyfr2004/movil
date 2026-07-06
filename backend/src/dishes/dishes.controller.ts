@@ -8,11 +8,15 @@ import {
   Delete,
   UseGuards,
   Req,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import { DishesService } from './dishes.service';
 import { CreateDishDto } from './dto/create-dish.dto';
 import { UpdateDishDto } from './dto/update-dish.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { FileInterceptor } from '@nestjs/platform-express';
+
 
 @Controller('dishes')
 export class DishesController {
@@ -20,8 +24,9 @@ export class DishesController {
 
   @Post()
   @UseGuards(JwtAuthGuard)
-  create(@Body() createDishDto: CreateDishDto, @Req() req: any) {
-    return this.dishesService.create(createDishDto, req.user.user_id);
+  @UseInterceptors(FileInterceptor('image'))
+  create(@Body() createDishDto: CreateDishDto, @UploadedFile() image: any, @Req() req: any) {
+    return this.dishesService.create(createDishDto, req.user.user_id, image);
   }
 
   @Get()

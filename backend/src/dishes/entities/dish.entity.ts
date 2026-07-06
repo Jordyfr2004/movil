@@ -44,6 +44,12 @@ export class Dish {
   @OneToMany(() => ReservationItem, (reservationItem) => reservationItem.dish)
   reservation_items!: ReservationItem[];
 
+  @Column({ type: 'text', nullable: true })
+  image_url!: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  image_path!: string | null;
+
   @CreateDateColumn()
   created_at!: Date;
 

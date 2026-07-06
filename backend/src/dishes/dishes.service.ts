@@ -6,6 +6,8 @@ import { CreateDishDto } from './dto/create-dish.dto';
 import { UpdateDishDto } from './dto/update-dish.dto';
 import { User, UserRole } from '../users/entities/user.entity';
 import { NotificationsService } from '../notifications/notifications.service';
+import { StorageService } from '../storage/storage.service';
+
 
 @Injectable()
 export class DishesService {
@@ -18,6 +20,8 @@ export class DishesService {
 
     private readonly notificationsService: NotificationsService,
 
+
+    private readonly storageService: StorageService,
   ) {}
 
   private normalizeDescription(value: unknown): string | null {
@@ -26,7 +30,7 @@ export class DishesService {
     return trimmed.length > 0 ? trimmed : null;
   }
 
-  async create(createDishDto: CreateDishDto, user_id: string) {
+  async create(createDishDto: CreateDishDto, user_id: string, image?: any) {
     const user = await this.userRepo.findOne({
       where: { id: user_id },
     });
@@ -39,13 +43,24 @@ export class DishesService {
       where: {
         restaurant_id: user.restaurant_id,
         is_active: true,
-      }
-    })
+      },
+    });
+
+    let image_url: string | null = null;
+    let image_path: string | null = null;
+
+    if (image) {
+      const uploadedImage = await this.storageService.uploadDishImage(image);
+      image_url = uploadedImage.url;
+      image_path = uploadedImage.path;
+    }
 
     const dish = this.dishRepo.create({
       ...createDishDto,
       description: this.normalizeDescription(createDishDto.description),
       restaurant_id: user.restaurant_id,
+      image_url,
+      image_path,
     });
 
     const saveDish = await this.dishRepo.save(dish);
@@ -55,9 +70,7 @@ export class DishesService {
     }
 
     if (existingActiveDishes === 0) {
-      this.notificationsService.notifyMenuAvailable(
-        user.restaurant_id,
-      )
+      this.notificationsService.notifyMenuAvailable(user.restaurant_id);
     }
 
     return saveDish;
