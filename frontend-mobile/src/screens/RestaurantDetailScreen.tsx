@@ -28,14 +28,6 @@ function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === "object" && value !== null;
 }
 
-function readErrorStatus(error: unknown): number | undefined {
-  if (!isRecord(error)) {
-    return undefined;
-  }
-
-  return typeof error.status === "number" ? error.status : undefined;
-}
-
 function readErrorMessage(error: unknown, fallback: string): string {
   if (!isRecord(error)) {
     return fallback;
@@ -88,7 +80,10 @@ export function RestaurantDetailScreen({ navigation, route }: Props) {
         items: [{ dish_id: dishId, quantity: 1 }],
       });
 
-      Alert.alert("Reserva creada", "Tu reserva fue creada correctamente.");
+      Alert.alert(
+        "Reserva realizada",
+        "Tu reserva fue creada correctamente."
+      );
     } catch (error: unknown) {
       const message = readErrorMessage(error, "No se pudo crear la reserva");
       Alert.alert("Error", message);
