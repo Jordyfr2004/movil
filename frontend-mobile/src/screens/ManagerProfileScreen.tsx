@@ -30,8 +30,7 @@ type Props = NativeStackScreenProps<
 >;
 
 export function ManagerProfileScreen({ navigation }: Props) {
-  const { logout, accessToken, user } = useAuth();
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const { accessToken, user } = useAuth();
   const [isLoadingDishes, setIsLoadingDishes] = useState(false);
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [removingDishId, setRemovingDishId] = useState<string | null>(null);
@@ -123,28 +122,9 @@ export function ManagerProfileScreen({ navigation }: Props) {
     return source?.trim()?.charAt(0)?.toUpperCase() ?? "U";
   }, [displayName, displayEmail]);
 
-  const handleLogout = useCallback(async () => {
-    if (isLoggingOut) return;
-
-    try {
-      setIsLoggingOut(true);
-      await logout();
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "No se pudo cerrar sesión";
-      Alert.alert("Error", message);
-    } finally {
-      setIsLoggingOut(false);
-      navigation.reset({
-        index: 0,
-        routes: [{ name: ROUTES.Welcome }],
-      });
-    }
-  }, [isLoggingOut, logout, navigation]);
-
-  const handleAddDishPress = useCallback(() => {
-    navigation.navigate(ROUTES.AddDish);
-  }, [navigation]);
+  const visibleDishesCount = useMemo(() => {
+    return dishes.filter((dish) => dish.isAvailable).length;
+  }, [dishes]);
 
   const handleEditDish = useCallback(
     (dish: Dish) => {
@@ -309,11 +289,9 @@ export function ManagerProfileScreen({ navigation }: Props) {
             displayEmail={displayEmail}
             initial={initial}
             restaurantName={restaurantName}
-            isLoggingOut={isLoggingOut}
             isLoadingDishes={isLoadingDishes}
             dishesCount={dishes.length}
-            onAddDishPress={handleAddDishPress}
-            onLogoutPress={handleLogout}
+            visibleDishesCount={visibleDishesCount}
           />
         }
         renderItem={renderDish}

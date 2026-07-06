@@ -33,3 +33,12 @@ export type StudentStackParamList = Pick<
 export type StudentDrawerParamList = {
   StudentStack: NavigatorScreenParams<StudentStackParamList>;
 };
+
+export type AdminStackParamList = Pick<
+  RootStackParamList,
+  typeof ROUTES.ManagerProfile | typeof ROUTES.AddDish
+>;
+
+export type AdminDrawerParamList = {
+  AdminStack: NavigatorScreenParams<AdminStackParamList>;
+};

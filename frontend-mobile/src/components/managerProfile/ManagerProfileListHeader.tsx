@@ -8,11 +8,9 @@ type ManagerProfileListHeaderProps = {
   displayEmail: string;
   initial: string;
   restaurantName: string;
-  isLoggingOut: boolean;
   isLoadingDishes: boolean;
   dishesCount: number;
-  onAddDishPress: () => void;
-  onLogoutPress: () => void;
+  visibleDishesCount: number;
 };
 
 export function ManagerProfileListHeader({
@@ -20,11 +18,9 @@ export function ManagerProfileListHeader({
   displayEmail,
   initial,
   restaurantName,
-  isLoggingOut,
   isLoadingDishes,
   dishesCount,
-  onAddDishPress,
-  onLogoutPress,
+  visibleDishesCount,
 }: ManagerProfileListHeaderProps) {
   return (
     <>
@@ -35,9 +31,7 @@ export function ManagerProfileListHeader({
         initial={initial}
         restaurantName={restaurantName}
         dishesCount={dishesCount}
-        isLoggingOut={isLoggingOut}
-        onAddDishPress={onAddDishPress}
-        onLogoutPress={onLogoutPress}
+        visibleDishesCount={visibleDishesCount}
       />
       <ManagerDishesHeaderCard
         isLoadingDishes={isLoadingDishes}

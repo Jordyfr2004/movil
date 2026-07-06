@@ -26,6 +26,7 @@ import { getUserProfile, saveUserProfile } from "../services/authStorage";
 import { getProfileBestEffort, UserProfile } from "../services/userService";
 import { colors, typography } from "../theme";
 import { ROUTES } from "./routes";
+import { AdminDrawerNavigator } from "./AdminDrawerNavigator";
 import { StudentDrawerNavigator } from "./StudentDrawerNavigator";
 import { RootStackParamList } from "./types";
 import RegisterScreen from "../screens/RegisterScreen";
@@ -561,11 +562,14 @@ export function AppNavigator() {
   } as const;
 
   const isStudent = isAuthenticated && currentProfile?.role !== "admin";
+  const isAdmin = isAuthenticated && currentProfile?.role === "admin";
 
   return (
     <>
       {isStudent ? (
         <StudentDrawerNavigator profile={currentProfile} />
+      ) : isAdmin && !shouldCreateRestaurant ? (
+        <AdminDrawerNavigator profile={currentProfile} />
       ) : (
         <Stack.Navigator
           key={initialRouteName}

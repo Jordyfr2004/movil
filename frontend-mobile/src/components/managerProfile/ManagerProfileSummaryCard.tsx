@@ -2,20 +2,11 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import { AppButton } from "../AppButton";
 import { Card } from "../Card";
 import { StudentStatusPill } from "../StudentStatusPill";
-import { StudentVisualPlaceholder } from "../StudentVisualPlaceholder";
 import { spacing } from "../../constants/spacing";
 import { typography } from "../../theme";
-import {
-  MANAGER_AVATAR_RADIUS,
-  MANAGER_AVATAR_SIZE,
-  MANAGER_ROLE_LABEL,
-  managerPalette,
-} from "./managerProfileTheme";
-
-type IconName = React.ComponentProps<typeof MaterialCommunityIcons>["name"];
+import { MANAGER_ROLE_LABEL, managerPalette } from "./managerProfileTheme";
 
 type ManagerProfileSummaryCardProps = {
   displayName: string;
@@ -23,24 +14,22 @@ type ManagerProfileSummaryCardProps = {
   initial: string;
   restaurantName: string;
   dishesCount: number;
-  isLoggingOut: boolean;
-  onAddDishPress: () => void;
-  onLogoutPress: () => void;
+  visibleDishesCount: number;
 };
 
-type SummaryMetricProps = {
-  iconName: IconName;
+type MetricProps = {
+  iconName: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
   label: string;
   value: string;
 };
 
-function SummaryMetric({ iconName, label, value }: SummaryMetricProps) {
+function Metric({ iconName, label, value }: MetricProps) {
   return (
     <View style={styles.metric}>
       <View style={styles.metricIcon}>
         <MaterialCommunityIcons
           name={iconName}
-          size={17}
+          size={18}
           color={managerPalette.primary}
         />
       </View>
@@ -60,22 +49,19 @@ export function ManagerProfileSummaryCard({
   initial,
   restaurantName,
   dishesCount,
-  isLoggingOut,
-  onAddDishPress,
-  onLogoutPress,
+  visibleDishesCount,
 }: ManagerProfileSummaryCardProps) {
   const dishesLabel = `${dishesCount} plato${dishesCount === 1 ? "" : "s"}`;
+  const visibleLabel = `${visibleDishesCount} visible${
+    visibleDishesCount === 1 ? "" : "s"
+  }`;
 
   return (
     <Card style={styles.card}>
       <View style={styles.profileRow}>
-        <StudentVisualPlaceholder
-          initial={initial}
-          label={`Encargado ${displayName}`}
-          size="sm"
-          style={styles.avatar}
-          variant="profile"
-        />
+        <View style={styles.avatar}>
+          <Text style={styles.avatarInitial}>{initial}</Text>
+        </View>
 
         <View style={styles.profileText}>
           <Text style={styles.name} numberOfLines={1}>
@@ -90,45 +76,18 @@ export function ManagerProfileSummaryCard({
           iconName="shield-account-outline"
           label={MANAGER_ROLE_LABEL}
           tone="primary"
+          size="md"
         />
       </View>
 
       <View style={styles.metricsGrid}>
-        <SummaryMetric
+        <Metric
           iconName="storefront-outline"
           label="Restaurante"
-          value={restaurantName || "-"}
+          value={restaurantName || "Sin restaurante"}
         />
-        <SummaryMetric
-          iconName="food-variant"
-          label="Carta"
-          value={dishesLabel}
-        />
-      </View>
-
-      <View style={styles.actions}>
-        <AppButton
-          label="Añadir platos"
-          accessibilityLabel="Añadir platos al restaurante"
-          accessibilityHint="Abre el formulario para crear un nuevo plato."
-          onPress={onAddDishPress}
-          style={styles.primaryAction}
-        />
-
-        <View style={styles.secondaryActions}>
-          <AppButton
-            label={isLoggingOut ? "Cerrando sesión..." : "Cerrar sesión"}
-            accessibilityLabel={
-              isLoggingOut ? "Cerrando sesión" : "Cerrar sesión"
-            }
-            accessibilityHint="Cierra tu sesión de encargado."
-            onPress={onLogoutPress}
-            variant="danger"
-            size="sm"
-            disabled={isLoggingOut}
-            style={styles.logoutButton}
-          />
-        </View>
+        <Metric iconName="food-variant" label="Carta" value={dishesLabel} />
+        <Metric iconName="eye-outline" label="Visibles" value={visibleLabel} />
       </View>
     </Card>
   );
@@ -152,9 +111,19 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   avatar: {
-    width: MANAGER_AVATAR_SIZE,
-    height: MANAGER_AVATAR_SIZE,
-    borderRadius: MANAGER_AVATAR_RADIUS,
+    width: 64,
+    height: 64,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: managerPalette.primaryPale,
+    borderWidth: 1,
+    borderColor: managerPalette.primarySoft,
+  },
+  avatarInitial: {
+    fontSize: 26,
+    fontWeight: typography.weights.bold,
+    color: managerPalette.primary,
   },
   profileText: {
     flex: 1,
@@ -173,19 +142,19 @@ const styles = StyleSheet.create({
     lineHeight: typography.lineHeights.sm,
   },
   metricsGrid: {
-    marginTop: spacing.lg,
+    marginTop: spacing.md,
     flexDirection: "row",
     gap: spacing.sm,
   },
   metric: {
     flex: 1,
     minWidth: 0,
-    gap: spacing.sm,
-    padding: spacing.md,
+    gap: spacing.xs,
+    padding: spacing.sm,
     borderRadius: 18,
     borderWidth: 1,
     borderColor: managerPalette.border,
-    backgroundColor: managerPalette.primaryFaint,
+    backgroundColor: managerPalette.cardMuted,
   },
   metricIcon: {
     width: 32,
@@ -211,18 +180,5 @@ const styles = StyleSheet.create({
     color: managerPalette.textPrimary,
     fontWeight: typography.weights.bold,
     lineHeight: typography.lineHeights.sm,
-  },
-  actions: {
-    marginTop: spacing.lg,
-    gap: spacing.sm,
-  },
-  primaryAction: {
-    borderRadius: 16,
-  },
-  secondaryActions: {
-    alignItems: "flex-start",
-  },
-  logoutButton: {
-    paddingHorizontal: spacing.lg,
   },
 });
