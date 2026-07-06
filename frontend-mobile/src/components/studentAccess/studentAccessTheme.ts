@@ -4,7 +4,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { spacing } from "../../constants/spacing";
 import { typography } from "../../theme";
 
-export const SCREEN_BACKGROUND = "#F6EFE8";
+export const SCREEN_BACKGROUND = "#F7E5CC";
 export const AUTH_BUTTON_BACKGROUND = "rgba(255, 255, 255, 0.92)";
 export const AUTH_BUTTON_BORDER = "rgba(231, 225, 218, 0.96)";
 export const ENTRANCE_DURATION = 420;
