@@ -99,26 +99,7 @@ export class ReservationsService {
     .toISOString()
     .split('T')[0];
 
-    const existingReservation = await this.reservationRepo.findOne({
-        where: [
-          {
-            user_id,
-            reservation_date: reservationDate,
-            status: ReservationStatus.PENDING_PAYMENT,
-          },
-          {
-            user_id,
-            reservation_date: reservationDate,
-            status: ReservationStatus.CONFIRMED,
-          },
-        ],
-      });
-
-    if (existingReservation) {
-      throw new BadRequestException(
-        'Ya tienes una reserva activa para este restaurante',
-      );
-    }
+    
 
     const totalAmount = items.reduce((total, item) => {
       const dish = dishById.get(item.dish_id)!;
