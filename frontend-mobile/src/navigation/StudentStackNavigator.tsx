@@ -9,6 +9,7 @@ import { MyReservationsScreen } from "../screens/MyReservationsScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
 import { RestaurantDetailScreen } from "../screens/RestaurantDetailScreen";
 import { colors, typography } from "../theme";
+import { studentPalette } from "../theme/studentPalette";
 import { ROUTES } from "./routes";
 import { StudentDrawerParamList, StudentStackParamList } from "./types";
 
@@ -18,13 +19,14 @@ export function StudentStackNavigator() {
   return (
     <Stack.Navigator
       screenOptions={{
-        contentStyle: { backgroundColor: colors.background },
-        headerStyle: { backgroundColor: colors.background },
+        contentStyle: { backgroundColor: studentPalette.background },
+        headerStyle: { backgroundColor: studentPalette.background },
         headerTintColor: colors.textPrimary,
+        headerTitleAlign: "center",
         headerTitleStyle: {
           color: colors.textPrimary,
-          fontWeight: typography.weights.semiBold,
-          fontSize: typography.sizes.md,
+          fontWeight: typography.weights.bold,
+          fontSize: typography.sizes.lg,
         },
         headerShadowVisible: false,
       }}
@@ -33,14 +35,16 @@ export function StudentStackNavigator() {
         name={ROUTES.Home}
         component={HomeScreen}
         options={({ navigation }) => ({
-          title: "Restaurantes ULEAM",
+          title: "Explorar restaurantes",
           headerLeft: () => (
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Abrir menú"
               onPress={() => {
                 const parent =
-                  navigation.getParent<DrawerNavigationProp<StudentDrawerParamList>>();
+                  navigation.getParent<
+                    DrawerNavigationProp<StudentDrawerParamList>
+                  >();
                 parent?.openDrawer();
               }}
               hitSlop={10}
@@ -51,8 +55,25 @@ export function StudentStackNavigator() {
             >
               <MaterialCommunityIcons
                 name="menu"
-                size={22}
-                color={colors.textPrimary}
+                size={25}
+                color={studentPalette.primary}
+              />
+            </Pressable>
+          ),
+          headerRight: () => (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Notificaciones"
+              hitSlop={10}
+              style={({ pressed }) => [
+                styles.menuButton,
+                pressed && styles.menuButtonPressed,
+              ]}
+            >
+              <MaterialCommunityIcons
+                name="bell-outline"
+                size={23}
+                color={studentPalette.primary}
               />
             </Pressable>
           ),
@@ -64,11 +85,13 @@ export function StudentStackNavigator() {
         component={RestaurantDetailScreen}
         options={{ title: "Detalle del restaurante" }}
       />
+
       <Stack.Screen
         name={ROUTES.MyReservations}
         component={MyReservationsScreen}
         options={{ title: "Mis reservas" }}
       />
+
       <Stack.Screen
         name={ROUTES.Profile}
         component={ProfileScreen}
@@ -80,14 +103,14 @@ export function StudentStackNavigator() {
 
 const styles = StyleSheet.create({
   menuButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: "center",
     justifyContent: "center",
   },
   menuButtonPressed: {
-    opacity: 0.9,
-    transform: [{ scale: 0.98 }],
+    opacity: 0.85,
+    transform: [{ scale: 0.96 }],
   },
 });
