@@ -87,12 +87,19 @@ function HomeHeader({
   return (
     <View style={styles.headerWrapper}>
       <View style={styles.hero}>
-        <Image
-          source={CAMPUS_BUILDING_IMAGE}
-          resizeMode="contain"
-          style={styles.campusDecor}
+        <View
           pointerEvents="none"
-        />
+          style={styles.campusDecor}
+          accessible={false}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        >
+          <Image
+            source={CAMPUS_BUILDING_IMAGE}
+            resizeMode="contain"
+            style={styles.campusImage}
+          />
+        </View>
 
         {displayName ? (
           <Text style={styles.greeting}>Hola, {displayName}</Text>
@@ -150,6 +157,10 @@ const styles = StyleSheet.create({
     width: 270,
     height: 190,
     opacity: 0.32,
+  },
+  campusImage: {
+    width: "100%",
+    height: "100%",
   },
   greeting: {
     color: studentPalette.primary,
