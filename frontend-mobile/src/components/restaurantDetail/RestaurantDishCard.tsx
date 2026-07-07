@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, Text, View } from "react-native";
 
 import { spacing } from "../../constants/spacing";
 import type { Dish } from "../../services/dishService";
@@ -27,22 +27,32 @@ export function RestaurantDishCard({
   onReserve,
 }: RestaurantDishCardProps) {
   const dishId = String(dish.id);
+  const hasImage = Boolean(dish.imageUrl);
 
   return (
-    <View style={styles.card}>
-      <StudentVisualPlaceholder
-        iconName="food-variant"
-        label={`Plato ${dish.name}`}
-        size="sm"
-        style={styles.visual}
-        variant="dish"
-      />
+    <View style={[styles.card, isReserved && styles.cardReserved]}>
+      {hasImage ? (
+        <Image
+          source={{ uri: dish.imageUrl }}
+          style={styles.image}
+          resizeMode="cover"
+        />
+      ) : (
+        <StudentVisualPlaceholder
+          iconName="food-variant"
+          label={`Plato ${dish.name}`}
+          size="sm"
+          style={styles.image}
+          variant="dish"
+        />
+      )}
 
       <View style={styles.content}>
         <View style={styles.titleRow}>
           <Text style={styles.dishName} numberOfLines={2}>
             {dish.name}
           </Text>
+
           {!dish.isAvailable || !dish.isActive ? (
             <StudentStatusPill label="No disponible" tone="neutral" />
           ) : null}
@@ -76,9 +86,9 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
+    gap: spacing.md,
     padding: spacing.sm,
-    borderRadius: 20,
+    borderRadius: 22,
     borderWidth: 1,
     borderColor: studentPalette.border,
     backgroundColor: studentPalette.card,
@@ -86,17 +96,22 @@ const styles = StyleSheet.create({
     shadowOpacity: 1,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 5 },
-    elevation: 1,
+    elevation: 2,
   },
-  visual: {
-    width: 56,
-    height: 56,
+  cardReserved: {
+    opacity: 0.75,
+    backgroundColor: "#F3F3F3",
+  },
+  image: {
+    width: 112,
+    height: 96,
     borderRadius: 16,
+    backgroundColor: studentPalette.primaryFaint,
   },
   content: {
     flex: 1,
     minWidth: 0,
-    gap: 2,
+    gap: 4,
   },
   titleRow: {
     flexDirection: "row",
@@ -125,9 +140,9 @@ const styles = StyleSheet.create({
   dishPrice: {
     flex: 1,
     minWidth: 58,
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: typography.weights.bold,
     color: studentPalette.primary,
-    lineHeight: 24,
+    lineHeight: 26,
   },
 });
