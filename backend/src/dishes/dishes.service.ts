@@ -50,7 +50,7 @@ export class DishesService {
     let image_path: string | null = null;
 
     if (image) {
-      const uploadedImage = await this.storageService.uploadDishImage(image);
+      const uploadedImage = await this.storageService.uploadDishImage(image, user.restaurant_id);
       image_url = uploadedImage.url;
       image_path = uploadedImage.path;
     }

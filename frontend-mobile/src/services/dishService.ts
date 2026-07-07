@@ -80,8 +80,8 @@ export async function createDish(
 
   formData.append("name", payload.name);
   formData.append("price", payload.price);
-  formData.append("is_available", String(payload.is_available ?? true));
-  formData.append("is_active", String(payload.is_active ?? true));
+  //formData.append("is_available", String(payload.is_available ?? true));
+  //formData.append("is_active", String(payload.is_active ?? true));
 
   if (payload.description) {
     formData.append("description", payload.description);

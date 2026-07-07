@@ -22,15 +22,12 @@ export class StorageService {
     );
   }
 
-  async uploadDishImage(file: UploadedFile) {
-    const extension =
-      file.originalname.split('.').pop();
+  async uploadDishImage(file: UploadedFile, restaurantId: string) {
+    const extension = file.originalname.split('.').pop();
 
-    const fileName =
-      `${randomUUID()}.${extension}`;
+    const fileName =`${randomUUID()}.${extension}`;
 
-    const filePath =
-      `dishes/${fileName}`;
+    const filePath =`restaurants/${restaurantId}/${fileName}`;
 
     const { error } =
       await this.supabase.storage
