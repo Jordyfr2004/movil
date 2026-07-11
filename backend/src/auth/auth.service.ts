@@ -230,13 +230,28 @@ export class AuthService {
 
         throw new UnauthorizedException('Refresh token expirado');
       }
+
+      const user = await this.userRepo.findOne({
+        where: { id: payload.sub },
+      });
+
+
+      if (!user || !user.is_active) {
+        tokenRecord.is_revoked = true;
+        await this.refreshTokenRepo.save(tokenRecord);
+
+        throw new UnauthorizedException(
+          'Usuario no encontrado o inactivo',
+        );
+      }
+
       tokenRecord.is_revoked = true;
       await this.refreshTokenRepo.save(tokenRecord);
 
       const newPayload = {
-        sub: payload.sub,
+        sub: user.id,
         email: payload.email,
-        role: payload.role,
+        role: user.role,
       };
 
       const newAccessToken = await this.jwtService.signAsync(newPayload, {
@@ -253,7 +268,7 @@ export class AuthService {
       expiresAt.setDate(expiresAt.getDate() + 7);
 
       const newRefreshTokenEntity = this.refreshTokenRepo.create({
-        user_id: payload.sub,
+        user_id: user.id,
         token_hash: newRefreshTokenHash,
         is_revoked: false,
         expires_at: expiresAt,

@@ -14,6 +14,7 @@ export enum UserStatus {
 export enum UserRole {
   STUDENT = 'STUDENT',
   MANAGER = 'MANAGER',
+  SUPER_ADMIN = 'SUPER_ADMIN',
 }
 
 @Entity('users')

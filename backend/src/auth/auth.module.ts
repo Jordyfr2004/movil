@@ -8,6 +8,8 @@ import { JwtModule } from '@nestjs/jwt';
 import { RefreshToken } from './entities/refresh-token.entity';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import type { StringValue } from 'ms';
+import { JwtAuthGuard} from '../auth/guards/jwt-auth.guard';
+import { RolesGuard} from '../auth/guards/roles.guard';
 
 @Module({
   imports: [ TypeOrmModule.forFeature([AuthAccount, User, RefreshToken]),
@@ -23,7 +25,7 @@ import type { StringValue } from 'ms';
     })
   ],
   controllers: [AuthController],
-  providers: [AuthService],
-  exports: [JwtModule],
+  providers: [AuthService,RolesGuard,JwtAuthGuard],
+  exports: [JwtModule,JwtAuthGuard,RolesGuard],
 })
 export class AuthModule {}

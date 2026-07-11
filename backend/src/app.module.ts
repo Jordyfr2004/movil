@@ -12,6 +12,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { PaymentsModule } from './payments/payments.module';
 import { StorageModule } from './storage/storage.module';
+import { SuperAdminModule } from './super-admin/super-admin.module';
 
 
 @Module({
@@ -42,6 +43,7 @@ import { StorageModule } from './storage/storage.module';
     NotificationsModule,
     PaymentsModule,
     StorageModule,
+    SuperAdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],
