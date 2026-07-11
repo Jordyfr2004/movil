@@ -30,6 +30,7 @@ import { AdminDrawerNavigator } from "./AdminDrawerNavigator";
 import { StudentDrawerNavigator } from "./StudentDrawerNavigator";
 import { RootStackParamList } from "./types";
 import RegisterScreen from "../screens/RegisterScreen";
+import { SuperAdminScreen } from "../screens/SuperAdminScreen";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const isSocketDebugEnabled = ENABLE_WS_DEBUG;
@@ -514,6 +515,10 @@ export function AppNavigator() {
       return ROUTES.Welcome;
     }
 
+    if (currentProfile?.role === "super_admin") {
+      return ROUTES.SuperAdmin;
+    }
+
     if (shouldCreateRestaurant) {
       return ROUTES.CreateRestaurant;
     }
@@ -561,12 +566,34 @@ export function AppNavigator() {
     headerShadowVisible: false,
   } as const;
 
-  const isStudent = isAuthenticated && currentProfile?.role !== "admin";
-  const isAdmin = isAuthenticated && currentProfile?.role === "admin";
+  const isSuperAdmin =
+  isAuthenticated && currentProfile?.role === "super_admin";
+
+  const isAdmin =
+    isAuthenticated && currentProfile?.role === "admin";
+
+  const isStudent =
+    isAuthenticated && currentProfile?.role === "student";
+
 
   return (
     <>
-      {isStudent ? (
+      {isSuperAdmin ? (
+        <Stack.Navigator
+          initialRouteName={ROUTES.SuperAdmin}
+          screenOptions={commonStackScreenOptions}
+        >
+          <Stack.Screen
+            name={ROUTES.SuperAdmin}
+            component={SuperAdminScreen}
+            options={{
+              title: "Superadministrador",
+              headerBackVisible: false,
+              gestureEnabled: false,
+            }}
+          />
+        </Stack.Navigator>
+      ) : isStudent ? (
         <StudentDrawerNavigator profile={currentProfile} />
       ) : isAdmin && !shouldCreateRestaurant ? (
         <AdminDrawerNavigator profile={currentProfile} />
@@ -635,6 +662,15 @@ export function AppNavigator() {
             name={ROUTES.Profile}
             component={ProfileScreen}
             options={{ title: "Perfil" }}
+          />
+          <Stack.Screen
+            name={ROUTES.SuperAdmin}
+            component={SuperAdminScreen}
+            options={{
+              title: "Superadministrador",
+              headerBackVisible: false,
+              gestureEnabled: false,
+            }}
           />
         </Stack.Navigator>
       )}

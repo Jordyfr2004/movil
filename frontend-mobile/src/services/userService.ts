@@ -87,14 +87,31 @@ function logProfileDebug(message: string, details?: UnknownRecord) {
 
 function normalizeRole(value: unknown): UserRole | string | undefined {
   if (typeof value !== "string") return undefined;
-  const lower = value.toLowerCase();
 
-  if (lower === "student" || lower === "estudiante") return "student";
-  if (lower === "admin" || lower === "administrator" || lower === "administrador")
-    return "admin";
+  const lower = value.trim().toLowerCase();
 
-  if (lower === "manager" || lower === "gerente" || lower === "encargado")
+  if (lower === "student" || lower === "estudiante") {
+    return "student";
+  }
+
+  if (
+    lower === "manager" ||
+    lower === "admin" ||
+    lower === "administrator" ||
+    lower === "administrador" ||
+    lower === "gerente" ||
+    lower === "encargado"
+  ) {
     return "admin";
+  }
+
+  if (
+    lower === "super_admin" ||
+    lower === "super-admin" ||
+    lower === "superadmin"
+  ) {
+    return "super_admin";
+  }
 
   return value;
 }

@@ -1,4 +1,4 @@
-export type UserRole = "student" | "admin";
+export type UserRole = "student" | "admin" | "super_admin";
 
 export type ReservationStatus =
   | "pending_payment"

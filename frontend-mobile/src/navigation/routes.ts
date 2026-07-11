@@ -5,6 +5,7 @@ export const ROUTES = {
   CreateRestaurant: "CreateRestaurant",
   ManagerProfile: "ManagerProfile",
   AddDish: "AddDish",
+  SuperAdmin: "SuperAdmin",
   Home: "Home",
   RestaurantDetail: "RestaurantDetail",
   MyReservations: "MyReservations",

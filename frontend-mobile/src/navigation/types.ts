@@ -20,6 +20,7 @@ export type RootStackParamList = {
   [ROUTES.MyReservations]: undefined;
   [ROUTES.Profile]: undefined;
   [ROUTES.Register]: undefined;
+  [ROUTES.SuperAdmin]: undefined;
 };
 
 export type StudentStackParamList = Pick<
