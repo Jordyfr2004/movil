@@ -3,8 +3,8 @@ import {  BadRequestException, Injectable, NotFoundException } from '@nestjs/com
 import { InjectRepository } from '@nestjs/typeorm';
 import { Payment, PaymentStatus } from './entities/payment.entity';
 import { Repository } from 'typeorm';
-import { Reservation, ReservationStatus } from 'src/reservations/entities/reservation.entity';
-import { User } from 'src/users/entities/user.entity';
+import { Reservation, ReservationStatus } from '../reservations/entities/reservation.entity';
+import { Restaurant } from '../restaurants/entities/restaurant.entity';
 
 @Injectable()
 export class PaymentsService {
@@ -19,8 +19,8 @@ export class PaymentsService {
         @InjectRepository(Reservation)
         private readonly reservationRepo: Repository<Reservation>,
 
-        @InjectRepository(User)
-        private readonly userRepo: Repository<User>
+        @InjectRepository(Restaurant)
+        private readonly restaurantRepo: Repository<Restaurant>,
     ) {}
 
 
@@ -47,6 +47,20 @@ export class PaymentsService {
         if ( reservation.expires_at && reservation.expires_at.getTime() < Date.now()){
             throw new BadRequestException('La reserva ha expirado');
         }
+
+        const restaurant = await this.restaurantRepo.findOne({
+            where: {
+                id: reservation.restaurant_id,
+                is_active: true,
+            },
+        });
+
+        if (!restaurant) {
+            throw new BadRequestException(
+                'No puedes pagar una reserva de un restaurante inactivo',
+            );
+        }
+        
         const amountInCents = Math.round(Number(reservation.total_amount) *100);
 
         const paymentIntent = await this.stripe.paymentIntents.create({

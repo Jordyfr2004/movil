@@ -1,7 +1,4 @@
-import {
-  Injectable,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import {Injectable,InternalServerErrorException,} from '@nestjs/common';
 import { createClient } from '@supabase/supabase-js';
 import { randomUUID } from 'crypto';
 
@@ -63,6 +60,59 @@ export class StorageService {
     if (error) {
       throw new InternalServerErrorException(
         'No se pudo eliminar la imagen',
+      );
+    }
+  }
+
+  async uploadRestaurantImage(file: UploadedFile,restaurantId: string,) {
+    const extensionMap: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'image/webp': 'webp',
+    };
+
+    const extension = extensionMap[file.mimetype];
+
+    if (!extension) {
+      throw new InternalServerErrorException(
+        'Formato de imagen no permitido',
+      );
+    }
+
+    const fileName = `${randomUUID()}.${extension}`;
+    const filePath = `${restaurantId}/${fileName}`;
+
+    const { error } = await this.supabase.storage
+      .from('restaurants')
+      .upload(filePath, file.buffer, {
+        contentType: file.mimetype,
+        upsert: false,
+      });
+
+    if (error) {
+      throw new InternalServerErrorException(
+        'No se pudo subir la imagen del restaurante',
+      );
+    }
+
+    const { data } = this.supabase.storage
+      .from('restaurants')
+      .getPublicUrl(filePath);
+
+    return {
+      path: filePath,
+      url: data.publicUrl,
+    };
+  }
+
+  async deleteRestaurantImage(filePath: string) {
+    const { error } = await this.supabase.storage
+      .from('restaurants')
+      .remove([filePath]);
+
+    if (error) {
+      throw new InternalServerErrorException(
+        'No se pudo eliminar la imagen anterior',
       );
     }
   }

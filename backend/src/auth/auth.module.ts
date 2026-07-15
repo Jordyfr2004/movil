@@ -10,6 +10,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import type { StringValue } from 'ms';
 import { JwtAuthGuard} from '../auth/guards/jwt-auth.guard';
 import { RolesGuard} from '../auth/guards/roles.guard';
+import { SessionConnectionsService } from './session-connections.service';
 
 @Module({
   imports: [ TypeOrmModule.forFeature([AuthAccount, User, RefreshToken]),
@@ -25,7 +26,7 @@ import { RolesGuard} from '../auth/guards/roles.guard';
     })
   ],
   controllers: [AuthController],
-  providers: [AuthService,RolesGuard,JwtAuthGuard],
-  exports: [JwtModule,JwtAuthGuard,RolesGuard],
+  providers: [AuthService,RolesGuard,JwtAuthGuard,SessionConnectionsService],
+  exports: [JwtModule,JwtAuthGuard,RolesGuard,SessionConnectionsService],
 })
 export class AuthModule {}

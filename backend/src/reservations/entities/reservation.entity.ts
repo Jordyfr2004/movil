@@ -9,7 +9,12 @@ export enum ReservationStatus {
   CANCELLED = 'CANCELLED',
   EXPIRED = 'EXPIRED',
   COMPLETED = 'COMPLETED',
+}
 
+export enum ReservationDeliveryStatus {
+  NOT_AVAILABLE = 'NOT_AVAILABLE',
+  PENDING_DELIVERY = 'PENDING_DELIVERY',
+  DELIVERED = 'DELIVERED',
 }
 
 @Entity('reservations')
@@ -64,6 +69,26 @@ export class Reservation {
 
   @Column({ type: 'timestamp', nullable: true })
   confirmed_at!: Date | null;
+
+  @Column({ type: 'timestamp', nullable: true })
+  delivered_at!: Date | null;
+
+  @Column({ type: 'uuid', nullable: true })
+  delivered_by!: string | null;
+
+  @Column({type: 'varchar',length: 64,nullable: true,unique: true,})
+  pickup_token_hash!: string | null;
+
+  @Column({ type: 'timestamp', nullable: true })
+  pickup_token_expires_at!: Date | null;
+
+  @ManyToOne(() => User, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'delivered_by' })
+  delivered_by_user!: User | null;
+
 
   @CreateDateColumn({ type: 'timestamptz' })
   created_at!: Date;

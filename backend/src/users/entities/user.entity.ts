@@ -42,6 +42,10 @@ export class User {
   @Column({ type: 'boolean', default: true })
   is_active!: boolean;
 
+  @Column({type: 'integer',default: 0,})
+  session_version!: number;
+  
+
   @Column({ type: 'uuid', nullable: true })
   restaurant_id!: string | null;
 

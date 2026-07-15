@@ -1,13 +1,16 @@
 import {ForbiddenException,Injectable,NotFoundException,} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-
 import { Dish } from './entities/dish.entity';
 import { CreateDishDto } from './dto/create-dish.dto';
 import { UpdateDishDto } from './dto/update-dish.dto';
 import { User } from '../users/entities/user.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 import { StorageService } from '../storage/storage.service';
+import { Restaurant } from '../restaurants/entities/restaurant.entity';
+
+
+
 
 @Injectable()
 export class DishesService {
@@ -21,6 +24,11 @@ export class DishesService {
     private readonly notificationsService: NotificationsService,
 
     private readonly storageService: StorageService,
+
+
+    @InjectRepository(Restaurant)
+    private readonly restaurantRepo: Repository<Restaurant>,
+
   ) {}
 
   private normalizeDescription(value: unknown): string | null {
@@ -58,6 +66,8 @@ export class DishesService {
   async create(
     createDishDto: CreateDishDto,userId: string,image?: any,) {
     const restaurantId = await this.getManagerRestaurantId(userId);
+
+    await this.ensureRestaurantIsActive(restaurantId);
 
     const existingActiveDishes = await this.dishRepo.count({
       where: {
@@ -109,7 +119,20 @@ export class DishesService {
     });
   }
 
-  async findPublicByRestaurant(restaurantId: string) {
+  async findPublicByRestaurant(restaurantId: string,) {
+    const restaurant = await this.restaurantRepo.findOne({
+      where: {
+        id: restaurantId,
+        is_active: true,
+      },
+    });
+
+    if (!restaurant) {
+      throw new NotFoundException(
+        'Restaurante no encontrado o inactivo',
+      );
+    }
+
     return this.dishRepo.find({
       where: {
         restaurant_id: restaurantId,
@@ -141,6 +164,9 @@ export class DishesService {
 
   async update(id: string,updateDishDto: UpdateDishDto,userId: string,) {
     const dish = await this.findOneForManager(id, userId);
+
+    await this.ensureRestaurantIsActive(dish.restaurant_id,);
+
     const previousAvailability = dish.is_available;
 
     Object.assign(dish, updateDishDto);
@@ -175,6 +201,8 @@ export class DishesService {
   async remove(id: string, userId: string) {
     const dish = await this.findOneForManager(id, userId);
 
+    await this.ensureRestaurantIsActive(dish.restaurant_id);
+
     const dishId = dish.id;
     const restaurantId = dish.restaurant_id;
 
@@ -192,5 +220,20 @@ export class DishesService {
     return {
       message: 'Plato eliminado correctamente',
     };
+  }
+
+  private async ensureRestaurantIsActive(restaurantId: string,): Promise<void> {
+    const restaurant = await this.restaurantRepo.findOne({
+      where: {
+        id: restaurantId,
+        is_active: true,
+      },
+    });
+
+    if (!restaurant) {
+      throw new ForbiddenException(
+        'El restaurante está inactivo',
+      );
+    }
   }
 }

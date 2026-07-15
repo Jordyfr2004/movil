@@ -7,11 +7,14 @@ import { Reservation } from './entities/reservation.entity';
 import { ReservationItem } from './entities/reservation-item.entity';
 import { ReservationsController } from './reservations.controller';
 import { ReservationsService } from './reservations.service';
+import { Restaurant } from '../restaurants/entities/restaurant.entity';
+import { NotificationsModule } from '../notifications/notifications.module';
+
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Reservation, ReservationItem, Dish, User]),
-    AuthModule,
+    TypeOrmModule.forFeature([Reservation, ReservationItem, Dish, User, Restaurant]),
+    AuthModule,NotificationsModule
   ],
   controllers: [ReservationsController],
   providers: [ReservationsService],

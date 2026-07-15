@@ -1,16 +1,19 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-
 import { AuthModule } from '../auth/auth.module';
 import { Restaurant } from '../restaurants/entities/restaurant.entity';
 import { User } from '../users/entities/user.entity';
 import { SuperAdminController } from './super-admin.controller';
 import { SuperAdminService } from './super-admin.service';
 import { RefreshToken } from '../auth/entities/refresh-token.entity';
+import { RestaurantsModule } from '../restaurants/restaurants.module';
+
+
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, Restaurant, RefreshToken]),
-    AuthModule,
+    AuthModule,RestaurantsModule,
   ],
   controllers: [SuperAdminController],
   providers: [SuperAdminService],

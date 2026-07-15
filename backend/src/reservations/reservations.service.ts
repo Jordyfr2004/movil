@@ -5,11 +5,17 @@ import Stripe from 'stripe';
 import { Dish } from '../dishes/entities/dish.entity';
 import { User, UserRole } from '../users/entities/user.entity';
 import {CreateReservationDto,CreateReservationItemDto,} from './dto/create-reservation.dto';
-import {Reservation,ReservationStatus,} from './entities/reservation.entity';
+import {Reservation,ReservationStatus,ReservationDeliveryStatus} from './entities/reservation.entity';
 import { ReservationItem } from './entities/reservation-item.entity';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { LessThan } from 'typeorm';
-import { PaymentStatus } from '../payments/entities/payment.entity';
+import { PaymentStatus, Payment } from '../payments/entities/payment.entity';
+import { Restaurant } from '../restaurants/entities/restaurant.entity';
+import { createHash, randomBytes } from 'crypto';
+import { NotificationsService } from '../notifications/notifications.service';
+
+
+
 
 @Injectable()
 export class ReservationsService {
@@ -24,6 +30,12 @@ export class ReservationsService {
 
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+
+    @InjectRepository(Restaurant)
+    private readonly restaurantRepo: Repository<Restaurant>,
+
+    private readonly notificationsService: NotificationsService,
+
   ) {}
 
   async create(createReservationDto: CreateReservationDto,user_id: string,) {
@@ -35,9 +47,9 @@ export class ReservationsService {
       throw new ForbiddenException('Usuario no válido');
     }
 
-    if (user.role !== UserRole.STUDENT) {
+    if (user.role !== UserRole.STUDENT && user.role !== UserRole.MANAGER) {
       throw new ForbiddenException(
-        'Solo los estudiantes pueden hacer reservas',
+        'Solo los estudiantes y managers pueden hacer reservas'
       );
     }
 
@@ -94,6 +106,18 @@ export class ReservationsService {
         'Todos los platos deben pertenecer al mismo restaurante',
       );
     }
+    const restaurant = await this.restaurantRepo.findOne({
+      where: {
+        id: firstDish.restaurant_id,
+        is_active: true,
+      },
+    });
+
+    if (!restaurant) {
+      throw new BadRequestException(
+        'No puedes reservar platos de un restaurante inactivo',
+      );
+    }
 
     const reservationDate = new Date()
     .toISOString()
@@ -124,6 +148,10 @@ export class ReservationsService {
             expires_at: expiresAt,
             paid_at: null,
             confirmed_at: null,
+            delivered_at: null,
+            delivered_by: null,
+            pickup_token_hash: null,
+            pickup_token_expires_at: null,
             items: [],
           },
         );
@@ -171,7 +199,7 @@ export class ReservationsService {
 
   async findMyReservations(user_id: string) {
     return {
-      message:'Reservas obtenidas correctamente',
+      message: 'Reservas obtenidas correctamente',
       data: await this.reservationRepo.find({
         where: { user_id },
         relations: {
@@ -181,6 +209,506 @@ export class ReservationsService {
           created_at: 'DESC',
         },
       }),
+    };
+  }
+
+  async generatePickupQr(reservationId: string,userId: string,) {
+    const reservation = await this.reservationRepo.findOne({
+      where: {
+        id: reservationId,
+      },
+      relations: {
+        payments: true,
+      },
+    });
+
+    if (!reservation) {
+      throw new NotFoundException(
+        'Reserva no encontrada',
+      );
+    }
+
+    if (reservation.user_id !== userId) {
+      throw new ForbiddenException(
+        'La reserva no pertenece al usuario',
+      );
+    }
+
+    if (reservation.status !== ReservationStatus.CONFIRMED) {
+      throw new BadRequestException(
+        'Solo puedes generar el QR de una reserva pagada y pendiente de entrega',
+      );
+    }
+
+    const hasPaidPayment =
+      Array.isArray(reservation.payments) &&
+      reservation.payments.some(
+        (payment) => payment.status === PaymentStatus.PAID,
+      );
+
+    if (!hasPaidPayment) {
+      throw new BadRequestException(
+        'La reserva no tiene un pago confirmado',
+      );
+    }
+
+    if (
+      reservation.delivered_at ||
+      reservation.delivered_by
+    ) {
+      throw new BadRequestException(
+        'La reserva ya fue entregada',
+      );
+    }
+
+    const pickupToken = randomBytes(32).toString('hex');
+
+    const pickupTokenHash = createHash('sha256')
+      .update(pickupToken)
+      .digest('hex');
+
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + 10);
+
+    reservation.pickup_token_hash = pickupTokenHash;
+    reservation.pickup_token_expires_at = expiresAt;
+
+    await this.reservationRepo.save(reservation);
+
+    return {
+      message: 'Token QR generado correctamente',
+      data: {
+        pickup_token: pickupToken,
+        expires_at: expiresAt,
+      },
+    };
+  }
+
+
+  async verifyPickupQr(pickupToken: string,managerId: string,) {
+    const manager = await this.userRepo.findOne({
+      where: {
+        id: managerId,
+      },
+    });
+
+    if (!manager || manager.role !== UserRole.MANAGER) {
+      throw new ForbiddenException(
+        'Solo los managers pueden verificar entregas',
+      );
+    }
+
+    if (!manager.restaurant_id) {
+      throw new BadRequestException(
+        'El manager no tiene un restaurante asignado',
+      );
+    }
+
+    const pickupTokenHash = createHash('sha256')
+      .update(pickupToken)
+      .digest('hex');
+
+    const reservation = await this.reservationRepo.findOne({
+      where: {
+        pickup_token_hash: pickupTokenHash,
+      },
+      relations: {
+        user: true,
+        items: true,
+        payments: true,
+      },
+    });
+
+    if (!reservation) {
+      throw new NotFoundException(
+        'Código QR inválido',
+      );
+    }
+
+    if (
+      !reservation.pickup_token_expires_at ||
+      reservation.pickup_token_expires_at.getTime() < Date.now()
+    ) {
+      throw new BadRequestException(
+        'El código QR ha expirado',
+      );
+    }
+
+    if (reservation.restaurant_id !== manager.restaurant_id) {
+      throw new ForbiddenException(
+        'La reserva no pertenece al restaurante del manager',
+      );
+    }
+
+    if (reservation.status === ReservationStatus.COMPLETED) {
+      throw new BadRequestException(
+        'La reserva ya fue entregada',
+      );
+    }
+
+    if (reservation.status !== ReservationStatus.CONFIRMED) {
+      throw new BadRequestException(
+        'La reserva no está pagada o pendiente de entrega',
+      );
+    }
+
+    const hasPaidPayment =
+      Array.isArray(reservation.payments) &&
+      reservation.payments.some(
+        (payment) => payment.status === PaymentStatus.PAID,
+      );
+
+    if (!hasPaidPayment) {
+      throw new BadRequestException(
+        'La reserva no tiene un pago confirmado',
+      );
+    }
+
+    return {
+      message: 'Código QR verificado correctamente',
+      data: {
+        reservation_id: reservation.id,
+        reservation_date: reservation.reservation_date,
+        status: reservation.status,
+        delivery_status:
+          ReservationDeliveryStatus.PENDING_DELIVERY,
+        total_amount: reservation.total_amount,
+        user: {
+          id: reservation.user.id,
+          full_name: reservation.user.full_name,
+        },
+        items: reservation.items.map((item) => ({
+          dish_id: item.dish_id,
+          dish_name: item.dish_name,
+          unit_price: item.unit_price,
+          quantity: item.quantity,
+        })),
+      },
+    };
+  }
+
+  async confirmPickupDelivery(pickupToken: string,managerId: string,) {
+    const managerUser = await this.userRepo.findOne({
+      where: {
+        id: managerId,
+      },
+    });
+
+    if (!managerUser ||managerUser.role !== UserRole.MANAGER) {
+      throw new ForbiddenException(
+        'Solo los managers pueden confirmar entregas',
+      );
+    }
+
+    if (!managerUser.restaurant_id) {
+      throw new BadRequestException(
+        'El manager no tiene un restaurante asignado',
+      );
+    }
+
+    const pickupTokenHash = createHash('sha256')
+      .update(pickupToken)
+      .digest('hex');
+
+    const result =await this.reservationRepo.manager.transaction(
+        async (transactionManager) => {
+          const reservationRepo =
+            transactionManager.getRepository(Reservation);
+
+          const paymentRepo =
+            transactionManager.getRepository(Payment);
+
+          const reservation = await reservationRepo.findOne({
+            where: {
+              pickup_token_hash: pickupTokenHash,
+            },
+            lock: {
+              mode: 'pessimistic_write',
+            },
+          });
+
+          if (!reservation) {
+            throw new NotFoundException(
+              'Código QR inválido',
+            );
+          }
+
+          if (
+            !reservation.pickup_token_expires_at ||
+            reservation.pickup_token_expires_at.getTime() <
+              Date.now()
+          ) {
+            throw new BadRequestException(
+              'El código QR ha expirado',
+            );
+          }
+
+          if (
+            reservation.restaurant_id !==
+            managerUser.restaurant_id
+          ) {
+            throw new ForbiddenException(
+              'La reserva no pertenece al restaurante del manager',
+            );
+          }
+
+          if (
+            reservation.status ===
+            ReservationStatus.COMPLETED
+          ) {
+            throw new BadRequestException(
+              'La reserva ya fue entregada',
+            );
+          }
+
+          if (
+            reservation.status !==
+            ReservationStatus.CONFIRMED
+          ) {
+            throw new BadRequestException(
+              'La reserva no está pagada o pendiente de entrega',
+            );
+          }
+
+          const hasPaidPayment = await paymentRepo.exists({
+            where: {
+              reservation_id: reservation.id,
+              status: PaymentStatus.PAID,
+            },
+          });
+
+          if (!hasPaidPayment) {
+            throw new BadRequestException(
+              'La reserva no tiene un pago confirmado',
+            );
+          }
+
+          const deliveredAt = new Date();
+
+          reservation.status =
+            ReservationStatus.COMPLETED;
+
+          reservation.delivered_at = deliveredAt;
+          reservation.delivered_by = managerUser.id;
+
+          reservation.pickup_token_hash = null;
+          reservation.pickup_token_expires_at = null;
+
+          await reservationRepo.save(reservation);
+
+          return {
+            reservation_id: reservation.id,
+            user_id: reservation.user_id,
+            status: reservation.status,
+            delivery_status:
+              ReservationDeliveryStatus.DELIVERED,
+            delivered_at: deliveredAt,
+            delivered_by: managerUser.id,
+          };
+        },
+      );
+
+    await this.notificationsService.notifyReservationDelivered(
+      result.user_id,
+      {
+        reservation_id: result.reservation_id,
+        status: result.status,
+        delivery_status: result.delivery_status,
+        delivered_at: result.delivered_at,
+        message: 'Tu reserva fue entregada correctamente',
+      },
+    );
+    
+    return {
+      message: 'Reserva entregada correctamente',
+      data: result,
+    };
+  }
+
+  async findRestaurantReservations(managerId: string) {
+    const manager = await this.userRepo.findOne({
+      where: {
+        id: managerId,
+      },
+    });
+
+    if (!manager || manager.role !== UserRole.MANAGER) {
+      throw new ForbiddenException(
+        'Solo los managers pueden consultar las reservas del restaurante',
+      );
+    }
+
+    if (!manager.restaurant_id) {
+      throw new BadRequestException(
+        'El manager no tiene un restaurante asignado',
+      );
+    }
+
+    const reservations = await this.reservationRepo.find({
+      where: {
+        restaurant_id: manager.restaurant_id,
+      },
+      relations: {
+        user: true,
+        items: true,
+      },
+      order: {
+        reservation_date: 'DESC',
+        created_at: 'DESC',
+      },
+    });
+
+    return {
+      message: 'Reservas del restaurante obtenidas correctamente',
+      data: reservations.map((reservation) => ({
+        id: reservation.id,
+        reservation_date: reservation.reservation_date,
+        status: reservation.status,
+        delivery_status: this.getDeliveryStatus(
+          reservation.status,
+        ),
+        total_amount: reservation.total_amount,
+        delivered_at: reservation.delivered_at,
+        user: {
+          id: reservation.user.id,
+          full_name: reservation.user.full_name,
+        },
+        items: reservation.items.map((item) => ({
+          dish_id: item.dish_id,
+          dish_name: item.dish_name,
+          unit_price: item.unit_price,
+          quantity: item.quantity,
+        })),
+      })),
+    };
+  }
+
+  async getDeliveryReceipt(reservationId: string,userId: string,) {
+    const reservation = await this.reservationRepo.findOne({
+      where: {
+        id: reservationId,
+      },
+      relations: {
+        user: true,
+        items: true,
+        payments: true,
+        delivered_by_user: true,
+      },
+    });
+
+    if (!reservation) {
+      throw new NotFoundException(
+        'Reserva no encontrada',
+      );
+    }
+
+    if (reservation.user_id !== userId) {
+      throw new ForbiddenException(
+        'No tienes permiso para consultar este comprobante',
+      );
+    }
+
+    if (
+      reservation.status !== ReservationStatus.COMPLETED ||
+      !reservation.delivered_at
+    ) {
+      throw new BadRequestException(
+        'El comprobante estará disponible cuando la reserva sea entregada',
+      );
+    }
+
+    const paidPayment = reservation.payments
+      .filter(
+        (payment) =>
+          payment.status === PaymentStatus.PAID,
+      )
+      .sort((a, b) => {
+        const dateA = a.paid_at
+          ? new Date(a.paid_at).getTime()
+          : new Date(a.created_at).getTime();
+
+        const dateB = b.paid_at
+          ? new Date(b.paid_at).getTime()
+          : new Date(b.created_at).getTime();
+
+        return dateB - dateA;
+      })[0];
+
+    if (!paidPayment) {
+      throw new BadRequestException(
+        'La reserva no tiene un pago confirmado',
+      );
+    }
+
+    const restaurant =
+      await this.restaurantRepo.findOne({
+        where: {
+          id: reservation.restaurant_id,
+        },
+      });
+
+    if (!restaurant) {
+      throw new NotFoundException(
+        'Restaurante no encontrado',
+      );
+    }
+
+    return {
+      message: 'Comprobante obtenido correctamente',
+      data: {
+        receipt_number: reservation.id,
+
+        reservation: {
+          id: reservation.id,
+          reservation_date:
+            reservation.reservation_date,
+          status: reservation.status,
+          delivery_status:
+            ReservationDeliveryStatus.DELIVERED,
+          created_at: reservation.created_at,
+        },
+
+        restaurant: {
+          id: restaurant.id,
+          name: restaurant.name,
+        },
+
+        customer: {
+          id: reservation.user.id,
+          full_name: reservation.user.full_name,
+        },
+
+        items: reservation.items.map((item) => ({
+          dish_id: item.dish_id,
+          dish_name: item.dish_name,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          subtotal: (
+            Number(item.unit_price) * item.quantity
+          ).toFixed(2),
+        })),
+
+        payment: {
+          id: paidPayment.id,
+          status: paidPayment.status,
+          amount: paidPayment.amount,
+          currency: paidPayment.currency,
+          paid_at: paidPayment.paid_at,
+        },
+
+        delivery: {
+          delivered_at: reservation.delivered_at,
+          delivered_by: reservation.delivered_by_user
+            ? {
+                id: reservation.delivered_by_user.id,
+                full_name:
+                  reservation.delivered_by_user.full_name,
+              }
+            : null,
+        },
+
+        total_amount: reservation.total_amount,
+      },
     };
   }
 
@@ -261,6 +789,18 @@ export class ReservationsService {
       message:'Reserva cancelada correctamente',
       data: saved,
     };
+  }
+
+  private getDeliveryStatus(status: ReservationStatus,): ReservationDeliveryStatus {
+    if (status === ReservationStatus.CONFIRMED) {
+      return ReservationDeliveryStatus.PENDING_DELIVERY;
+    }
+
+    if (status === ReservationStatus.COMPLETED) {
+      return ReservationDeliveryStatus.DELIVERED;
+    }
+
+    return ReservationDeliveryStatus.NOT_AVAILABLE;
   }
 
   @Cron(CronExpression.EVERY_MINUTE)

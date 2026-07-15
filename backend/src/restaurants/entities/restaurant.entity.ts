@@ -1,13 +1,6 @@
 import { Dish } from '../../dishes/entities/dish.entity';
 import { User } from '../../users/entities/user.entity';
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  OneToMany,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
-} from 'typeorm';
+import {Column,CreateDateColumn,Entity,OneToMany,PrimaryGeneratedColumn,UpdateDateColumn} from 'typeorm';
 
 @Entity('restaurants')
 export class Restaurant {
@@ -19,6 +12,12 @@ export class Restaurant {
 
   @Column({ type: 'boolean', default: true })
   is_active!: boolean;
+
+  @Column({type: 'text',nullable: true,})
+  image_url!: string | null;
+
+  @Column({type: 'text',nullable: true,})
+  image_path!: string | null;
 
   @OneToMany(() => Dish, (dish) => dish.restaurant)
   dishes!: Dish[];
