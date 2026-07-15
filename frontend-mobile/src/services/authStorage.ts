@@ -11,6 +11,10 @@ export type StoredAuthUser = {
   user_id: string;
   email: string;
   provider: string;
+  role:
+    | "student"
+    | "admin"
+    | "super_admin";
 };
 
 export type StoredSession = {

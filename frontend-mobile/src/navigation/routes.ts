@@ -11,4 +11,19 @@ export const ROUTES = {
   MyReservations: "MyReservations",
   Profile: "Profile",
   Register: "Register",
+
+  SuperAdminRestaurants:
+  "SuperAdminRestaurants",
+
+  SuperAdminUsers:
+    "SuperAdminUsers",
+
+  SuperAdminAssignManager:
+    "SuperAdminAssignManager",
+
+  SuperAdminUserRole:
+    "SuperAdminUserRole",
+
+  SuperAdminUserStatus:
+    "SuperAdminUserStatus",
 } as const;

@@ -1,34 +1,21 @@
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import React, {createContext,useCallback,useContext,useEffect,useMemo,useState,} from "react";
+import {classifyAuthError,LoginPayload,LoginSuccessResponse,loginRequest,logoutRequest,refreshTokenRequest,} from "../services/authServices";
+import {clearTokens,getRefreshToken,getStoredSession,saveAuthUser,saveTokens,} from "../services/authStorage";
+import { disconnectNotificationsSocket } from "../services/notificationsSocket";
 
-import {
-  classifyAuthError,
-  LoginPayload,
-  LoginSuccessResponse,
-  loginRequest,
-  logoutRequest,
-  refreshTokenRequest,
-} from "../services/authServices";
-import {
-  clearTokens,
-  getRefreshToken,
-  getStoredSession,
-  saveAuthUser,
-  saveTokens,
-} from "../services/authStorage";
 
 type UnknownRecord = Record<string, unknown>;
+
+type AuthRole =
+  | "student"
+  | "admin"
+  | "super_admin";
 
 interface AuthUser {
   user_id: string;
   email: string;
   provider: string;
+  role: AuthRole;
 }
 
 interface AuthContextValue {
@@ -76,6 +63,24 @@ function logAuthDebug(message: string, details?: UnknownRecord) {
   console.log(`[auth] ${message}`);
 }
 
+function normalizeRole(role: string): AuthRole {
+  const normalizedRole =
+    role.trim().toUpperCase();
+
+  if (normalizedRole === "SUPER_ADMIN") {
+    return "super_admin";
+  }
+
+  if (
+    normalizedRole === "MANAGER" ||
+    normalizedRole === "ADMIN"
+  ) {
+    return "admin";
+  }
+
+  return "student";
+}
+
 function isLoginResponseData(
   value: unknown
 ): value is LoginSuccessResponse["data"] {
@@ -88,7 +93,8 @@ function isLoginResponseData(
     typeof value.refresh_token === "string" &&
     typeof value.user_id === "string" &&
     typeof value.email === "string" &&
-    typeof value.provider === "string"
+    typeof value.provider === "string" &&
+    typeof value.role === "string"
   );
 }
 
@@ -207,20 +213,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user_id,
         email,
         provider,
+        role,
       } = response.data;
 
       const nextUser = {
         user_id,
         email,
         provider,
+        role: normalizeRole(role),
       };
 
-      await saveTokens(access_token, refresh_token);
-      await saveAuthUser(nextUser);
+      
 
       setAccessToken(access_token);
       setUser(nextUser);
       setIsLoading(false);
+      await Promise.all([
+        saveTokens(access_token, refresh_token),
+        saveAuthUser(nextUser),
+      ])
       logAuthDebug("Login completado correctamente", {
         provider,
         userId: user_id,
@@ -236,6 +247,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logoutLocal = useCallback(async () => {
+    disconnectNotificationsSocket();
     await clearLocalSession();
   }, [clearLocalSession]);
 
@@ -250,24 +262,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
     }
 
+    const remoteLogoutPromise = refreshToken
+      ? logoutRequest(refreshToken)
+      : Promise.resolve();
+
+    disconnectNotificationsSocket();
     await clearLocalSession();
 
-    if (!refreshToken) {
-      return;
-    }
-
-    void logoutRequest(refreshToken).catch((error: unknown) => {
-      const status = readStatus(error);
-
-      if (status === 401 || status === 403) {
-        return;
-      }
-
-      logAuthDebug("El logout remoto falló, pero la sesión local ya se limpió", {
-        status: status ?? -1,
+    try {
+      await remoteLogoutPromise;
+      logAuthDebug("Sesión cerrada correctamente");
+    } catch (error: unknown) {
+      logAuthDebug("No se pudo cerrar la sesión en el backend", {
+        status: readStatus(error) ?? -1,
         message: readMessage(error) ?? "Sin mensaje",
       });
-    });
+    }
   }, [clearLocalSession]);
 
   const value = useMemo(

@@ -21,6 +21,21 @@ export type RootStackParamList = {
   [ROUTES.Profile]: undefined;
   [ROUTES.Register]: undefined;
   [ROUTES.SuperAdmin]: undefined;
+
+  [ROUTES.SuperAdminRestaurants]:
+  undefined;
+
+  [ROUTES.SuperAdminUsers]:
+    undefined;
+
+  [ROUTES.SuperAdminAssignManager]:
+    undefined;
+
+  [ROUTES.SuperAdminUserRole]:
+    undefined;
+
+  [ROUTES.SuperAdminUserStatus]:
+    undefined;
 };
 
 export type StudentStackParamList = Pick<

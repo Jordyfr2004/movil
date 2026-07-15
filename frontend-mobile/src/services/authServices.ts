@@ -26,11 +26,12 @@ export interface LoginPayload {
 export interface LoginSuccessResponse {
   message: string;
   data: {
-    access_token: string;
-    refresh_token: string;
     user_id: string;
     email: string;
     provider: string;
+    role: string;
+    access_token: string;
+    refresh_token: string;
   };
 }
 

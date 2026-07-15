@@ -56,3 +56,18 @@ export function releaseNotificationsSocket(accessToken: string): void {
     }
   }
 }
+
+export function disconnectNotificationsSocket(): void {
+  if (!socketSingleton) {
+    return;
+  }
+
+  try {
+    socketSingleton.removeAllListeners();
+    socketSingleton.disconnect();
+  } finally {
+    socketSingleton = null;
+    socketToken = null;
+    refCount = 0;
+  }
+}
