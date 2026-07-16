@@ -4,7 +4,6 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  Vibration,
   View,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -16,6 +15,7 @@ import { useAppPreferences } from "../context/AppPreferencesContext";
 import { useReduceMotion } from "../hooks/useReduceMotion";
 import { designSystem, typography } from "../theme";
 import { studentPalette } from "../theme/studentPalette";
+import { triggerFeedback } from "../utils/haptics";
 
 type OnboardingPage = {
   icon: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
@@ -85,7 +85,7 @@ function StartupAnimation({ onDone }: { onDone: () => void }) {
       return () => clearTimeout(timer);
     }
 
-    Vibration.vibrate(18);
+    void triggerFeedback("selection");
     Animated.parallel([
       Animated.timing(spin, {
         toValue: 1,

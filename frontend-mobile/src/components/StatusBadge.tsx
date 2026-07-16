@@ -2,6 +2,7 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { spacing } from "../constants/spacing";
+import { useThemeColors } from "../hooks/useThemeColors";
 import { designSystem, typography } from "../theme";
 
 type StatusBadgeProps = {
@@ -10,7 +11,8 @@ type StatusBadgeProps = {
 };
 
 export function StatusBadge({ label, tone }: StatusBadgeProps) {
-  const toneStyle = getToneStyle(tone);
+  const theme = useThemeColors();
+  const toneStyle = getToneStyle(tone, theme);
   const iconName = getToneIcon(tone);
 
   return (
@@ -56,38 +58,41 @@ function getToneIcon(
   }
 }
 
-function getToneStyle(tone: StatusBadgeProps["tone"]) {
+function getToneStyle(
+  tone: StatusBadgeProps["tone"],
+  theme: ReturnType<typeof useThemeColors>
+) {
   switch (tone) {
     case "success":
       return {
-        color: designSystem.colors.success,
-        backgroundColor: designSystem.colors.successSoft,
-        borderColor: designSystem.colors.successBorder,
+        color: theme.success,
+        backgroundColor: theme.successSoft,
+        borderColor: theme.successBorder,
       };
     case "danger":
       return {
-        color: designSystem.colors.danger,
-        backgroundColor: designSystem.colors.dangerSoft,
-        borderColor: designSystem.colors.dangerBorder,
+        color: theme.danger,
+        backgroundColor: theme.dangerSoft,
+        borderColor: theme.dangerBorder,
       };
     case "warning":
       return {
-        color: designSystem.colors.warning,
-        backgroundColor: designSystem.colors.warningSoft,
-        borderColor: designSystem.colors.warningBorder,
+        color: theme.warning,
+        backgroundColor: theme.warningSoft,
+        borderColor: theme.warningBorder,
       };
     case "info":
       return {
-        color: designSystem.colors.info,
-        backgroundColor: designSystem.colors.infoSoft,
-        borderColor: designSystem.colors.infoBorder,
+        color: theme.info,
+        backgroundColor: theme.infoSoft,
+        borderColor: theme.infoBorder,
       };
     case "neutral":
     default:
       return {
-        color: designSystem.colors.neutral,
-        backgroundColor: designSystem.colors.neutralSoft,
-        borderColor: designSystem.colors.neutralBorder,
+        color: theme.neutral,
+        backgroundColor: theme.neutralSoft,
+        borderColor: theme.neutralBorder,
       };
   }
 }

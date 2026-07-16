@@ -19,8 +19,9 @@ import { ProfileScreen } from "../screens/ProfileScreen";
 import { RatingScreen } from "../screens/RatingScreen";
 import { ReservationTrackingScreen } from "../screens/ReservationTrackingScreen";
 import { RestaurantDetailScreen } from "../screens/RestaurantDetailScreen";
-import { colors, typography } from "../theme";
-import { studentPalette } from "../theme/studentPalette";
+import { typography } from "../theme";
+import { useReduceMotion } from "../hooks/useReduceMotion";
+import { useThemeColors } from "../hooks/useThemeColors";
 import { ROUTES } from "./routes";
 import { StudentMainTabs } from "./StudentMainTabs";
 import { StudentStackParamList } from "./types";
@@ -28,15 +29,20 @@ import { StudentStackParamList } from "./types";
 const Stack = createNativeStackNavigator<StudentStackParamList>();
 
 export function StudentStackNavigator() {
+  const theme = useThemeColors();
+  const reduceMotion = useReduceMotion();
+
   return (
     <Stack.Navigator
       screenOptions={{
-        contentStyle: { backgroundColor: studentPalette.background },
-        headerStyle: { backgroundColor: studentPalette.background },
-        headerTintColor: colors.textPrimary,
+        animation: reduceMotion ? "none" : "slide_from_right",
+        animationDuration: reduceMotion ? 0 : 180,
+        contentStyle: { backgroundColor: theme.background },
+        headerStyle: { backgroundColor: theme.background },
+        headerTintColor: theme.textPrimary,
         headerTitleAlign: "center",
         headerTitleStyle: {
-          color: colors.textPrimary,
+          color: theme.textPrimary,
           fontWeight: typography.weights.bold,
           fontSize: typography.sizes.lg,
         },

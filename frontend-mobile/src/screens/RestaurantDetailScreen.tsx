@@ -80,7 +80,8 @@ const styles = StyleSheet.create({
     backgroundColor: studentPalette.background,
   },
   content: {
-    paddingBottom: spacing.xxxl,
+    gap: spacing.md,
+    paddingBottom: spacing.giant,
   },
   scroll: {
     flex: 1,
@@ -95,7 +96,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.94)",
+    backgroundColor: designSystem.colors.surfaceElevated,
     borderWidth: 1,
     borderColor: designSystem.colors.border,
   },

@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { Alert, FlatList, StyleSheet, Text, Vibration, View } from "react-native";
+import { Alert, FlatList, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import {
   NativeStackNavigationProp,
@@ -39,6 +39,7 @@ import {
 import { getRestaurants } from "../services/restaurantService";
 import { typography } from "../theme";
 import { studentPalette } from "../theme/studentPalette";
+import { triggerFeedback } from "../utils/haptics";
 import type { ReservationStatus } from "../types/models";
 
 type UnknownRecord = Record<string, unknown>;
@@ -172,7 +173,7 @@ export function MyReservationsScreen({
         message: payload?.message ?? "Tu reserva fue entregada correctamente.",
         reservationId: payload?.reservation_id,
       });
-      Vibration.vibrate(80);
+      void triggerFeedback("success");
       void reload();
     };
 

@@ -4,7 +4,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  Vibration,
   View,
 } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -12,7 +11,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import QRCode from "react-native-qrcode-svg";
 import type { Socket } from "socket.io-client";
 
-import { AppButton, Screen } from "../components";
+import { AppButton, Screen, StatusBadge } from "../components";
 import { spacing } from "../constants/spacing";
 import { useAuth } from "../context/AuthContext";
 import { useLocalFeedback } from "../context/LocalFeedbackContext";
@@ -32,6 +31,7 @@ import {
 import { designSystem, typography } from "../theme";
 import { studentPalette } from "../theme/studentPalette";
 import { Reservation, ReservationStatus } from "../types/models";
+import { triggerFeedback } from "../utils/haptics";
 
 type Props = NativeStackScreenProps<
   StudentStackParamList,
@@ -251,7 +251,7 @@ export function ReservationTrackingScreen({ navigation, route }: Props) {
         message: payload.message ?? "Tu reserva fue entregada correctamente.",
         reservationId: reservation.id,
       });
-      Vibration.vibrate(80);
+      void triggerFeedback("success");
       Alert.alert("Reserva entregada", "Tu reserva fue entregada correctamente.");
     };
 
@@ -310,6 +310,7 @@ export function ReservationTrackingScreen({ navigation, route }: Props) {
       });
       setQr(nextQr);
       setQrState("available");
+      void triggerFeedback("success");
       scheduleExpiry(nextQr.expiresAt);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message.toLowerCase() : "";
@@ -321,6 +322,7 @@ export function ReservationTrackingScreen({ navigation, route }: Props) {
             ? "Esta reserva ya fue entregada."
             : "No se pudo generar el QR."
       );
+      void triggerFeedback("error");
     }
   };
 
@@ -337,7 +339,19 @@ export function ReservationTrackingScreen({ navigation, route }: Props) {
             #{reservation.id.slice(0, 8)}
           </Text>
           <Text style={styles.subtitle}>{restaurantName}</Text>
-          <Text style={styles.status}>{statusLabel(reservation.status)}</Text>
+          <StatusBadge
+            label={statusLabel(reservation.status)}
+            tone={
+              reservation.status === "completed"
+                ? "success"
+                : reservation.status === "cancelled" ||
+                    reservation.status === "expired"
+                  ? "danger"
+                  : reservation.status === "pending_payment"
+                    ? "warning"
+                    : "info"
+            }
+          />
           <AppButton
             label={manualRefreshing ? "Actualizando..." : "Actualizar estado"}
             onPress={refreshReservationManually}
@@ -348,14 +362,18 @@ export function ReservationTrackingScreen({ navigation, route }: Props) {
         </View>
 
         <View style={styles.progressCard}>
-          {["Creada", "Pagada", "Entregada"].map((label, index) => (
+          {["Creada", "Confirmada", "Entregada"].map((label, index) => (
             <View key={label} style={styles.progressItem}>
               <View
                 style={[
                   styles.progressDot,
                   index <= progress && styles.progressDotActive,
                 ]}
-              />
+              >
+                <Text style={[styles.progressIcon, index <= progress && styles.progressIconActive]}>
+                  {index + 1}
+                </Text>
+              </View>
               <Text style={styles.progressLabel}>{label}</Text>
             </View>
           ))}
@@ -399,7 +417,9 @@ export function ReservationTrackingScreen({ navigation, route }: Props) {
               accessibilityRole="image"
               accessibilityLabel="Código QR de retiro disponible"
             >
-              <QRCode value={qr.pickupToken} size={210} />
+              <View style={styles.qrSurface}>
+                <QRCode value={qr.pickupToken} size={210} />
+              </View>
               <Text style={styles.qrHint}>Disponible hasta {new Date(qr.expiresAt).toLocaleTimeString()}</Text>
             </View>
           ) : (
@@ -460,11 +480,12 @@ const styles = StyleSheet.create({
   content: { gap: spacing.md, paddingBottom: spacing.xxxl },
   headerCard: {
     padding: spacing.lg,
-    borderRadius: 20,
-    backgroundColor: designSystem.colors.surface,
+    borderRadius: designSystem.radii.xl,
+    backgroundColor: designSystem.colors.surfaceElevated,
     borderWidth: 1,
     borderColor: designSystem.colors.border,
-    ...designSystem.shadows.sm,
+    ...designSystem.shadows.medium,
+    gap: spacing.sm,
   },
   eyebrow: {
     color: designSystem.colors.primary,
@@ -474,16 +495,11 @@ const styles = StyleSheet.create({
   title: {
     marginTop: spacing.xs,
     color: designSystem.colors.textPrimary,
-    fontSize: typography.sizes.xl,
-    fontWeight: typography.weights.bold,
+    fontSize: typography.roles.heroTitle.fontSize,
+    lineHeight: typography.roles.heroTitle.lineHeight,
+    fontWeight: typography.roles.heroTitle.fontWeight,
   },
   subtitle: { color: designSystem.colors.textSecondary, fontSize: typography.sizes.sm },
-  status: {
-    marginTop: spacing.sm,
-    color: designSystem.colors.success,
-    fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.bold,
-  },
   refreshButton: {
     marginTop: spacing.md,
   },
@@ -491,28 +507,44 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     padding: spacing.md,
-    borderRadius: 18,
-    backgroundColor: designSystem.colors.surface,
+    borderRadius: designSystem.radii.xl,
+    backgroundColor: designSystem.colors.surfaceElevated,
     borderWidth: 1,
     borderColor: designSystem.colors.border,
+    ...designSystem.shadows.low,
   },
   progressItem: { flex: 1, alignItems: "center", gap: spacing.xs },
   progressDot: {
-    width: 14,
-    height: 14,
+    width: 34,
+    height: 34,
     borderRadius: 999,
     backgroundColor: designSystem.colors.neutralSoft,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: designSystem.colors.neutralBorder,
   },
-  progressDotActive: { backgroundColor: designSystem.colors.primary },
+  progressDotActive: {
+    backgroundColor: designSystem.colors.primary,
+    borderColor: designSystem.colors.primary,
+  },
+  progressIcon: {
+    color: designSystem.colors.textMuted,
+    fontSize: typography.roles.caption.fontSize,
+    fontWeight: typography.weights.bold,
+  },
+  progressIconActive: {
+    color: designSystem.colors.textInverted,
+  },
   progressLabel: { color: designSystem.colors.textSecondary, fontSize: typography.sizes.xs },
   card: {
     gap: spacing.md,
     padding: spacing.lg,
-    borderRadius: 20,
-    backgroundColor: designSystem.colors.surface,
+    borderRadius: designSystem.radii.xl,
+    backgroundColor: designSystem.colors.surfaceElevated,
     borderWidth: 1,
     borderColor: designSystem.colors.border,
-    ...designSystem.shadows.sm,
+    ...designSystem.shadows.low,
   },
   sectionTitle: {
     color: designSystem.colors.textPrimary,
@@ -539,6 +571,13 @@ const styles = StyleSheet.create({
   },
   warning: { color: designSystem.colors.warning, fontSize: typography.sizes.sm },
   qrBox: { alignItems: "center", gap: spacing.md, paddingVertical: spacing.md },
+  qrSurface: {
+    padding: spacing.md,
+    borderRadius: designSystem.radii.lg,
+    backgroundColor: designSystem.colors.qrBackground,
+    borderWidth: 1,
+    borderColor: designSystem.colors.border,
+  },
   qrHint: { color: designSystem.colors.textMuted, fontSize: typography.sizes.xs },
   qrStateText: { color: designSystem.colors.textSecondary, fontSize: typography.sizes.sm },
   qrButton: { marginTop: spacing.sm },

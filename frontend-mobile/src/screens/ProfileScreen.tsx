@@ -118,6 +118,7 @@ export function ProfileScreen({
         />
 
         <View style={styles.actionsCard}>
+          <Text style={styles.sectionLabel}>Cuenta</Text>
           <ProfileAction
             iconName="heart-outline"
             label="Favoritos"
@@ -134,20 +135,22 @@ export function ProfileScreen({
             label="Notificaciones"
             onPress={() => navigation.navigate(ROUTES.Notifications)}
           />
+          <Text style={styles.sectionLabel}>Preferencias</Text>
           <ProfileAction
             iconName="theme-light-dark"
             label="Apariencia"
             onPress={() => navigation.navigate(ROUTES.Appearance)}
           />
           <ProfileAction
-            iconName="help-circle-outline"
-            label="Ayuda"
-            onPress={() => navigation.navigate(ROUTES.Help)}
-          />
-          <ProfileAction
             iconName="book-open-page-variant-outline"
             label="Onboarding"
             onPress={() => navigation.navigate(ROUTES.OnboardingReview)}
+          />
+          <Text style={styles.sectionLabel}>Soporte</Text>
+          <ProfileAction
+            iconName="help-circle-outline"
+            label="Ayuda"
+            onPress={() => navigation.navigate(ROUTES.Help)}
           />
           <ProfileAction
             iconName="star-outline"
@@ -212,12 +215,22 @@ const styles = StyleSheet.create({
   },
   actionsCard: {
     marginTop: spacing.md,
-    borderRadius: 20,
-    backgroundColor: designSystem.colors.surface,
+    borderRadius: designSystem.radii.xl,
+    backgroundColor: designSystem.colors.surfaceElevated,
     borderWidth: 1,
     borderColor: designSystem.colors.border,
     overflow: "hidden",
-    ...designSystem.shadows.sm,
+    ...designSystem.shadows.low,
+  },
+  sectionLabel: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xs,
+    color: designSystem.colors.textMuted,
+    fontSize: typography.roles.caption.fontSize,
+    lineHeight: typography.roles.caption.lineHeight,
+    fontWeight: typography.weights.bold,
+    textTransform: "uppercase",
   },
   actionRow: {
     minHeight: 54,

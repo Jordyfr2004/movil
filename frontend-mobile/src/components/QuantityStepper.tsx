@@ -1,9 +1,12 @@
-import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { spacing } from "../constants/spacing";
+import { useReduceMotion } from "../hooks/useReduceMotion";
+import { useThemeColors } from "../hooks/useThemeColors";
 import { designSystem, typography } from "../theme";
+import { triggerFeedback } from "../utils/haptics";
 
 type QuantityStepperProps = {
   value: number;
@@ -16,18 +19,58 @@ export function QuantityStepper({
   onChange,
   disabled = false,
 }: QuantityStepperProps) {
+  const theme = useThemeColors();
+  const reduceMotion = useReduceMotion();
+  const scale = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (reduceMotion) {
+      scale.setValue(1);
+      return;
+    }
+
+    scale.setValue(0.92);
+    Animated.spring(scale, {
+      toValue: 1,
+      ...designSystem.motion.spring,
+      useNativeDriver: true,
+    }).start();
+  }, [reduceMotion, scale, value]);
+
   return (
-    <View style={[styles.container, disabled && styles.disabled]}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: theme.surfaceSecondary,
+          borderColor: theme.border,
+        },
+        disabled && styles.disabled,
+      ]}
+    >
       <StepButton
         iconName="minus"
         disabled={disabled || value <= 1}
-        onPress={() => onChange(value - 1)}
+        onPress={() => {
+          void triggerFeedback("selection");
+          onChange(value - 1);
+        }}
       />
-      <Text style={styles.value}>{value}</Text>
+      <Animated.Text
+        style={[
+          styles.value,
+          { color: theme.textPrimary, transform: [{ scale }] },
+        ]}
+      >
+        {value}
+      </Animated.Text>
       <StepButton
         iconName="plus"
         disabled={disabled || value >= 99}
-        onPress={() => onChange(value + 1)}
+        onPress={() => {
+          void triggerFeedback("selection");
+          onChange(value + 1);
+        }}
       />
     </View>
   );
@@ -42,6 +85,8 @@ function StepButton({
   iconName: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
   onPress: () => void;
 }) {
+  const theme = useThemeColors();
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -49,6 +94,10 @@ function StepButton({
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
+        {
+          backgroundColor: theme.surfaceElevated,
+          borderColor: theme.primarySoft,
+        },
         pressed && !disabled && styles.pressed,
         disabled && styles.buttonDisabled,
       ]}
@@ -56,7 +105,7 @@ function StepButton({
       <MaterialCommunityIcons
         name={iconName}
         size={designSystem.iconSizes.sm}
-        color={designSystem.colors.primary}
+        color={disabled ? theme.textDisabled : theme.primary}
       />
     </Pressable>
   );
@@ -69,9 +118,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     padding: spacing.xs,
     borderRadius: designSystem.radii.pill,
-    backgroundColor: designSystem.colors.surfaceSecondary,
     borderWidth: 1,
-    borderColor: designSystem.colors.border,
   },
   disabled: {
     opacity: 0.55,
@@ -82,9 +129,7 @@ const styles = StyleSheet.create({
     borderRadius: designSystem.radii.pill,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: designSystem.colors.surfaceElevated,
     borderWidth: 1,
-    borderColor: designSystem.colors.primarySoft,
   },
   buttonDisabled: {
     opacity: 0.45,
@@ -94,7 +139,6 @@ const styles = StyleSheet.create({
   },
   value: {
     minWidth: 24,
-    color: designSystem.colors.textPrimary,
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.bold,
     textAlign: "center",

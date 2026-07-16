@@ -9,7 +9,8 @@ import {
 } from "react-native";
 
 import { spacing } from "../constants/spacing";
-import { colors, typography } from "../theme";
+import { typography } from "../theme";
+import { useThemeColors } from "../hooks/useThemeColors";
 import { Card } from "./Card";
 
 type LoadingStateProps = {
@@ -23,11 +24,15 @@ export function LoadingState({
   size = "small",
   style,
 }: LoadingStateProps) {
+  const theme = useThemeColors();
+
   return (
     <Card variant="compact" style={style}>
       <View style={styles.content}>
-        <ActivityIndicator size={size} color={colors.primary} />
-        <Text style={styles.message}>{message}</Text>
+        <ActivityIndicator size={size} color={theme.primary} />
+        <Text style={[styles.message, { color: theme.textSecondary }]}>
+          {message}
+        </Text>
       </View>
     </Card>
   );
@@ -42,6 +47,5 @@ const styles = StyleSheet.create({
   message: {
     fontSize: typography.roles.bodySmall.fontSize,
     lineHeight: typography.roles.bodySmall.lineHeight,
-    color: colors.textSecondary,
   },
 });

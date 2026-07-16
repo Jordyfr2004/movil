@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { spacing } from "../constants/spacing";
+import { useThemeColors } from "../hooks/useThemeColors";
 import { designSystem, typography } from "../theme";
 
 type FilterChipProps = {
@@ -20,7 +21,8 @@ export function FilterChip({
   tone = "neutral",
   onPress,
 }: FilterChipProps) {
-  const toneStyle = getChipTone(tone);
+  const theme = useThemeColors();
+  const toneStyle = getChipTone(tone, theme);
 
   return (
     <Pressable
@@ -43,7 +45,7 @@ export function FilterChip({
           size={designSystem.iconSizes.sm}
           color={
             selected
-              ? designSystem.colors.textInverted
+              ? theme.textInverted
               : toneStyle.color
           }
         />
@@ -51,7 +53,7 @@ export function FilterChip({
       <Text
         style={[
           styles.text,
-          { color: selected ? designSystem.colors.textInverted : toneStyle.color },
+          { color: selected ? theme.textInverted : toneStyle.color },
         ]}
       >
         {label}
@@ -60,32 +62,35 @@ export function FilterChip({
   );
 }
 
-function getChipTone(tone: NonNullable<FilterChipProps["tone"]>) {
+function getChipTone(
+  tone: NonNullable<FilterChipProps["tone"]>,
+  theme: ReturnType<typeof useThemeColors>
+) {
   switch (tone) {
     case "success":
       return {
-        color: designSystem.colors.success,
-        backgroundColor: designSystem.colors.successSoft,
-        borderColor: designSystem.colors.successBorder,
+        color: theme.success,
+        backgroundColor: theme.successSoft,
+        borderColor: theme.successBorder,
       };
     case "warning":
       return {
-        color: designSystem.colors.warning,
-        backgroundColor: designSystem.colors.warningSoft,
-        borderColor: designSystem.colors.warningBorder,
+        color: theme.warning,
+        backgroundColor: theme.warningSoft,
+        borderColor: theme.warningBorder,
       };
     case "error":
       return {
-        color: designSystem.colors.danger,
-        backgroundColor: designSystem.colors.dangerSoft,
-        borderColor: designSystem.colors.dangerBorder,
+        color: theme.danger,
+        backgroundColor: theme.dangerSoft,
+        borderColor: theme.dangerBorder,
       };
     case "neutral":
     default:
       return {
-        color: designSystem.colors.textSecondary,
-        backgroundColor: designSystem.colors.surface,
-        borderColor: designSystem.colors.border,
+        color: theme.textSecondary,
+        backgroundColor: theme.surface,
+        borderColor: theme.border,
       };
   }
 }

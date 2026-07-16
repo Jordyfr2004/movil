@@ -11,6 +11,7 @@ export * from "./ErrorMessage";
 export * from "./FilterChip";
 export * from "./FoodCard";
 export * from "./LoadingState";
+export * from "./PremiumSkeleton";
 export * from "./OfflineBanner";
 export * from "./QuantityStepper";
 export * from "./RestaurantCard";

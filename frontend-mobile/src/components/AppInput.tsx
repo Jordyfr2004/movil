@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
-import { colors, designSystem, typography } from "../theme";
+import { designSystem, typography } from "../theme";
 import { spacing } from "../constants/spacing";
+import { useThemeColors } from "../hooks/useThemeColors";
 
 type AppInputProps = {
   label: string;
@@ -32,25 +33,30 @@ export function AppInput({
   accessibilityLabel,
   accessibilityHint,
 }: AppInputProps) {
+  const theme = useThemeColors();
   const [isFocused, setIsFocused] = useState(false);
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={[styles.label, { color: theme.textSecondary }]}>{label}</Text>
       <TextInput
         style={[
           styles.input,
+          {
+            color: theme.textPrimary,
+            backgroundColor: isFocused ? theme.surface : theme.surfaceElevated,
+            borderColor: isFocused ? theme.primary : theme.border,
+          },
           multiline && styles.inputMultiline,
-          isFocused && styles.inputFocused,
         ]}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={colors.textMuted}
+        placeholderTextColor={theme.textMuted}
         secureTextEntry={secureTextEntry}
         keyboardType={keyboardType}
         autoCapitalize={autoCapitalize}
-        selectionColor={colors.primary}
+        selectionColor={theme.primary}
         multiline={multiline}
         numberOfLines={numberOfLines}
         maxLength={maxLength}
@@ -72,25 +78,17 @@ const styles = StyleSheet.create({
     fontSize: typography.roles.label.fontSize,
     lineHeight: typography.roles.label.lineHeight,
     fontWeight: typography.roles.label.fontWeight,
-    color: colors.textSecondary,
   },
   input: {
     borderWidth: 1,
-    borderColor: colors.border,
     borderRadius: designSystem.radii.input,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     minHeight: designSystem.components.input.minHeight,
     fontSize: typography.roles.body.fontSize,
     lineHeight: typography.roles.body.lineHeight,
-    color: colors.textPrimary,
-    backgroundColor: colors.surfaceElevated,
   },
   inputMultiline: {
     minHeight: 96,
-  },
-  inputFocused: {
-    borderColor: colors.primary,
-    backgroundColor: colors.surface,
   },
 });

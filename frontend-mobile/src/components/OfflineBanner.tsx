@@ -1,8 +1,10 @@
-import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { spacing } from "../constants/spacing";
+import { useReduceMotion } from "../hooks/useReduceMotion";
+import { useThemeColors } from "../hooks/useThemeColors";
 import { designSystem, typography } from "../theme";
 
 type OfflineBannerProps = {
@@ -16,13 +18,47 @@ export function OfflineBanner({
   message = "Sin conexión. Mostrando la información disponible.",
   onRetry,
 }: OfflineBannerProps) {
+  const theme = useThemeColors();
+  const reduceMotion = useReduceMotion();
+  const opacity = useRef(new Animated.Value(visible ? 1 : 0)).current;
+  const translateY = useRef(new Animated.Value(visible ? 0 : 10)).current;
+
+  useEffect(() => {
+    if (reduceMotion) {
+      opacity.setValue(visible ? 1 : 0);
+      translateY.setValue(visible ? 0 : 10);
+      return;
+    }
+
+    Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: visible ? 1 : 0,
+        duration: designSystem.motion.fast,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateY, {
+        toValue: visible ? 0 : 10,
+        duration: designSystem.motion.fast,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [opacity, reduceMotion, translateY, visible]);
+
   if (!visible) {
     return null;
   }
 
   return (
-    <View
-      style={styles.container}
+    <Animated.View
+      style={[
+        styles.container,
+        {
+          opacity,
+          transform: [{ translateY }],
+          backgroundColor: theme.warningSoft,
+          borderColor: theme.warningBorder,
+        },
+      ]}
       accessible
       accessibilityRole="alert"
       accessibilityLabel={message}
@@ -30,20 +66,28 @@ export function OfflineBanner({
       <MaterialCommunityIcons
         name="wifi-off"
         size={designSystem.iconSizes.sm}
-        color={designSystem.colors.warning}
+        color={theme.warning}
       />
-      <Text style={styles.text}>{message}</Text>
+      <Text style={[styles.text, { color: theme.warning }]}>{message}</Text>
       {onRetry ? (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Reintentar conexión"
           onPress={onRetry}
-          style={styles.retryButton}
+          style={[
+            styles.retryButton,
+            {
+              backgroundColor: theme.surfaceElevated,
+              borderColor: theme.warningBorder,
+            },
+          ]}
         >
-          <Text style={styles.retryText}>Reintentar</Text>
+          <Text style={[styles.retryText, { color: theme.warning }]}>
+            Reintentar
+          </Text>
         </Pressable>
       ) : null}
-    </View>
+    </Animated.View>
   );
 }
 
@@ -55,13 +99,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: designSystem.radii.md,
-    backgroundColor: designSystem.colors.warningSoft,
     borderWidth: 1,
-    borderColor: designSystem.colors.warningBorder,
   },
   text: {
     flex: 1,
-    color: designSystem.colors.warning,
     fontSize: typography.sizes.sm,
     lineHeight: typography.lineHeights.sm,
     fontWeight: typography.weights.semiBold,
@@ -71,12 +112,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: spacing.sm,
     borderRadius: designSystem.radii.pill,
-    backgroundColor: designSystem.colors.surfaceElevated,
     borderWidth: 1,
-    borderColor: designSystem.colors.warningBorder,
   },
   retryText: {
-    color: designSystem.colors.warning,
     fontSize: typography.sizes.xs,
     fontWeight: typography.weights.bold,
   },

@@ -47,12 +47,13 @@ export function RestaurantDetailHeader({
 
   return (
     <Animated.View style={{ opacity, transform: [{ translateY }] }}>
-      <Card style={styles.hero}>
+      <Card variant="featured" style={styles.hero}>
         <View style={styles.media}>
           {restaurant.imageUrl ? (
             <Image source={{ uri: restaurant.imageUrl }} style={styles.image} />
           ) : (
             <View style={styles.placeholder}>
+              <View style={styles.placeholderGlow} />
               <Text style={styles.placeholderInitial}>{initial}</Text>
               <MaterialCommunityIcons
                 name="storefront-outline"
@@ -104,20 +105,14 @@ const styles = StyleSheet.create({
   hero: {
     marginBottom: spacing.md,
     padding: spacing.sm,
-    borderRadius: 18,
-    borderColor: "rgba(240, 223, 201, 0.76)",
-    backgroundColor: studentPalette.card,
-    shadowColor: studentPalette.shadow,
-    shadowOpacity: 1,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 2,
+    borderRadius: designSystem.radii.xl,
+    overflow: "hidden",
   },
   media: {
-    height: 132,
-    borderRadius: 16,
+    height: 180,
+    borderRadius: designSystem.radii.image,
     overflow: "hidden",
-    backgroundColor: studentPalette.primaryFaint,
+    backgroundColor: studentPalette.cardMuted,
   },
   image: {
     width: "100%",
@@ -128,6 +123,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: spacing.xs,
+    overflow: "hidden",
+  },
+  placeholderGlow: {
+    position: "absolute",
+    width: 220,
+    height: 220,
+    borderRadius: 999,
+    right: -80,
+    top: -80,
+    backgroundColor: studentPalette.primarySoft,
+    opacity: 0.5,
   },
   placeholderInitial: {
     color: studentPalette.primary,
@@ -140,10 +146,10 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   name: {
-    fontSize: typography.sizes.xl,
-    fontWeight: typography.weights.bold,
+    fontSize: typography.roles.heroTitle.fontSize,
+    fontWeight: typography.roles.heroTitle.fontWeight,
     color: studentPalette.textPrimary,
-    lineHeight: typography.lineHeights.xl,
+    lineHeight: typography.roles.heroTitle.lineHeight,
   },
   locationRow: {
     flexDirection: "row",

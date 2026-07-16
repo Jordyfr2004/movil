@@ -26,6 +26,7 @@ import { ROUTES } from "../navigation/routes";
 import { StudentStackParamList } from "../navigation/types";
 import { designSystem, typography } from "../theme";
 import { studentPalette } from "../theme/studentPalette";
+import { triggerFeedback } from "../utils/haptics";
 
 type Props = NativeStackScreenProps<StudentStackParamList, typeof ROUTES.Cart>;
 
@@ -78,6 +79,7 @@ export function CartScreen({ navigation }: Props) {
       return;
     }
 
+    void triggerFeedback("warning");
     setPendingRemoval(removed);
     undoTimerRef.current = setTimeout(() => {
       setPendingRemoval(null);
@@ -91,6 +93,7 @@ export function CartScreen({ navigation }: Props) {
     }
 
     restoreItem(pendingRemoval);
+    void triggerFeedback("success");
     clearPendingRemoval();
   };
 
@@ -114,6 +117,7 @@ export function CartScreen({ navigation }: Props) {
             onPress={() => {
               clearPendingRemoval();
               clearCart();
+              void triggerFeedback("warning");
             }}
             style={({ pressed }) => [
               styles.clearButton,
@@ -314,12 +318,18 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: spacing.md,
     marginBottom: spacing.md,
+    padding: spacing.lg,
+    borderRadius: designSystem.radii.xl,
+    backgroundColor: designSystem.colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: designSystem.colors.border,
+    ...designSystem.shadows.low,
   },
   title: {
     color: designSystem.colors.textPrimary,
-    fontSize: typography.sizes.xl,
-    lineHeight: typography.lineHeights.xl,
-    fontWeight: typography.weights.bold,
+    fontSize: typography.roles.screenTitle.fontSize,
+    lineHeight: typography.roles.screenTitle.lineHeight,
+    fontWeight: typography.roles.screenTitle.fontWeight,
   },
   subtitle: {
     color: designSystem.colors.textSecondary,
@@ -356,11 +366,11 @@ const styles = StyleSheet.create({
   itemCard: {
     gap: spacing.md,
     padding: spacing.md,
-    borderRadius: 18,
-    backgroundColor: designSystem.colors.surface,
+    borderRadius: designSystem.radii.xl,
+    backgroundColor: designSystem.colors.surfaceElevated,
     borderWidth: 1,
-    borderColor: "rgba(240, 223, 201, 0.72)",
-    ...designSystem.shadows.sm,
+    borderColor: designSystem.colors.border,
+    ...designSystem.shadows.low,
   },
   itemTop: {
     flexDirection: "row",
@@ -368,13 +378,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   itemImage: {
-    width: 58,
-    height: 58,
-    borderRadius: 14,
+    width: 70,
+    height: 70,
+    borderRadius: designSystem.radii.image,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
-    backgroundColor: designSystem.colors.primaryFaint,
+    backgroundColor: designSystem.colors.surfaceSecondary,
   },
   image: {
     width: "100%",
@@ -386,9 +396,9 @@ const styles = StyleSheet.create({
   },
   itemName: {
     color: designSystem.colors.textPrimary,
-    fontSize: typography.sizes.md,
-    lineHeight: typography.lineHeights.md,
-    fontWeight: typography.weights.bold,
+    fontSize: typography.roles.cardTitle.fontSize,
+    lineHeight: typography.roles.cardTitle.lineHeight,
+    fontWeight: typography.roles.cardTitle.fontWeight,
   },
   itemPrice: {
     marginTop: spacing.xs,
@@ -420,10 +430,10 @@ const styles = StyleSheet.create({
   },
   notes: {
     minHeight: 40,
-    borderRadius: 12,
+    borderRadius: designSystem.radii.input,
     borderWidth: 1,
     borderColor: designSystem.colors.border,
-    backgroundColor: designSystem.colors.surface,
+    backgroundColor: designSystem.colors.surfaceElevated,
     paddingHorizontal: spacing.md,
     color: designSystem.colors.textPrimary,
     fontSize: typography.sizes.sm,
@@ -450,8 +460,12 @@ const styles = StyleSheet.create({
   },
   summary: {
     gap: spacing.sm,
-    paddingTop: spacing.md,
+    padding: spacing.lg,
+    borderRadius: designSystem.radii.xl,
     backgroundColor: studentPalette.background,
+    borderWidth: 1,
+    borderColor: designSystem.colors.border,
+    ...designSystem.shadows.medium,
   },
   summaryRow: {
     flexDirection: "row",
@@ -474,7 +488,8 @@ const styles = StyleSheet.create({
   },
   totalValue: {
     color: designSystem.colors.primary,
-    fontSize: typography.sizes.lg,
-    fontWeight: typography.weights.bold,
+    fontSize: typography.sizes.xxl,
+    lineHeight: typography.lineHeights.xxl,
+    fontWeight: typography.weights.extraBold,
   },
 });

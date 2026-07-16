@@ -30,7 +30,7 @@ export function ProfileUserCard({
 }: ProfileUserCardProps) {
   return (
     <>
-      <Card style={styles.card}>
+      <Card variant="featured" style={styles.card}>
         <View style={styles.profileRow}>
           <StudentVisualPlaceholder
             initial={initial}
@@ -168,14 +168,7 @@ function ProfileActionRow({
 const styles = StyleSheet.create({
   card: {
     position: "relative",
-    borderRadius: 18,
-    borderColor: studentPalette.border,
-    backgroundColor: studentPalette.card,
-    shadowColor: studentPalette.shadow,
-    shadowOpacity: 1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 1,
+    borderRadius: 24,
     overflow: "hidden",
   },
   profileRow: {
@@ -194,8 +187,8 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   name: {
-    fontSize: typography.sizes.lg,
-    fontWeight: typography.weights.bold,
+    fontSize: typography.roles.screenTitle.fontSize,
+    fontWeight: typography.roles.screenTitle.fontWeight,
     color: studentPalette.textPrimary,
     lineHeight: typography.lineHeights.lg,
   },
@@ -206,10 +199,10 @@ const styles = StyleSheet.create({
   },
   infoCard: {
     marginTop: spacing.sm,
-    borderRadius: 14,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: studentPalette.border,
-    backgroundColor: studentPalette.card,
+    backgroundColor: studentPalette.cardElevated,
     overflow: "hidden",
   },
   field: {

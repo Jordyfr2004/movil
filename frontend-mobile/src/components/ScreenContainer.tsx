@@ -10,6 +10,8 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { spacing } from "../constants/spacing";
 import { designSystem } from "../theme";
+import { useAppPreferences } from "../context/AppPreferencesContext";
+import { useThemeColors } from "../hooks/useThemeColors";
 
 type ScreenContainerProps = {
   children: ReactNode;
@@ -27,13 +29,18 @@ export function ScreenContainer({
   bottomInset = 0,
 }: ScreenContainerProps) {
   const insets = useSafeAreaInsets();
+  const theme = useThemeColors();
+  const { resolvedScheme } = useAppPreferences();
   void bottomInset;
 
   return (
-    <SafeAreaView edges={["top", "bottom"]} style={[styles.safeArea, style]}>
+    <SafeAreaView
+      edges={["top", "bottom"]}
+      style={[styles.safeArea, { backgroundColor: theme.background }, style]}
+    >
       <StatusBar
-        barStyle="dark-content"
-        backgroundColor={designSystem.colors.background}
+        barStyle={resolvedScheme === "dark" ? "light-content" : "dark-content"}
+        backgroundColor={theme.background}
       />
       <View
         style={[
@@ -54,7 +61,6 @@ export function ScreenContainer({
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: designSystem.colors.background,
   },
   content: {
     flex: 1,

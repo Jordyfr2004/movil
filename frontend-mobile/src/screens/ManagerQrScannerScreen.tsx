@@ -17,6 +17,7 @@ import {
 } from "../services/reservationService";
 import { designSystem, typography } from "../theme";
 import { studentPalette } from "../theme/studentPalette";
+import { triggerFeedback } from "../utils/haptics";
 
 function friendlyQrError(error: unknown) {
   const message = error instanceof Error ? error.message.toLowerCase() : "";
@@ -52,6 +53,7 @@ export function ManagerQrScannerScreen() {
     if (!token || !accessToken) return;
     if (!isOnline) {
       setError("Necesitas conexión a internet para validar el QR.");
+      void triggerFeedback("error");
       return;
     }
 
@@ -61,9 +63,11 @@ export function ManagerQrScannerScreen() {
       setScannedToken(token);
       const verified = await verifyPickupQr(accessToken, token);
       setReservation(verified);
+      void triggerFeedback("success");
     } catch (scanError: unknown) {
       setScannedToken(null);
       setError(friendlyQrError(scanError));
+      void triggerFeedback("error");
     } finally {
       setIsVerifying(false);
     }
@@ -94,8 +98,10 @@ export function ManagerQrScannerScreen() {
                 scannedToken
               );
               setReservation(delivered);
+              void triggerFeedback("success");
               Alert.alert("Entrega confirmada", "Reserva entregada correctamente.");
             } catch (confirmError: unknown) {
+              void triggerFeedback("error");
               Alert.alert("No se pudo confirmar", friendlyQrError(confirmError));
             } finally {
               setIsConfirming(false);
@@ -130,10 +136,12 @@ export function ManagerQrScannerScreen() {
 
   return (
     <Screen style={styles.container}>
-      <Text style={styles.title}>Escanear QR</Text>
-      <Text style={styles.description}>
-        Apunta la cámara al código del estudiante.
-      </Text>
+      <View style={styles.headerCard}>
+        <Text style={styles.title}>Escanear QR</Text>
+        <Text style={styles.description}>
+          Apunta la cámara al código del estudiante.
+        </Text>
+      </View>
 
       {!reservation ? (
         <View style={styles.cameraBox}>
@@ -143,6 +151,15 @@ export function ManagerQrScannerScreen() {
             barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
             onBarcodeScanned={handleBarcodeScanned}
           />
+          <View pointerEvents="none" style={styles.scanOverlay}>
+            <View style={styles.scanFrame}>
+              <View style={[styles.scanCorner, styles.scanCornerTopLeft]} />
+              <View style={[styles.scanCorner, styles.scanCornerTopRight]} />
+              <View style={[styles.scanCorner, styles.scanCornerBottomLeft]} />
+              <View style={[styles.scanCorner, styles.scanCornerBottomRight]} />
+            </View>
+            <Text style={styles.scanHint}>Mantén el QR dentro del marco</Text>
+          </View>
         </View>
       ) : (
         <View style={styles.resultCard}>
@@ -195,8 +212,9 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: studentPalette.background },
   title: {
     color: designSystem.colors.textPrimary,
-    fontSize: typography.sizes.xl,
-    fontWeight: typography.weights.bold,
+    fontSize: typography.roles.screenTitle.fontSize,
+    lineHeight: typography.roles.screenTitle.lineHeight,
+    fontWeight: typography.roles.screenTitle.fontWeight,
   },
   description: {
     marginTop: spacing.xs,
@@ -207,20 +225,80 @@ const styles = StyleSheet.create({
   permissionCard: {
     gap: spacing.md,
     padding: spacing.lg,
-    borderRadius: 20,
-    backgroundColor: designSystem.colors.surface,
+    borderRadius: designSystem.radii.xl,
+    backgroundColor: designSystem.colors.surfaceElevated,
     borderWidth: 1,
     borderColor: designSystem.colors.border,
-    ...designSystem.shadows.sm,
+    ...designSystem.shadows.low,
+  },
+  headerCard: {
+    gap: spacing.xs,
+    padding: spacing.lg,
+    borderRadius: designSystem.radii.xl,
+    backgroundColor: designSystem.colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: designSystem.colors.border,
+    ...designSystem.shadows.low,
   },
   cameraBox: {
     marginTop: spacing.lg,
     height: 360,
-    borderRadius: 22,
+    borderRadius: designSystem.radii.xl,
     overflow: "hidden",
     backgroundColor: "#000",
   },
   camera: { flex: 1 },
+  scanOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.18)",
+  },
+  scanFrame: {
+    width: 220,
+    height: 220,
+    borderRadius: designSystem.radii.xl,
+  },
+  scanCorner: {
+    position: "absolute",
+    width: 42,
+    height: 42,
+    borderColor: designSystem.colors.qrBackground,
+  },
+  scanCornerTopLeft: {
+    top: 0,
+    left: 0,
+    borderTopWidth: 4,
+    borderLeftWidth: 4,
+    borderTopLeftRadius: designSystem.radii.lg,
+  },
+  scanCornerTopRight: {
+    top: 0,
+    right: 0,
+    borderTopWidth: 4,
+    borderRightWidth: 4,
+    borderTopRightRadius: designSystem.radii.lg,
+  },
+  scanCornerBottomLeft: {
+    bottom: 0,
+    left: 0,
+    borderBottomWidth: 4,
+    borderLeftWidth: 4,
+    borderBottomLeftRadius: designSystem.radii.lg,
+  },
+  scanCornerBottomRight: {
+    bottom: 0,
+    right: 0,
+    borderBottomWidth: 4,
+    borderRightWidth: 4,
+    borderBottomRightRadius: designSystem.radii.lg,
+  },
+  scanHint: {
+    marginTop: spacing.lg,
+    color: designSystem.colors.qrBackground,
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.bold,
+  },
   feedback: {
     marginTop: spacing.md,
     color: designSystem.colors.textSecondary,
@@ -236,11 +314,11 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     marginTop: spacing.lg,
     padding: spacing.lg,
-    borderRadius: 20,
-    backgroundColor: designSystem.colors.surface,
+    borderRadius: designSystem.radii.xl,
+    backgroundColor: designSystem.colors.surfaceElevated,
     borderWidth: 1,
     borderColor: designSystem.colors.border,
-    ...designSystem.shadows.sm,
+    ...designSystem.shadows.medium,
   },
   cardTitle: {
     color: designSystem.colors.textPrimary,

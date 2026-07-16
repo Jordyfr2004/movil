@@ -4,6 +4,7 @@ import {
   FlatList,
   ListRenderItemInfo,
   RefreshControl,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -42,6 +43,8 @@ type HomeContentProps = {
   onOpenRestaurant: (restaurant: Restaurant) => void;
   onOpenOrders?: () => void;
   onOpenExplore?: () => void;
+  onOpenNotifications?: () => void;
+  onOpenProfile?: () => void;
   bottomInset?: number;
 };
 
@@ -111,6 +114,8 @@ export function HomeScreen({ navigation }: Props) {
         navigation.navigate(ROUTES.RestaurantDetail, { restaurant })
       }
       onOpenOrders={() => navigation.navigate(ROUTES.MyReservations)}
+      onOpenNotifications={() => navigation.navigate(ROUTES.Notifications)}
+      onOpenProfile={() => navigation.navigate(ROUTES.Profile)}
     />
   );
 }
@@ -119,6 +124,8 @@ export function HomeContent({
   onOpenRestaurant,
   onOpenOrders,
   onOpenExplore,
+  onOpenNotifications,
+  onOpenProfile,
   bottomInset = 0,
 }: HomeContentProps) {
   const { restaurants, loading, error, reload } = useRestaurants();
@@ -174,8 +181,11 @@ export function HomeContent({
       <HomeHero
         activeReservation={activeReservation}
         displayName={displayName}
+        onOpenNotifications={onOpenNotifications}
         onOpenOrders={onOpenOrders}
+        onOpenProfile={onOpenProfile}
         reservationsLoading={reservationsLoading}
+        restaurantCount={restaurants.length}
       />
 
       <AnimatedSection reduceMotion={reduceMotion}>
@@ -218,8 +228,8 @@ export function HomeContent({
       {!loading && !error && recommendedRestaurants.length > 0 ? (
         <AnimatedSection reduceMotion={reduceMotion}>
           <SectionHeader
-            title="Recomendados"
-            subtitle="Opciones disponibles para revisar ahora"
+            title="Para comer ahora"
+            subtitle="Restaurantes destacados con datos disponibles"
             actionLabel="Explorar"
             onActionPress={onOpenExplore}
           />
@@ -249,7 +259,7 @@ export function HomeContent({
             title="Restaurantes"
             subtitle={`${restaurants.length} ${
               restaurants.length === 1 ? "opción" : "opciones"
-            } activas`}
+            } para revisar`}
           />
         </AnimatedSection>
       ) : null}
@@ -308,16 +318,24 @@ export function HomeContent({
 function HomeHero({
   activeReservation,
   displayName,
+  onOpenNotifications,
   onOpenOrders,
+  onOpenProfile,
   reservationsLoading,
+  restaurantCount,
 }: {
   activeReservation?: ReservationListItem;
   displayName: string;
+  onOpenNotifications?: () => void;
   onOpenOrders?: () => void;
+  onOpenProfile?: () => void;
   reservationsLoading: boolean;
+  restaurantCount: number;
 }) {
   return (
     <View style={styles.hero}>
+      <View style={styles.heroBlobLarge} pointerEvents="none" />
+      <View style={styles.heroBlobSmall} pointerEvents="none" />
       <View style={styles.heroTopRow}>
         <View style={styles.greetingBlock}>
           <Text style={styles.greeting}>{getGreeting()},</Text>
@@ -326,9 +344,11 @@ function HomeHero({
           </Text>
         </View>
 
-        <View
+        <View style={styles.heroActions}>
+        <Pressable
           accessibilityRole="button"
           accessibilityLabel="Notificaciones"
+          onPress={onOpenNotifications}
           style={styles.notificationButton}
         >
           <MaterialCommunityIcons
@@ -336,6 +356,19 @@ function HomeHero({
             size={designSystem.iconSizes.md}
             color={designSystem.colors.primary}
           />
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Perfil"
+          onPress={onOpenProfile}
+          style={styles.profileButton}
+        >
+          <MaterialCommunityIcons
+            name="account-circle-outline"
+            size={designSystem.iconSizes.md}
+            color={designSystem.colors.secondary}
+          />
+        </Pressable>
         </View>
       </View>
 
@@ -343,6 +376,27 @@ function HomeHero({
       <Text style={styles.heroSubtitle}>
         Encuentra opciones del campus sin perder de vista tus pedidos.
       </Text>
+
+      <View style={styles.dailySummary}>
+        <View style={styles.summaryPill}>
+          <MaterialCommunityIcons
+            name="storefront-outline"
+            size={designSystem.iconSizes.sm}
+            color={designSystem.colors.primary}
+          />
+          <Text style={styles.summaryPillText}>
+            {restaurantCount} {restaurantCount === 1 ? "restaurante" : "restaurantes"}
+          </Text>
+        </View>
+        <View style={styles.summaryPill}>
+          <MaterialCommunityIcons
+            name="lightning-bolt-outline"
+            size={designSystem.iconSizes.sm}
+            color={designSystem.colors.secondary}
+          />
+          <Text style={styles.summaryPillText}>Pide en minutos</Text>
+        </View>
+      </View>
 
       {!reservationsLoading && activeReservation ? (
         <View style={styles.activeOrder}>
@@ -418,19 +472,46 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   listContent: {
-    gap: spacing.md,
+    gap: spacing.lg,
   },
   list: {
     flex: 1,
     backgroundColor: "transparent",
   },
   headerContent: {
-    gap: spacing.md,
+    gap: spacing.lg,
     paddingTop: spacing.sm,
   },
   hero: {
-    gap: spacing.sm,
-    paddingVertical: spacing.sm,
+    position: "relative",
+    gap: spacing.md,
+    padding: spacing.lg,
+    borderRadius: designSystem.radii.xl,
+    overflow: "hidden",
+    backgroundColor: designSystem.colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: designSystem.colors.border,
+    ...designSystem.shadows.medium,
+  },
+  heroBlobLarge: {
+    position: "absolute",
+    width: 180,
+    height: 180,
+    borderRadius: 999,
+    right: -58,
+    top: -70,
+    backgroundColor: designSystem.colors.primarySoft,
+    opacity: 0.46,
+  },
+  heroBlobSmall: {
+    position: "absolute",
+    width: 86,
+    height: 86,
+    borderRadius: 999,
+    left: -28,
+    bottom: -34,
+    backgroundColor: designSystem.colors.secondarySoft,
+    opacity: 0.72,
   },
   heroTopRow: {
     flexDirection: "row",
@@ -441,48 +522,85 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
   },
+  heroActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
   greeting: {
     color: designSystem.colors.textSecondary,
-    fontSize: typography.sizes.sm,
-    lineHeight: typography.lineHeights.sm,
+    fontSize: typography.roles.label.fontSize,
+    lineHeight: typography.roles.label.lineHeight,
     fontWeight: typography.weights.semiBold,
   },
   displayName: {
     color: designSystem.colors.textPrimary,
-    fontSize: typography.sizes.lg,
-    lineHeight: typography.lineHeights.lg,
-    fontWeight: typography.weights.bold,
+    fontSize: typography.roles.cardTitle.fontSize,
+    lineHeight: typography.roles.cardTitle.lineHeight,
+    fontWeight: typography.roles.cardTitle.fontWeight,
   },
   notificationButton: {
-    width: 38,
-    height: 38,
+    width: 40,
+    height: 40,
     borderRadius: designSystem.radii.pill,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: designSystem.colors.primaryFaint,
+    backgroundColor: designSystem.colors.surface,
+    borderWidth: 1,
+    borderColor: designSystem.colors.border,
+  },
+  profileButton: {
+    width: 40,
+    height: 40,
+    borderRadius: designSystem.radii.pill,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: designSystem.colors.secondarySoft,
+    borderWidth: 1,
+    borderColor: designSystem.colors.divider,
   },
   heroTitle: {
     color: designSystem.colors.textPrimary,
-    fontSize: typography.sizes.xl,
-    lineHeight: typography.lineHeights.xl,
-    fontWeight: typography.weights.bold,
-    marginTop: spacing.xs,
+    fontSize: typography.roles.heroTitle.fontSize,
+    lineHeight: typography.roles.heroTitle.lineHeight,
+    fontWeight: typography.roles.heroTitle.fontWeight,
   },
   heroSubtitle: {
     color: designSystem.colors.textSecondary,
-    fontSize: typography.sizes.sm,
-    lineHeight: typography.lineHeights.sm,
+    fontSize: typography.roles.bodySmall.fontSize,
+    lineHeight: typography.roles.bodySmall.lineHeight,
+    maxWidth: 310,
+  },
+  dailySummary: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+  },
+  summaryPill: {
+    minHeight: 34,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    borderRadius: designSystem.radii.pill,
+    backgroundColor: designSystem.colors.surface,
+    borderWidth: 1,
+    borderColor: designSystem.colors.border,
+  },
+  summaryPillText: {
+    color: designSystem.colors.textSecondary,
+    fontSize: typography.roles.caption.fontSize,
+    fontWeight: typography.weights.semiBold,
   },
   activeOrder: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.md,
     padding: spacing.sm,
-    borderRadius: designSystem.radii.md,
+    borderRadius: designSystem.radii.lg,
     backgroundColor: designSystem.colors.surface,
     borderWidth: 1,
-    borderColor: "rgba(240, 223, 201, 0.78)",
-    ...designSystem.shadows.sm,
+    borderColor: designSystem.colors.primarySoft,
   },
   activeOrderText: {
     flex: 1,

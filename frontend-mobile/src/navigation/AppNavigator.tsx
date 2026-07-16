@@ -52,6 +52,8 @@ import {
   colors,
   typography,
 } from "../theme";
+import { useReduceMotion } from "../hooks/useReduceMotion";
+import { useThemeColors } from "../hooks/useThemeColors";
 import { ROUTES } from "./routes";
 import { AdminDrawerNavigator } from "./AdminDrawerNavigator";
 import { StudentDrawerNavigator } from "./StudentDrawerNavigator";
@@ -350,6 +352,8 @@ function ProfileErrorScreen({
 }
 
 export function AppNavigator() {
+  const theme = useThemeColors();
+  const reduceMotion = useReduceMotion();
   const {
     isAuthenticated,
     isLoading,
@@ -945,19 +949,27 @@ export function AppNavigator() {
   }
 
   const commonStackScreenOptions = {
+    animation:
+      reduceMotion
+        ? "none"
+        : "slide_from_right",
+    animationDuration:
+      reduceMotion
+        ? 0
+        : 180,
     contentStyle: {
       backgroundColor:
-        colors.background,
+        theme.background,
     },
     headerStyle: {
       backgroundColor:
-        colors.background,
+        theme.background,
     },
     headerTintColor:
-      colors.textPrimary,
+      theme.textPrimary,
     headerTitleStyle: {
       color:
-        colors.textPrimary,
+        theme.textPrimary,
       fontWeight:
         typography.weights.semiBold,
       fontSize:

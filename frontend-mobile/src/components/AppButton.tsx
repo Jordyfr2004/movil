@@ -1,7 +1,8 @@
 import React from "react";
 import { ActivityIndicator, Pressable, StyleProp, StyleSheet, Text, ViewStyle } from "react-native";
-import { colors, designSystem, typography } from "../theme";
+import { designSystem, typography } from "../theme";
 import { spacing } from "../constants/spacing";
+import { useThemeColors } from "../hooks/useThemeColors";
 
 type AppButtonVariant =
   | "primary"
@@ -36,8 +37,10 @@ export function AppButton({
   accessibilityLabel,
   accessibilityHint,
 }: AppButtonProps) {
+  const theme = useThemeColors();
   const isDisabled = disabled || loading;
   const isDanger = variant === "danger" || variant === "destructive";
+  const onPrimary = theme.textInverted;
 
   return (
     <Pressable
@@ -51,12 +54,24 @@ export function AppButton({
         styles.base,
         size === "sm" ? styles.sizeSm : styles.sizeMd,
         size === "lg" && styles.sizeLg,
-        variant === "primary" && styles.primary,
+        variant === "primary" && { backgroundColor: theme.primary },
         variant === "secondary" && styles.secondary,
+        variant === "secondary" && {
+          backgroundColor: theme.primaryFaint,
+          borderColor: theme.primarySoft,
+        },
         variant === "outline" && styles.outline,
+        variant === "outline" && { borderColor: theme.borderStrong },
         variant === "ghost" && styles.ghost,
         isDanger && styles.danger,
-        variant === "floating" && styles.floating,
+        isDanger && {
+          backgroundColor: theme.dangerSoft,
+          borderColor: theme.dangerBorder,
+        },
+        variant === "floating" && {
+          backgroundColor: theme.primary,
+          borderRadius: designSystem.radii.floating,
+        },
         (variant === "primary" || variant === "floating") && styles.primaryShadow,
         pressed && !isDisabled && styles.pressed,
         isDisabled && styles.disabled,
@@ -68,8 +83,8 @@ export function AppButton({
           size="small"
           color={
             variant === "primary" || variant === "floating"
-              ? colors.onPrimary
-              : colors.primary
+              ? onPrimary
+              : theme.primary
           }
         />
       ) : null}
@@ -79,12 +94,12 @@ export function AppButton({
           size === "sm" && styles.labelSm,
           size === "lg" && styles.labelLg,
           (variant === "primary" || variant === "floating")
-            ? styles.labelOnPrimary
+            ? { color: onPrimary }
             : isDanger
-              ? styles.labelDanger
+              ? { color: theme.danger }
               : variant === "ghost"
-                ? styles.labelGhost
-                : styles.labelSecondary,
+                ? { color: theme.textSecondary }
+                : { color: theme.primary },
         ]}
       >
         {label}
@@ -116,30 +131,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     borderRadius: designSystem.radii.pill,
   },
-  primary: {
-    backgroundColor: colors.primary,
-  },
   secondary: {
-    backgroundColor: colors.primaryFaint,
     borderWidth: 1,
-    borderColor: colors.primarySoft,
   },
   outline: {
     backgroundColor: "transparent",
     borderWidth: 1,
-    borderColor: colors.borderStrong,
   },
   ghost: {
     backgroundColor: "transparent",
   },
   danger: {
-    backgroundColor: colors.errorSoft,
     borderWidth: 1,
-    borderColor: colors.errorBorder,
-  },
-  floating: {
-    backgroundColor: colors.primary,
-    borderRadius: designSystem.radii.floating,
   },
   primaryShadow: {
     ...designSystem.shadows.medium,
@@ -162,17 +165,5 @@ const styles = StyleSheet.create({
   },
   labelLg: {
     fontSize: typography.sizes.md,
-  },
-  labelOnPrimary: {
-    color: colors.onPrimary,
-  },
-  labelSecondary: {
-    color: colors.primary,
-  },
-  labelGhost: {
-    color: colors.textSecondary,
-  },
-  labelDanger: {
-    color: colors.error,
   },
 });

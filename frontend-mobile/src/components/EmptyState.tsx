@@ -3,7 +3,8 @@ import { StyleProp, StyleSheet, Text, View, ViewStyle } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { spacing } from "../constants/spacing";
-import { colors, typography } from "../theme";
+import { useThemeColors } from "../hooks/useThemeColors";
+import { typography } from "../theme";
 import { AppButton } from "./AppButton";
 import { Card } from "./Card";
 
@@ -24,22 +25,36 @@ export function EmptyState({
   onActionPress,
   style,
 }: EmptyStateProps) {
+  const theme = useThemeColors();
+
   return (
     <Card variant="empty" style={style}>
       <View style={styles.content}>
         {iconName ? (
-          <View style={styles.iconWrap}>
+          <View
+            style={[
+              styles.iconWrap,
+              {
+                backgroundColor: theme.primaryFaint,
+                borderColor: theme.primarySoft,
+              },
+            ]}
+          >
             <MaterialCommunityIcons
               name={iconName}
               size={24}
-              color={colors.primary}
+              color={theme.primary}
             />
           </View>
         ) : null}
 
         <View style={styles.textBlock}>
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.message}>{message}</Text>
+          <Text style={[styles.title, { color: theme.textPrimary }]}>
+            {title}
+          </Text>
+          <Text style={[styles.message, { color: theme.textSecondary }]}>
+            {message}
+          </Text>
         </View>
 
         {actionLabel && onActionPress ? (
@@ -68,12 +83,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.bold,
-    color: colors.textPrimary,
     textAlign: "center",
   },
   message: {
     fontSize: typography.sizes.sm,
-    color: colors.textSecondary,
     lineHeight: typography.lineHeights.sm,
     textAlign: "center",
   },
@@ -87,8 +100,6 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.primaryFaint,
     borderWidth: 1,
-    borderColor: colors.primarySoft,
   },
 });

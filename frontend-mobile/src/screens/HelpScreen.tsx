@@ -84,11 +84,21 @@ export function HelpScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: studentPalette.background },
-  header: { gap: spacing.xs, marginBottom: spacing.md },
+  header: {
+    gap: spacing.xs,
+    marginBottom: spacing.md,
+    padding: spacing.lg,
+    borderRadius: designSystem.radii.xl,
+    backgroundColor: designSystem.colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: designSystem.colors.border,
+    ...designSystem.shadows.low,
+  },
   title: {
     color: designSystem.colors.textPrimary,
-    fontSize: typography.sizes.xl,
-    fontWeight: typography.weights.bold,
+    fontSize: typography.roles.screenTitle.fontSize,
+    lineHeight: typography.roles.screenTitle.lineHeight,
+    fontWeight: typography.roles.screenTitle.fontWeight,
   },
   subtitle: {
     color: designSystem.colors.textSecondary,
@@ -108,11 +118,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.md,
     padding: spacing.md,
-    borderRadius: 18,
-    backgroundColor: designSystem.colors.surface,
+    borderRadius: designSystem.radii.xl,
+    backgroundColor: designSystem.colors.surfaceElevated,
     borderWidth: 1,
     borderColor: designSystem.colors.border,
-    ...designSystem.shadows.sm,
+    ...designSystem.shadows.low,
   },
   cardPressed: { backgroundColor: designSystem.colors.surfacePressed },
   icon: {

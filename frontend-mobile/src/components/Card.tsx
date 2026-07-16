@@ -8,7 +8,8 @@ import {
 } from "react-native";
 
 import { spacing } from "../constants/spacing";
-import { colors, designSystem } from "../theme";
+import { useThemeColors } from "../hooks/useThemeColors";
+import { designSystem } from "../theme";
 
 type CardVariant =
   | "default"
@@ -34,6 +35,7 @@ export function Card({
   variant = "default",
   ...rest
 }: CardProps) {
+  const theme = useThemeColors();
   const content = contentStyle ? (
     <View style={contentStyle}>{children}</View>
   ) : (
@@ -45,13 +47,24 @@ export function Card({
       {...rest}
       style={[
         styles.base,
-        variant === "muted" && styles.muted,
+        { backgroundColor: theme.surface, borderColor: theme.border },
+        variant === "muted" && {
+          backgroundColor: theme.surfaceSecondary,
+          borderColor: theme.divider,
+        },
         variant === "compact" && styles.compact,
         variant === "horizontal" && styles.horizontal,
         variant === "featured" && styles.featured,
+        variant === "featured" && {
+          backgroundColor: theme.surfaceElevated,
+          borderColor: theme.primarySoft,
+        },
         variant === "elevated" && styles.elevated,
+        variant === "elevated" && { backgroundColor: theme.surfaceElevated },
         variant === "interactive" && styles.interactive,
+        variant === "interactive" && { backgroundColor: theme.surfaceElevated },
         variant === "empty" && styles.empty,
+        variant === "empty" && { backgroundColor: theme.surfaceSecondary },
         variant === "default" && styles.default,
         style,
       ]}
@@ -65,16 +78,10 @@ const styles = StyleSheet.create({
   base: {
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: colors.border,
     padding: spacing.cardPadding,
-    backgroundColor: colors.surface,
   },
   default: {
     ...designSystem.shadows.low,
-  },
-  muted: {
-    backgroundColor: colors.surfaceSecondary,
-    borderColor: colors.divider,
   },
   compact: {
     borderRadius: designSystem.radii.cardSm,
@@ -88,21 +95,16 @@ const styles = StyleSheet.create({
   },
   featured: {
     borderRadius: designSystem.radii.cardLg,
-    backgroundColor: colors.surfaceElevated,
-    borderColor: colors.primarySoft,
     ...designSystem.shadows.medium,
   },
   elevated: {
-    backgroundColor: colors.surfaceElevated,
     ...designSystem.shadows.medium,
   },
   interactive: {
-    backgroundColor: colors.surfaceElevated,
     ...designSystem.shadows.low,
   },
   empty: {
     borderStyle: "dashed",
-    backgroundColor: colors.surfaceSecondary,
     ...designSystem.shadows.none,
   },
 });

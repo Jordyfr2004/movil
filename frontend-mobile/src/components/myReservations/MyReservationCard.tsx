@@ -208,15 +208,15 @@ function getStatusStyle(status: ReservationStatus) {
 const styles = StyleSheet.create({
   card: {
     position: "relative",
-    borderRadius: 16,
+    borderRadius: 20,
     borderColor: studentPalette.border,
-    backgroundColor: studentPalette.card,
+    backgroundColor: studentPalette.cardElevated,
     padding: spacing.sm,
     shadowColor: studentPalette.shadow,
     shadowOpacity: 1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 1,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
     overflow: "hidden",
   },
   pressed: {
@@ -316,8 +316,8 @@ const styles = StyleSheet.create({
   },
   reorderText: {
     color: studentPalette.primary,
-    fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.bold,
+    fontSize: typography.roles.cardTitle.fontSize,
+    fontWeight: typography.roles.cardTitle.fontWeight,
   },
   quickActions: {
     marginTop: spacing.sm,

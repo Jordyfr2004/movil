@@ -132,8 +132,9 @@ export function FoodDetailScreen({ navigation, route }: Props) {
                 <Image source={{ uri: dish.imageUrl }} style={styles.image} />
               ) : (
                 <View style={styles.placeholder}>
+                  <View style={styles.placeholderGlow} />
                   <MaterialCommunityIcons
-                    name="food-outline"
+                    name="food-variant"
                     size={44}
                     color={studentPalette.primary}
                   />
@@ -271,12 +272,13 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   media: {
-    height: 230,
-    borderRadius: 20,
+    height: 260,
+    borderRadius: designSystem.radii.xl,
     overflow: "hidden",
-    backgroundColor: studentPalette.primaryFaint,
+    backgroundColor: studentPalette.cardMuted,
     borderWidth: 1,
     borderColor: studentPalette.border,
+    ...designSystem.shadows.medium,
   },
   image: {
     width: "100%",
@@ -286,15 +288,26 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
+  },
+  placeholderGlow: {
+    position: "absolute",
+    width: 240,
+    height: 240,
+    borderRadius: 999,
+    right: -80,
+    top: -80,
+    backgroundColor: studentPalette.primarySoft,
+    opacity: 0.52,
   },
   card: {
     gap: spacing.md,
     padding: spacing.lg,
-    borderRadius: 20,
-    backgroundColor: studentPalette.card,
+    borderRadius: designSystem.radii.xl,
+    backgroundColor: studentPalette.cardElevated,
     borderWidth: 1,
-    borderColor: "rgba(240, 223, 201, 0.72)",
-    ...designSystem.shadows.sm,
+    borderColor: studentPalette.border,
+    ...designSystem.shadows.low,
   },
   titleRow: {
     flexDirection: "row",
@@ -313,14 +326,15 @@ const styles = StyleSheet.create({
   name: {
     marginTop: spacing.xs,
     color: designSystem.colors.textPrimary,
-    fontSize: typography.sizes.xl,
-    lineHeight: typography.lineHeights.xl,
-    fontWeight: typography.weights.bold,
+    fontSize: typography.roles.heroTitle.fontSize,
+    lineHeight: typography.roles.heroTitle.lineHeight,
+    fontWeight: typography.roles.heroTitle.fontWeight,
   },
   price: {
     color: designSystem.colors.primary,
-    fontSize: typography.sizes.lg,
-    fontWeight: typography.weights.bold,
+    fontSize: typography.roles.price.fontSize,
+    lineHeight: typography.roles.price.lineHeight,
+    fontWeight: typography.roles.price.fontWeight,
   },
   favoriteButton: {
     width: 38,
@@ -328,7 +342,9 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: designSystem.colors.primaryFaint,
+    backgroundColor: designSystem.colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: designSystem.colors.border,
   },
   description: {
     color: designSystem.colors.textSecondary,
@@ -404,10 +420,10 @@ const styles = StyleSheet.create({
   },
   notesInput: {
     minHeight: 92,
-    borderRadius: 16,
+    borderRadius: designSystem.radii.input,
     borderWidth: 1,
     borderColor: designSystem.colors.border,
-    backgroundColor: designSystem.colors.surface,
+    backgroundColor: designSystem.colors.surfaceElevated,
     padding: spacing.md,
     color: designSystem.colors.textPrimary,
     fontSize: typography.sizes.sm,
@@ -421,6 +437,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     backgroundColor: studentPalette.background,
+    borderTopWidth: 1,
+    borderTopColor: designSystem.colors.divider,
   },
   addButton: {
     width: "100%",

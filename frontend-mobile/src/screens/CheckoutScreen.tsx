@@ -3,7 +3,7 @@ import { Alert, FlatList, StyleSheet, Text, View } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useStripe } from "@stripe/stripe-react-native";
 
-import { AppButton, EmptyState, Screen } from "../components";
+import { AppButton, Card, EmptyState, Screen, StatusBadge } from "../components";
 import { spacing } from "../constants/spacing";
 import { STRIPE_PUBLISHABLE_KEY } from "../constants/stripe";
 import { useAuth } from "../context/AuthContext";
@@ -21,6 +21,7 @@ import { isSessionExpiryInProgress } from "../services/sessionExpiryService";
 import { designSystem, typography } from "../theme";
 import { studentPalette } from "../theme/studentPalette";
 import { Reservation } from "../types/models";
+import { triggerFeedback } from "../utils/haptics";
 
 type Props = NativeStackScreenProps<StudentStackParamList, typeof ROUTES.Checkout>;
 
@@ -117,6 +118,7 @@ export function CheckoutScreen({ navigation }: Props) {
     if (submitting) return;
 
     if (!isOnline) {
+      void triggerFeedback("error");
       Alert.alert(
         "Sin conexión",
         "Necesitas conexión a internet para crear y pagar una reserva."
@@ -125,11 +127,13 @@ export function CheckoutScreen({ navigation }: Props) {
     }
 
     if (!accessToken) {
+      void triggerFeedback("error");
       Alert.alert("Sesión requerida", "Inicia sesión para continuar.");
       return;
     }
 
     if (!STRIPE_PUBLISHABLE_KEY) {
+      void triggerFeedback("error");
       Alert.alert(
         "Falta configurar Stripe",
         "No se encontró la llave pública de Stripe."
@@ -189,6 +193,7 @@ export function CheckoutScreen({ navigation }: Props) {
       }
 
       clearCart();
+      void triggerFeedback("success");
       navigation.replace(ROUTES.ReservationTracking, {
         reservation: nextReservation,
       });
@@ -197,6 +202,7 @@ export function CheckoutScreen({ navigation }: Props) {
         return;
       }
 
+      void triggerFeedback("error");
       Alert.alert("Checkout incompleto", friendlyError(error));
     } finally {
       setSubmitting(false);
@@ -221,6 +227,10 @@ export function CheckoutScreen({ navigation }: Props) {
   return (
     <Screen style={styles.container}>
       <View style={styles.header}>
+        <View style={styles.stepPill}>
+          <Text style={styles.stepText}>Paso final</Text>
+          <StatusBadge label="Pago seguro" tone="info" />
+        </View>
         <Text style={styles.title}>Resumen final</Text>
         <Text style={styles.subtitle}>{restaurant.name}</Text>
       </View>
@@ -231,7 +241,7 @@ export function CheckoutScreen({ navigation }: Props) {
         keyExtractor={(item) => item.key}
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => (
-          <View style={styles.itemCard}>
+          <Card variant="compact" style={styles.itemCard}>
             <View style={styles.itemRow}>
               <View style={styles.itemText}>
                 <Text style={styles.itemName}>{item.name}</Text>
@@ -245,11 +255,16 @@ export function CheckoutScreen({ navigation }: Props) {
                 {item.quantity} x {formatMoney(item.price)}
               </Text>
             </View>
-          </View>
+          </Card>
         )}
       />
 
       <View style={styles.summary}>
+        <Text style={styles.sectionTitle}>Confirmación</Text>
+        <View style={styles.paymentHint}>
+          <Text style={styles.paymentHintTitle}>Método de pago</Text>
+          <Text style={styles.paymentHintText}>Se abrirá la hoja segura de Stripe.</Text>
+        </View>
         <View style={styles.summaryRow}>
           <Text style={styles.summaryLabel}>Subtotal</Text>
           <Text style={styles.summaryValue}>{formatMoney(subtotal)}</Text>
@@ -278,12 +293,30 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: spacing.md,
+    padding: spacing.lg,
+    borderRadius: designSystem.radii.xl,
+    backgroundColor: designSystem.colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: designSystem.colors.border,
+    ...designSystem.shadows.low,
+  },
+  stepPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  stepText: {
+    color: designSystem.colors.primary,
+    fontSize: typography.roles.label.fontSize,
+    fontWeight: typography.weights.bold,
   },
   title: {
     color: designSystem.colors.textPrimary,
-    fontSize: typography.sizes.xl,
-    lineHeight: typography.lineHeights.xl,
-    fontWeight: typography.weights.bold,
+    fontSize: typography.roles.screenTitle.fontSize,
+    lineHeight: typography.roles.screenTitle.lineHeight,
+    fontWeight: typography.roles.screenTitle.fontWeight,
   },
   subtitle: {
     color: designSystem.colors.textSecondary,
@@ -299,11 +332,6 @@ const styles = StyleSheet.create({
   },
   itemCard: {
     padding: spacing.md,
-    borderRadius: 16,
-    backgroundColor: designSystem.colors.surface,
-    borderWidth: 1,
-    borderColor: designSystem.colors.border,
-    ...designSystem.shadows.sm,
   },
   itemRow: {
     flexDirection: "row",
@@ -330,7 +358,35 @@ const styles = StyleSheet.create({
   },
   summary: {
     gap: spacing.sm,
-    paddingTop: spacing.md,
+    padding: spacing.lg,
+    borderRadius: designSystem.radii.xl,
+    backgroundColor: designSystem.colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: designSystem.colors.border,
+    ...designSystem.shadows.medium,
+  },
+  sectionTitle: {
+    color: designSystem.colors.textPrimary,
+    fontSize: typography.roles.sectionTitle.fontSize,
+    fontWeight: typography.roles.sectionTitle.fontWeight,
+  },
+  paymentHint: {
+    gap: spacing.xs,
+    padding: spacing.md,
+    borderRadius: designSystem.radii.lg,
+    backgroundColor: designSystem.colors.infoSoft,
+    borderWidth: 1,
+    borderColor: designSystem.colors.infoBorder,
+  },
+  paymentHintTitle: {
+    color: designSystem.colors.info,
+    fontSize: typography.roles.label.fontSize,
+    fontWeight: typography.weights.bold,
+  },
+  paymentHintText: {
+    color: designSystem.colors.textSecondary,
+    fontSize: typography.roles.bodySmall.fontSize,
+    lineHeight: typography.roles.bodySmall.lineHeight,
   },
   summaryRow: {
     flexDirection: "row",
@@ -352,7 +408,8 @@ const styles = StyleSheet.create({
   },
   totalValue: {
     color: designSystem.colors.primary,
-    fontSize: typography.sizes.lg,
-    fontWeight: typography.weights.bold,
+    fontSize: typography.sizes.xxl,
+    lineHeight: typography.lineHeights.xxl,
+    fontWeight: typography.weights.extraBold,
   },
 });

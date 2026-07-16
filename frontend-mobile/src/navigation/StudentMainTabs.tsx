@@ -27,12 +27,13 @@ import {
   RestaurantCard,
   ScreenContainer,
   SectionHeader,
-  SkeletonCard,
+  PremiumSkeleton,
 } from "../components";
 import { spacing } from "../constants/spacing";
 import { useFavorites } from "../context/FavoritesContext";
 import { useRestaurants } from "../hooks/useRestaurants";
 import { useReduceMotion } from "../hooks/useReduceMotion";
+import { useThemeColors } from "../hooks/useThemeColors";
 import { Dish, getPublicDishesByRestaurant } from "../services/dishService";
 import { MyReservationsScreen } from "../screens/MyReservationsScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
@@ -69,6 +70,7 @@ const TABS: Array<{
 
 export function StudentMainTabs({ navigation }: Props) {
   const [activeTab, setActiveTab] = useState<TabKey>("home");
+  const theme = useThemeColors();
   const insets = useSafeAreaInsets();
   const tabBottomPadding = Math.max(insets.bottom, spacing.xs);
   const bottomInset = TAB_BAR_HEIGHT + tabBottomPadding + spacing.md;
@@ -83,13 +85,15 @@ export function StudentMainTabs({ navigation }: Props) {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <TabScene activeTab={activeTab}>
         {activeTab === "home" ? (
           <HomeContent
             bottomInset={bottomInset}
             onOpenExplore={() => setActiveTab("explore")}
+            onOpenNotifications={() => navigation.navigate(ROUTES.Notifications)}
             onOpenOrders={() => setActiveTab("orders")}
+            onOpenProfile={() => setActiveTab("profile")}
             onOpenRestaurant={openRestaurant}
           />
         ) : null}
@@ -127,6 +131,8 @@ export function StudentMainTabs({ navigation }: Props) {
           styles.tabBar,
           {
             paddingBottom: tabBottomPadding,
+            backgroundColor: theme.surfaceElevated,
+            borderColor: theme.border,
           },
         ]}
       >
@@ -190,6 +196,7 @@ function TabButton({
   label: string;
   onPress: () => void;
 }) {
+  const theme = useThemeColors();
   const scale = useRef(new Animated.Value(active ? 1 : 0)).current;
   const reduceMotion = useReduceMotion();
 
@@ -225,7 +232,11 @@ function TabButton({
       <Animated.View
         style={[
           styles.tabIconWrap,
-          active && styles.tabIconWrapActive,
+          active && {
+            backgroundColor: theme.primaryFaint,
+            borderColor: theme.primarySoft,
+            borderWidth: 1,
+          },
           { transform: [{ scale: indicatorScale }] },
         ]}
       >
@@ -234,12 +245,17 @@ function TabButton({
           size={designSystem.iconSizes.sm}
           color={
             active
-              ? designSystem.colors.primary
-              : designSystem.colors.textMuted
+              ? theme.primary
+              : theme.textMuted
           }
         />
       </Animated.View>
-      <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
+      <Text
+        style={[
+          styles.tabLabel,
+          { color: active ? theme.primary : theme.textMuted },
+        ]}
+      >
         {label}
       </Text>
     </Pressable>
@@ -253,6 +269,7 @@ function ExploreTab({
   bottomInset: number;
   onOpenRestaurant: (restaurant: Restaurant, dish?: Dish) => void;
 }) {
+  const theme = useThemeColors();
   const { restaurants, loading, error, reload } = useRestaurants();
   const [dishResults, setDishResults] = useState<ExploreResult[]>([]);
   const [dishLoading, setDishLoading] = useState(false);
@@ -347,18 +364,26 @@ function ExploreTab({
         subtitle="Todos los restaurantes activos"
       />
 
-      <View style={styles.searchBar}>
+      <View
+        style={[
+          styles.searchBar,
+          {
+            backgroundColor: theme.surfaceElevated,
+            borderColor: theme.border,
+          },
+        ]}
+      >
         <MaterialCommunityIcons
           name="magnify"
           size={designSystem.iconSizes.sm}
-          color={designSystem.colors.textMuted}
+          color={theme.textMuted}
         />
         <TextInput
           value={query}
           onChangeText={setQuery}
           placeholder="Buscar restaurante o plato"
-          placeholderTextColor={designSystem.colors.textMuted}
-          style={styles.searchInput}
+          placeholderTextColor={theme.textMuted}
+          style={[styles.searchInput, { color: theme.textPrimary }]}
         />
       </View>
 
@@ -411,8 +436,8 @@ function ExploreTab({
 
       {isLoading ? (
         <View style={styles.feedbackStack}>
-          <SkeletonCard />
-          <SkeletonCard />
+          <PremiumSkeleton kind="restaurant" />
+          <PremiumSkeleton kind="dish" />
         </View>
       ) : resolvedError ? (
         <ErrorState
@@ -469,6 +494,7 @@ function ExploreDishResult({
   result: ExploreResult;
   onOpenDish: (restaurant: Restaurant, dish: Dish) => void;
 }) {
+  const theme = useThemeColors();
   const reduceMotion = useReduceMotion();
   const opacity = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
   const translateY = useRef(new Animated.Value(reduceMotion ? 0 : 10)).current;
@@ -509,38 +535,60 @@ function ExploreDishResult({
         onPress={() => onOpenDish(restaurant, dish)}
         style={({ pressed }) => [
           styles.resultCard,
+          {
+            backgroundColor: theme.surfaceElevated,
+            borderColor: theme.border,
+          },
           pressed && styles.resultPressed,
+          pressed && { backgroundColor: theme.primaryFaint },
         ]}
       >
-        <View style={styles.resultMedia}>
+        <View
+          style={[
+            styles.resultMedia,
+            { backgroundColor: theme.surfaceSecondary },
+          ]}
+        >
           {dish.imageUrl ? (
             <Image source={{ uri: dish.imageUrl }} style={styles.resultImage} />
           ) : (
             <MaterialCommunityIcons
               name="food-outline"
               size={designSystem.iconSizes.lg}
-              color={designSystem.colors.primary}
+              color={theme.primary}
             />
           )}
         </View>
         <View style={styles.resultText}>
-          <Text style={styles.resultRestaurant} numberOfLines={1}>
+          <Text
+            style={[styles.resultRestaurant, { color: theme.primary }]}
+            numberOfLines={1}
+          >
             {restaurant.name}
           </Text>
-          <Text style={styles.resultName} numberOfLines={2}>
+          <Text
+            style={[styles.resultName, { color: theme.textPrimary }]}
+            numberOfLines={2}
+          >
             {dish.name}
           </Text>
           {dish.description ? (
-            <Text style={styles.resultDescription} numberOfLines={1}>
+            <Text
+              style={[styles.resultDescription, { color: theme.textSecondary }]}
+              numberOfLines={1}
+            >
               {dish.description}
             </Text>
           ) : null}
           <View style={styles.resultMeta}>
-            <Text style={styles.resultPrice}>${dish.price}</Text>
+            <Text style={[styles.resultPrice, { color: theme.primary }]}>
+              ${dish.price}
+            </Text>
             <Text
               style={[
-                styles.resultStatus,
-                isAvailable ? styles.available : styles.unavailable,
+              {
+                color: isAvailable ? theme.success : theme.neutral,
+              },
               ]}
             >
               {isAvailable ? "Disponible" : "No disponible"}
@@ -554,18 +602,24 @@ function ExploreDishResult({
             event.stopPropagation();
             toggleDish(restaurant, dish);
           }}
-          style={styles.resultFavorite}
+          style={[
+            styles.resultFavorite,
+            {
+              backgroundColor: theme.surfaceSecondary,
+              borderColor: theme.border,
+            },
+          ]}
         >
           <MaterialCommunityIcons
-            name={favorite ? "heart" : "heart-outline"}
-            size={designSystem.iconSizes.md}
-            color={designSystem.colors.primary}
-          />
+          name={favorite ? "heart" : "heart-outline"}
+          size={designSystem.iconSizes.md}
+          color={theme.primary}
+        />
         </Pressable>
         <MaterialCommunityIcons
           name="chevron-right"
           size={designSystem.iconSizes.md}
-          color={designSystem.colors.textMuted}
+          color={theme.textMuted}
         />
       </Pressable>
     </Animated.View>
@@ -581,6 +635,7 @@ function FavoritesTab({
   onExplore: () => void;
   onOpenRestaurant: (restaurant: Restaurant, dish?: Dish) => void;
 }) {
+  const theme = useThemeColors();
   const { restaurants: favoriteRestaurants, dishes: favoriteDishes } =
     useFavorites();
   const { restaurants } = useRestaurants();
@@ -694,14 +749,14 @@ function FavoritesTab({
               <MaterialCommunityIcons
                 name="heart-outline"
                 size={designSystem.iconSizes.lg}
-                color={designSystem.colors.primary}
+                color={theme.primary}
               />
             </View>
             <View style={styles.favoriteIconSmall}>
               <MaterialCommunityIcons
                 name="storefront-outline"
                 size={designSystem.iconSizes.sm}
-                color={designSystem.colors.secondary}
+                color={theme.secondary}
               />
             </View>
           </View>
@@ -721,7 +776,16 @@ function FavoritesTab({
           contentContainerStyle={{ gap: spacing.sm, paddingBottom: bottomInset + spacing.xxl }}
           renderItem={({ item }) => {
             if (item.type === "section") {
-              return <Text style={styles.favoriteSectionTitle}>{item.title}</Text>;
+              return (
+                <Text
+                  style={[
+                    styles.favoriteSectionTitle,
+                    { color: theme.textPrimary },
+                  ]}
+                >
+                  {item.title}
+                </Text>
+              );
             }
 
             if (item.type === "restaurant") {
@@ -744,33 +808,50 @@ function FavoritesTab({
                 onPress={() => onOpenRestaurant(item.restaurant, item.dish)}
                 style={({ pressed }) => [
                   styles.favoriteDishCard,
+                  {
+                    backgroundColor: theme.surface,
+                    borderColor: theme.border,
+                  },
                   pressed && styles.resultPressed,
+                  pressed && { backgroundColor: theme.primaryFaint },
                 ]}
               >
-                <View style={styles.resultMedia}>
+                <View
+                  style={[
+                    styles.resultMedia,
+                    { backgroundColor: theme.surfaceSecondary },
+                  ]}
+                >
                   {item.dish.imageUrl ? (
                     <Image source={{ uri: item.dish.imageUrl }} style={styles.resultImage} />
                   ) : (
                     <MaterialCommunityIcons
                       name="food-outline"
                       size={designSystem.iconSizes.lg}
-                      color={designSystem.colors.primary}
+                      color={theme.primary}
                     />
                   )}
                 </View>
                 <View style={styles.resultText}>
-                  <Text style={styles.resultRestaurant} numberOfLines={1}>
+                  <Text
+                    style={[styles.resultRestaurant, { color: theme.primary }]}
+                    numberOfLines={1}
+                  >
                     {item.restaurant.name}
                   </Text>
-                  <Text style={styles.resultName} numberOfLines={2}>
+                  <Text
+                    style={[styles.resultName, { color: theme.textPrimary }]}
+                    numberOfLines={2}
+                  >
                     {item.dish.name}
                   </Text>
                   <View style={styles.resultMeta}>
-                    <Text style={styles.resultPrice}>${item.dish.price}</Text>
+                    <Text style={[styles.resultPrice, { color: theme.primary }]}>
+                      ${item.dish.price}
+                    </Text>
                     <Text
                       style={[
-                        styles.resultStatus,
-                        available ? styles.available : styles.unavailable,
+                        { color: available ? theme.success : theme.neutral },
                       ]}
                     >
                       {available ? "Disponible" : "No disponible"}
@@ -789,7 +870,6 @@ function FavoritesTab({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: designSystem.colors.background,
   },
   scene: {
     flex: 1,
@@ -806,9 +886,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingTop: spacing.xs,
     borderRadius: designSystem.radii.xl,
-    backgroundColor: designSystem.colors.surfaceElevated,
     borderWidth: 1,
-    borderColor: designSystem.colors.border,
     ...designSystem.shadows.medium,
   },
   tabButton: {
@@ -828,44 +906,35 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  tabIconWrapActive: {
-    backgroundColor: designSystem.colors.primaryFaint,
-    borderWidth: 1,
-    borderColor: designSystem.colors.primarySoft,
-  },
   tabLabel: {
-    color: designSystem.colors.textMuted,
     fontSize: 10,
     lineHeight: 13,
     fontWeight: typography.weights.semiBold,
   },
-  tabLabelActive: {
-    color: designSystem.colors.primary,
-  },
   explore: {
-    gap: spacing.sm,
+    gap: spacing.md,
   },
   searchBar: {
-    minHeight: 42,
+    minHeight: 52,
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: designSystem.radii.md,
-    backgroundColor: designSystem.colors.surface,
+    paddingHorizontal: spacing.lg,
+    borderRadius: designSystem.radii.xl,
+    backgroundColor: designSystem.colors.surfaceElevated,
     borderWidth: 1,
-    borderColor: "rgba(240, 223, 201, 0.72)",
-    ...designSystem.shadows.sm,
+    borderColor: designSystem.colors.border,
+    ...designSystem.shadows.low,
   },
   searchInput: {
     flex: 1,
-    color: designSystem.colors.textPrimary,
-    fontSize: typography.sizes.sm,
+    fontSize: typography.roles.bodySmall.fontSize,
     paddingVertical: spacing.sm,
   },
   filterRow: {
     flexDirection: "row",
     gap: spacing.sm,
+    flexWrap: "wrap",
     paddingBottom: spacing.xs,
   },
   exploreList: {
@@ -873,29 +942,29 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
   },
   resultCard: {
-    minHeight: 96,
+    minHeight: 108,
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.md,
-    padding: spacing.sm,
-    borderRadius: 18,
-    backgroundColor: designSystem.colors.surface,
+    padding: spacing.md,
+    borderRadius: designSystem.radii.xl,
+    backgroundColor: designSystem.colors.surfaceElevated,
     borderWidth: 1,
-    borderColor: "rgba(240, 223, 201, 0.72)",
-    ...designSystem.shadows.sm,
+    borderColor: designSystem.colors.border,
+    ...designSystem.shadows.low,
   },
   resultPressed: {
     transform: [{ scale: 0.99 }],
     backgroundColor: designSystem.colors.primaryFaint,
   },
   resultMedia: {
-    width: 72,
-    height: 72,
-    borderRadius: 16,
+    width: 84,
+    height: 84,
+    borderRadius: designSystem.radii.image,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
-    backgroundColor: designSystem.colors.primaryFaint,
+    backgroundColor: designSystem.colors.surfaceSecondary,
   },
   resultImage: {
     width: "100%",
@@ -908,14 +977,14 @@ const styles = StyleSheet.create({
   },
   resultRestaurant: {
     color: designSystem.colors.primary,
-    fontSize: typography.sizes.xs,
+    fontSize: typography.roles.caption.fontSize,
     fontWeight: typography.weights.bold,
   },
   resultName: {
     color: designSystem.colors.textPrimary,
-    fontSize: typography.sizes.md,
-    lineHeight: typography.lineHeights.md,
-    fontWeight: typography.weights.bold,
+    fontSize: typography.roles.cardTitle.fontSize,
+    lineHeight: typography.roles.cardTitle.lineHeight,
+    fontWeight: typography.roles.cardTitle.fontWeight,
   },
   resultDescription: {
     color: designSystem.colors.textSecondary,
@@ -935,22 +1004,19 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: designSystem.colors.primaryFaint,
+    backgroundColor: designSystem.colors.surfaceSecondary,
+    borderWidth: 1,
+    borderColor: designSystem.colors.border,
   },
   resultPrice: {
     color: designSystem.colors.primary,
-    fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.bold,
+    fontSize: typography.roles.price.fontSize,
+    lineHeight: typography.roles.price.lineHeight,
+    fontWeight: typography.roles.price.fontWeight,
   },
   resultStatus: {
     fontSize: typography.sizes.xs,
     fontWeight: typography.weights.bold,
-  },
-  available: {
-    color: designSystem.colors.success,
-  },
-  unavailable: {
-    color: designSystem.colors.neutral,
   },
   flexList: {
     flex: 1,

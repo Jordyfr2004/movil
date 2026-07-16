@@ -3,6 +3,7 @@ import { StyleProp, StyleSheet, Text, View, ViewStyle } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { spacing } from "../constants/spacing";
+import { useThemeColors } from "../hooks/useThemeColors";
 import { designSystem, typography } from "../theme";
 import { AppButton } from "./AppButton";
 
@@ -14,17 +15,30 @@ type ErrorStateProps = {
 };
 
 export function ErrorState({ title, message, onRetry, style }: ErrorStateProps) {
+  const theme = useThemeColors();
+
   return (
-    <View style={[styles.container, style]}>
-      <View style={styles.icon}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: theme.surfaceElevated,
+          borderColor: theme.dangerBorder,
+        },
+        style,
+      ]}
+    >
+      <View style={[styles.icon, { backgroundColor: theme.dangerSoft }]}>
         <MaterialCommunityIcons
           name="alert-circle-outline"
           size={designSystem.iconSizes.lg}
-          color={designSystem.colors.danger}
+          color={theme.danger}
         />
       </View>
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.message}>{message}</Text>
+      <Text style={[styles.title, { color: theme.textPrimary }]}>{title}</Text>
+      <Text style={[styles.message, { color: theme.textSecondary }]}>
+        {message}
+      </Text>
       {onRetry ? (
         <AppButton label="Reintentar" onPress={onRetry} size="sm" />
       ) : null}
@@ -38,9 +52,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     padding: spacing.lg,
     borderRadius: designSystem.radii.xl,
-    backgroundColor: designSystem.colors.surfaceElevated,
     borderWidth: 1,
-    borderColor: designSystem.colors.dangerBorder,
     ...designSystem.shadows.low,
   },
   icon: {
@@ -49,16 +61,13 @@ const styles = StyleSheet.create({
     borderRadius: designSystem.radii.pill,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: designSystem.colors.dangerSoft,
   },
   title: {
-    color: designSystem.colors.textPrimary,
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.bold,
     textAlign: "center",
   },
   message: {
-    color: designSystem.colors.textSecondary,
     fontSize: typography.sizes.sm,
     lineHeight: typography.lineHeights.sm,
     textAlign: "center",
