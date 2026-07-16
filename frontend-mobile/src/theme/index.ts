@@ -1,8 +1,9 @@
 import { DefaultTheme } from "@react-navigation/native";
 import { colors } from "./colors";
+import { designSystem } from "./designSystem";
 import { typography } from "./typography";
 
-export { colors, typography };
+export { colors, designSystem, typography };
 
 export const appTheme = {
   ...DefaultTheme,

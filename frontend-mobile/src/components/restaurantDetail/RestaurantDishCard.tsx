@@ -1,9 +1,17 @@
-import React from "react";
-import { Image, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useRef } from "react";
+import {
+  Animated,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 import { spacing } from "../../constants/spacing";
+import { useReduceMotion } from "../../hooks/useReduceMotion";
 import type { Dish } from "../../services/dishService";
-import { typography } from "../../theme";
+import { designSystem, typography } from "../../theme";
 import { studentPalette } from "../../theme/studentPalette";
 import { StudentStatusPill } from "../StudentStatusPill";
 import { StudentVisualPlaceholder } from "../StudentVisualPlaceholder";
@@ -15,6 +23,7 @@ type RestaurantDishCardProps = {
   isReserved: boolean;
   isReserving: boolean;
   isReservationBusy: boolean;
+  index?: number;
   onReserve: (dishId: string) => void;
 };
 
@@ -24,61 +33,101 @@ export function RestaurantDishCard({
   isReserved,
   isReserving,
   isReservationBusy,
+  index = 0,
   onReserve,
 }: RestaurantDishCardProps) {
   const dishId = String(dish.id);
   const hasImage = Boolean(dish.imageUrl);
+  const isDisabled = isReservationBusy || isReserved || isCheckingReservation;
+  const reduceMotion = useReduceMotion();
+  const opacity = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
+  const translateY = useRef(new Animated.Value(reduceMotion ? 0 : 10)).current;
+
+  useEffect(() => {
+    if (reduceMotion) {
+      opacity.setValue(1);
+      translateY.setValue(0);
+      return;
+    }
+
+    Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: designSystem.animation.normal,
+        delay: Math.min(index * 45, 180),
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: designSystem.animation.normal,
+        delay: Math.min(index * 45, 180),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [index, opacity, reduceMotion, translateY]);
 
   return (
-    <View style={[styles.card, isReserved && styles.cardReserved]}>
-      {hasImage ? (
-        <Image
-          source={{ uri: dish.imageUrl }}
-          style={styles.image}
-          resizeMode="cover"
-        />
-      ) : (
-        <StudentVisualPlaceholder
-          iconName="food-variant"
-          label={`Plato ${dish.name}`}
-          size="sm"
-          style={styles.image}
-          variant="dish"
-        />
-      )}
-
-      <View style={styles.content}>
-        <View style={styles.titleRow}>
-          <Text style={styles.dishName} numberOfLines={2}>
-            {dish.name}
-          </Text>
-
-          {!dish.isAvailable || !dish.isActive ? (
-            <StudentStatusPill label="No disponible" tone="neutral" />
-          ) : null}
-        </View>
-
-        {dish.description ? (
-          <Text style={styles.dishMeta} numberOfLines={2}>
-            {dish.description}
-          </Text>
-        ) : null}
-
-        <View style={styles.bottomRow}>
-          <Text style={styles.dishPrice} numberOfLines={1}>
-            ${dish.price}
-          </Text>
-
-          <RestaurantReserveButton
-            dishName={dish.name}
-            disabled={isReservationBusy || isReserved || isCheckingReservation}
-            isReserved={isReserved}
-            isReserving={isReserving}
-            onPress={() => onReserve(dishId)}
+    <Animated.View style={{ opacity, transform: [{ translateY }] }}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Reservar ${dish.name}`}
+        disabled={isDisabled}
+        onPress={() => onReserve(dishId)}
+        style={({ pressed }) => [
+          styles.card,
+          isReserved && styles.cardReserved,
+          pressed && !isDisabled && styles.cardPressed,
+        ]}
+      >
+        {hasImage ? (
+          <Image
+            source={{ uri: dish.imageUrl }}
+            style={styles.image}
+            resizeMode="cover"
           />
+        ) : (
+          <StudentVisualPlaceholder
+            iconName="food-variant"
+            label={`Plato ${dish.name}`}
+            size="sm"
+            style={styles.image}
+            variant="dish"
+          />
+        )}
+
+        <View style={styles.content}>
+          <View style={styles.titleRow}>
+            <Text style={styles.dishName} numberOfLines={2}>
+              {dish.name}
+            </Text>
+
+            {!dish.isAvailable || !dish.isActive ? (
+              <StudentStatusPill label="No disponible" tone="neutral" />
+            ) : null}
+          </View>
+
+          {dish.description ? (
+            <Text style={styles.dishMeta} numberOfLines={2}>
+              {dish.description}
+            </Text>
+          ) : null}
+
+          <View style={styles.bottomRow}>
+            <Text style={styles.dishPrice} numberOfLines={1}>
+              ${dish.price}
+            </Text>
+
+            <RestaurantReserveButton
+              dishName={dish.name}
+              disabled={isDisabled}
+              isReserved={isReserved}
+              isReserving={isReserving}
+              onPress={() => onReserve(dishId)}
+            />
+          </View>
         </View>
-      </View>
-    </View>
+      </Pressable>
+    </Animated.View>
   );
 }
 
@@ -88,24 +137,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.md,
     padding: spacing.sm,
-    borderRadius: 22,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: studentPalette.border,
     backgroundColor: studentPalette.card,
     shadowColor: studentPalette.shadow,
     shadowOpacity: 1,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 2,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 1,
+  },
+  cardPressed: {
+    transform: [{ scale: 0.99 }],
+    backgroundColor: studentPalette.primaryFaint,
   },
   cardReserved: {
     opacity: 0.75,
     backgroundColor: "#F3F3F3",
   },
   image: {
-    width: 112,
-    height: 96,
-    borderRadius: 16,
+    width: 86,
+    height: 78,
+    borderRadius: 14,
     backgroundColor: studentPalette.primaryFaint,
   },
   content: {
@@ -140,9 +193,9 @@ const styles = StyleSheet.create({
   dishPrice: {
     flex: 1,
     minWidth: 58,
-    fontSize: 20,
+    fontSize: typography.sizes.lg,
     fontWeight: typography.weights.bold,
     color: studentPalette.primary,
-    lineHeight: 26,
+    lineHeight: typography.lineHeights.lg,
   },
 });

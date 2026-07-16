@@ -1,7 +1,6 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import Svg, { Path } from "react-native-svg";
 
 import { spacing } from "../../constants/spacing";
 import { typography } from "../../theme";
@@ -22,28 +21,6 @@ export function MyReservationsHeader({
 }: MyReservationsHeaderProps) {
   return (
     <Card style={styles.header}>
-      <View
-        style={styles.decor}
-        pointerEvents="none"
-        accessible={false}
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-      >
-        <Svg
-          width="100%"
-          height={58}
-          viewBox="0 0 360 58"
-          preserveAspectRatio="none"
-          style={styles.decorWave}
-        >
-          <Path
-            d="M0 34 C72 16 139 52 217 36 C284 22 326 18 360 28 V58 H0 Z"
-            fill={studentPalette.primaryPale}
-          />
-        </Svg>
-        <View style={styles.decorCircle} />
-      </View>
-
       <View style={styles.headingRow}>
         <View style={styles.titleGroup}>
           <View style={styles.icon}>
@@ -76,35 +53,17 @@ export function MyReservationsHeader({
 const styles = StyleSheet.create({
   header: {
     position: "relative",
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
     padding: spacing.md,
-    borderRadius: 22,
+    borderRadius: 18,
     borderColor: studentPalette.border,
-    backgroundColor: studentPalette.cardMuted,
+    backgroundColor: studentPalette.card,
     shadowColor: studentPalette.shadow,
     shadowOpacity: 1,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 1,
     overflow: "hidden",
-  },
-  decor: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  decorWave: {
-    position: "absolute",
-    right: 0,
-    bottom: 0,
-    left: 0,
-  },
-  decorCircle: {
-    position: "absolute",
-    width: 96,
-    height: 96,
-    borderRadius: 999,
-    right: -34,
-    top: -28,
-    backgroundColor: "rgba(247, 101, 2, 0.07)",
   },
   headingRow: {
     flexDirection: "row",
@@ -120,9 +79,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   icon: {
-    width: 36,
-    height: 36,
-    borderRadius: 13,
+    width: 32,
+    height: 32,
+    borderRadius: 11,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: studentPalette.card,
@@ -131,15 +90,15 @@ const styles = StyleSheet.create({
   },
   title: {
     flex: 1,
-    fontSize: 26,
+    fontSize: typography.sizes.xl,
     fontWeight: typography.weights.bold,
     color: studentPalette.textPrimary,
-    lineHeight: 32,
+    lineHeight: typography.lineHeights.xl,
   },
   subtitle: {
     marginTop: spacing.sm,
-    fontSize: typography.sizes.sm,
+    fontSize: typography.sizes.xs,
     color: studentPalette.textSecondary,
-    lineHeight: typography.lineHeights.sm,
+    lineHeight: typography.lineHeights.xs,
   },
 });

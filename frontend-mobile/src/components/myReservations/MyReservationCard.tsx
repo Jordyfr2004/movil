@@ -132,14 +132,14 @@ function getStatusStyle(status: ReservationStatus) {
 const styles = StyleSheet.create({
   card: {
     position: "relative",
-    borderRadius: 20,
+    borderRadius: 16,
     borderColor: studentPalette.border,
     backgroundColor: studentPalette.card,
     padding: spacing.sm,
     shadowColor: studentPalette.shadow,
     shadowOpacity: 1,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
     elevation: 1,
     overflow: "hidden",
   },
@@ -180,9 +180,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   visual: {
-    width: 58,
-    height: 58,
-    borderRadius: 16,
+    width: 50,
+    height: 50,
+    borderRadius: 14,
   },
   content: {
     flex: 1,
@@ -196,18 +196,18 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     flex: 1,
-    fontSize: typography.sizes.md,
+    fontSize: typography.sizes.sm,
     fontWeight: typography.weights.bold,
     color: studentPalette.textPrimary,
-    lineHeight: typography.lineHeights.md,
+    lineHeight: typography.lineHeights.sm,
   },
   statusPill: {
     maxWidth: 132,
   },
   restaurantName: {
-    fontSize: typography.sizes.sm,
+    fontSize: typography.sizes.xs,
     color: studentPalette.textSecondary,
-    lineHeight: typography.lineHeights.sm,
+    lineHeight: typography.lineHeights.xs,
   },
   metaRow: {
     flexDirection: "row",
@@ -216,8 +216,8 @@ const styles = StyleSheet.create({
   },
   cardDate: {
     flex: 1,
-    fontSize: typography.sizes.sm,
+    fontSize: typography.sizes.xs,
     color: studentPalette.textMuted,
-    lineHeight: typography.lineHeights.sm,
+    lineHeight: typography.lineHeights.xs,
   },
 });

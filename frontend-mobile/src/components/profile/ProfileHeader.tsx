@@ -30,7 +30,7 @@ export function ProfileHeader() {
 
 const styles = StyleSheet.create({
   header: {
-    marginBottom: spacing.xs,
+    marginBottom: 0,
   },
   titleRow: {
     flexDirection: "row",
@@ -38,9 +38,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   icon: {
-    width: 36,
-    height: 36,
-    borderRadius: 13,
+    width: 32,
+    height: 32,
+    borderRadius: 11,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: studentPalette.card,
@@ -52,14 +52,14 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   title: {
-    fontSize: 22,
+    fontSize: typography.sizes.xl,
     fontWeight: typography.weights.bold,
     color: studentPalette.textPrimary,
-    lineHeight: 28,
+    lineHeight: typography.lineHeights.xl,
   },
   subtitle: {
-    fontSize: typography.sizes.sm,
+    fontSize: typography.sizes.xs,
     color: studentPalette.textSecondary,
-    lineHeight: typography.lineHeights.sm,
+    lineHeight: typography.lineHeights.xs,
   },
 });

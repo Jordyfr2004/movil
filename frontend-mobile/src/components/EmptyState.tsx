@@ -25,7 +25,7 @@ export function EmptyState({
   style,
 }: EmptyStateProps) {
   return (
-    <Card variant="muted" style={style}>
+    <Card style={style}>
       <View style={styles.content}>
         {iconName ? (
           <MaterialCommunityIcons
@@ -57,6 +57,7 @@ export function EmptyState({
 
 const styles = StyleSheet.create({
   content: {
+    alignItems: "center",
     gap: spacing.sm,
   },
   textBlock: {
@@ -66,14 +67,16 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.bold,
     color: colors.textPrimary,
+    textAlign: "center",
   },
   message: {
     fontSize: typography.sizes.sm,
     color: colors.textSecondary,
     lineHeight: typography.lineHeights.sm,
+    textAlign: "center",
   },
   action: {
-    alignItems: "flex-start",
+    alignItems: "center",
     marginTop: spacing.xs,
   },
 });

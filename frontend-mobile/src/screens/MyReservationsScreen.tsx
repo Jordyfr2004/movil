@@ -3,7 +3,6 @@ import { Alert, FlatList, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useStripe } from "@stripe/stripe-react-native";
-import Svg, { Path } from "react-native-svg";
 
 import {
   MyReservationCard,
@@ -103,7 +102,9 @@ function readErrorMessage(error: unknown, fallback: string): string {
     : fallback;
 }
 
-export function MyReservationsScreen({}: Props) {
+export function MyReservationsScreen({
+  bottomInset = 0,
+}: Partial<Props> & { bottomInset?: number }) {
   const { accessToken } = useAuth();
   const { reservations, loading, error, reload } = useReservations(accessToken);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -279,9 +280,14 @@ export function MyReservationsScreen({}: Props) {
 
     return (
       <FlatList
+        style={styles.list}
         data={reservationRows}
         keyExtractor={(item) => item.key}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[
+          styles.listContent,
+          { paddingBottom: bottomInset + spacing.xxl },
+        ]}
+        showsVerticalScrollIndicator={false}
         renderItem={({ item }) =>
           item.type === "section" ? (
             <ReservationSectionHeader
@@ -305,27 +311,6 @@ export function MyReservationsScreen({}: Props) {
 
   return (
     <Screen style={styles.container}>
-      <View
-        style={styles.backgroundDecor}
-        pointerEvents="none"
-        accessible={false}
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-      >
-        <Svg
-          width="100%"
-          height={120}
-          viewBox="0 0 360 120"
-          preserveAspectRatio="none"
-          style={styles.backgroundWave}
-        >
-          <Path
-            d="M0 0 H360 V62 C298 88 233 36 160 58 C95 80 47 84 0 66 Z"
-            fill={studentPalette.backgroundStrong}
-          />
-        </Svg>
-      </View>
-
       <MyReservationsHeader
         activeCount={activeCount}
         hasError={Boolean(error)}
@@ -391,29 +376,22 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: studentPalette.background,
   },
-  backgroundDecor: {
-    ...StyleSheet.absoluteFillObject,
-    overflow: "hidden",
-  },
-  backgroundWave: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    left: 0,
-  },
   listContent: {
     gap: spacing.sm,
-    paddingBottom: spacing.xxl,
+  },
+  list: {
+    flex: 1,
+    backgroundColor: "transparent",
   },
   statusSection: {
-    marginTop: spacing.sm,
+    marginTop: spacing.lg,
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
   },
   statusAccent: {
-    width: 4,
-    height: 32,
+    width: 3,
+    height: 28,
     borderRadius: 999,
   },
   accentWarning: {
@@ -454,7 +432,7 @@ const styles = StyleSheet.create({
   },
   feedbackState: {
     marginTop: spacing.sm,
-    borderRadius: 20,
+    borderRadius: 16,
     borderColor: studentPalette.border,
     backgroundColor: studentPalette.card,
     shadowColor: studentPalette.shadow,

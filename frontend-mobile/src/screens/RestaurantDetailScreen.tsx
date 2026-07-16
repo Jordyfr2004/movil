@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from "react";
-import { Alert, ScrollView, StyleSheet, View } from "react-native";
+import { Alert, ScrollView, StyleSheet } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import Svg, { Path } from "react-native-svg";
 
 import {
   RestaurantDetailHeader,
@@ -94,28 +93,8 @@ export function RestaurantDetailScreen({ navigation, route }: Props) {
 
   return (
     <Screen style={styles.container}>
-      <View
-        style={styles.backgroundDecor}
-        pointerEvents="none"
-        accessible={false}
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-      >
-        <Svg
-          width="100%"
-          height={120}
-          viewBox="0 0 360 120"
-          preserveAspectRatio="none"
-          style={styles.backgroundWave}
-        >
-          <Path
-            d="M0 0 H360 V62 C292 88 229 36 158 58 C91 80 43 84 0 66 Z"
-            fill={studentPalette.backgroundStrong}
-          />
-        </Svg>
-      </View>
-
       <ScrollView
+        style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
@@ -142,17 +121,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: studentPalette.background,
   },
-  backgroundDecor: {
-    ...StyleSheet.absoluteFillObject,
-    overflow: "hidden",
-  },
-  backgroundWave: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    left: 0,
-  },
   content: {
-    paddingBottom: spacing.xxl,
+    paddingBottom: spacing.xxxl,
+  },
+  scroll: {
+    flex: 1,
+    backgroundColor: "transparent",
   },
 });

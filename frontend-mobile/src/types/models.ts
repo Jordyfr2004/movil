@@ -15,6 +15,8 @@ export type Restaurant = {
   description?: string;
   openingTime?: string;
   closingTime?: string;
+  imageUrl?: string | null;
+  imagePath?: string | null;
   createdAt?: string;
   updatedAt?: string;
 };

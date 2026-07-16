@@ -1,20 +1,22 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Alert, ScrollView, StyleSheet, View } from "react-native";
-import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import Svg, { Path } from "react-native-svg";
 
 import { ProfileHeader, ProfileUserCard } from "../components/profile";
 import { Screen } from "../components/Screen";
 import { spacing } from "../constants/spacing";
 import { useAuth } from "../context/AuthContext";
 import { ROUTES } from "../navigation/routes";
-import { RootStackParamList } from "../navigation/types";
 import { getProfileBestEffort, UserProfile } from "../services/userService";
 import { studentPalette } from "../theme/studentPalette";
 
-type Props = NativeStackScreenProps<RootStackParamList, typeof ROUTES.Profile>;
+type Props = {
+  navigation: {
+    navigate: (routeName: typeof ROUTES.MyReservations) => void;
+  };
+  bottomInset?: number;
+};
 
-export function ProfileScreen({ navigation }: Props) {
+export function ProfileScreen({ navigation, bottomInset = 0 }: Props) {
   const { accessToken, logout, user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -89,29 +91,12 @@ export function ProfileScreen({ navigation }: Props) {
 
   return (
     <Screen style={styles.container}>
-      <View
-        style={styles.backgroundDecor}
-        pointerEvents="none"
-        accessible={false}
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-      >
-        <Svg
-          width="100%"
-          height={120}
-          viewBox="0 0 360 120"
-          preserveAspectRatio="none"
-          style={styles.backgroundWave}
-        >
-          <Path
-            d="M0 0 H360 V62 C296 88 232 36 158 58 C94 80 47 84 0 66 Z"
-            fill={studentPalette.backgroundStrong}
-          />
-        </Svg>
-      </View>
-
       <ScrollView
-        contentContainerStyle={styles.content}
+        style={styles.scroll}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: bottomInset + spacing.xxl },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         <ProfileHeader />
@@ -132,20 +117,13 @@ export function ProfileScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: studentPalette.background,
-  },
-  backgroundDecor: {
-    ...StyleSheet.absoluteFillObject,
-    overflow: "hidden",
-  },
-  backgroundWave: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    left: 0,
+    backgroundColor: studentPalette.backgroundSoft,
   },
   content: {
-    gap: spacing.md,
-    paddingBottom: spacing.xxl,
+    gap: spacing.sm,
+  },
+  scroll: {
+    flex: 1,
+    backgroundColor: "transparent",
   },
 });

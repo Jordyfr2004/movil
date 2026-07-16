@@ -130,6 +130,24 @@ function normalizeRestaurant(
         item.imagePath
     ),
 
+    location: readString(
+      item.location
+    ),
+
+    description: readString(
+      item.description
+    ),
+
+    openingTime: readString(
+      item.opening_time ??
+        item.openingTime
+    ),
+
+    closingTime: readString(
+      item.closing_time ??
+        item.closingTime
+    ),
+
     createdAt: readString(
       item.created_at ??
         item.createdAt

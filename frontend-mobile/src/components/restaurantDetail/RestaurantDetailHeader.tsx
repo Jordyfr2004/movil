@@ -1,15 +1,14 @@
-import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { Animated, Image, StyleSheet, Text, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import Svg, { Path } from "react-native-svg";
 
 import { spacing } from "../../constants/spacing";
-import { typography } from "../../theme";
+import { useReduceMotion } from "../../hooks/useReduceMotion";
+import { designSystem, typography } from "../../theme";
 import { studentPalette } from "../../theme/studentPalette";
 import type { Restaurant } from "../../types/models";
 import { Card } from "../Card";
 import { StudentStatusPill } from "../StudentStatusPill";
-import { StudentVisualPlaceholder } from "../StudentVisualPlaceholder";
 import { RestaurantDetailSchedule } from "./RestaurantDetailSchedule";
 
 type RestaurantDetailHeaderProps = {
@@ -21,38 +20,48 @@ export function RestaurantDetailHeader({
   restaurant,
   initial,
 }: RestaurantDetailHeaderProps) {
-  return (
-    <Card style={styles.hero}>
-      <View
-        style={styles.heroDecor}
-        pointerEvents="none"
-        accessible={false}
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-      >
-        <Svg
-          width="100%"
-          height={58}
-          viewBox="0 0 360 58"
-          preserveAspectRatio="none"
-          style={styles.heroWave}
-        >
-          <Path
-            d="M0 34 C78 16 146 52 224 36 C288 22 329 18 360 28 V58 H0 Z"
-            fill={studentPalette.primaryPale}
-          />
-        </Svg>
-        <View style={styles.heroGlow} />
-      </View>
+  const reduceMotion = useReduceMotion();
+  const opacity = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
+  const translateY = useRef(new Animated.Value(reduceMotion ? 0 : 12)).current;
 
-      <View style={styles.contentRow}>
-        <StudentVisualPlaceholder
-          initial={initial}
-          label={`Restaurante ${restaurant.name}`}
-          size="md"
-          style={styles.visual}
-          variant="restaurant"
-        />
+  useEffect(() => {
+    if (reduceMotion) {
+      opacity.setValue(1);
+      translateY.setValue(0);
+      return;
+    }
+
+    Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: designSystem.animation.normal,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: designSystem.animation.normal,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [opacity, reduceMotion, translateY]);
+
+  return (
+    <Animated.View style={{ opacity, transform: [{ translateY }] }}>
+      <Card style={styles.hero}>
+        <View style={styles.media}>
+          {restaurant.imageUrl ? (
+            <Image source={{ uri: restaurant.imageUrl }} style={styles.image} />
+          ) : (
+            <View style={styles.placeholder}>
+              <Text style={styles.placeholderInitial}>{initial}</Text>
+              <MaterialCommunityIcons
+                name="storefront-outline"
+                size={designSystem.iconSizes.md}
+                color={studentPalette.primary}
+              />
+            </View>
+          )}
+        </View>
 
         <View style={styles.heroText}>
           <Text style={styles.name} numberOfLines={2}>
@@ -86,64 +95,55 @@ export function RestaurantDetailHeader({
             ) : null}
           </View>
         </View>
-      </View>
-    </Card>
+      </Card>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   hero: {
     marginBottom: spacing.md,
-    padding: spacing.md,
-    borderRadius: 22,
-    borderColor: studentPalette.border,
-    backgroundColor: studentPalette.cardMuted,
+    padding: spacing.sm,
+    borderRadius: 18,
+    borderColor: "rgba(240, 223, 201, 0.76)",
+    backgroundColor: studentPalette.card,
     shadowColor: studentPalette.shadow,
     shadowOpacity: 1,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
     elevation: 2,
+  },
+  media: {
+    height: 132,
+    borderRadius: 16,
     overflow: "hidden",
+    backgroundColor: studentPalette.primaryFaint,
   },
-  heroDecor: {
-    ...StyleSheet.absoluteFillObject,
+  image: {
+    width: "100%",
+    height: "100%",
   },
-  heroWave: {
-    position: "absolute",
-    right: 0,
-    bottom: 0,
-    left: 0,
-  },
-  heroGlow: {
-    position: "absolute",
-    width: 96,
-    height: 96,
-    borderRadius: 999,
-    right: -34,
-    top: -28,
-    backgroundColor: "rgba(247, 101, 2, 0.07)",
-  },
-  contentRow: {
-    flexDirection: "row",
+  placeholder: {
+    flex: 1,
     alignItems: "center",
-    gap: spacing.md,
+    justifyContent: "center",
+    gap: spacing.xs,
   },
-  visual: {
-    width: 82,
-    height: 86,
-    minHeight: 86,
-    borderRadius: 20,
+  placeholderInitial: {
+    color: studentPalette.primary,
+    fontSize: 34,
+    lineHeight: 40,
+    fontWeight: typography.weights.bold,
   },
   heroText: {
-    flex: 1,
-    minWidth: 0,
+    padding: spacing.sm,
     gap: spacing.xs,
   },
   name: {
-    fontSize: 24,
+    fontSize: typography.sizes.xl,
     fontWeight: typography.weights.bold,
     color: studentPalette.textPrimary,
-    lineHeight: 30,
+    lineHeight: typography.lineHeights.xl,
   },
   locationRow: {
     flexDirection: "row",

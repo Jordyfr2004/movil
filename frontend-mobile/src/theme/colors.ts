@@ -1,27 +1,20 @@
+import { designSystem } from "./designSystem";
+
 export const colors = {
-  // Base
-  background: "#FAF9F7",
-  surface: "#FFFFFF",
-  surfaceMuted: "#F4F1ED",
-
-  // Brand
-  primary: "#E56B4C",
-  primarySoft: "#FCE8E2",
-  onPrimary: "#FFFFFF",
-
-  // Text
-  textPrimary: "#141312",
-  textSecondary: "#4B4744",
-  textMuted: "#7A746F",
-
-  // UI
-  border: "#E7E1DA",
-  borderStrong: "#D8D0C8",
-  shadow: "rgba(20, 19, 18, 0.10)",
-
-  // Feedback
-  success: "#2E7D4F",
-  successSoft: "#E7F6EE",
-  error: "#D64550",
-  errorSoft: "#FDECEE",
+  background: designSystem.colors.background,
+  surface: designSystem.colors.surface,
+  surfaceMuted: designSystem.colors.surfaceMuted,
+  primary: designSystem.colors.primary,
+  primarySoft: designSystem.colors.primarySoft,
+  onPrimary: designSystem.colors.textInverted,
+  textPrimary: designSystem.colors.textPrimary,
+  textSecondary: designSystem.colors.textSecondary,
+  textMuted: designSystem.colors.textMuted,
+  border: designSystem.colors.border,
+  borderStrong: designSystem.colors.borderStrong,
+  shadow: designSystem.colors.shadow,
+  success: designSystem.colors.success,
+  successSoft: designSystem.colors.successSoft,
+  error: designSystem.colors.danger,
+  errorSoft: designSystem.colors.dangerSoft,
 } as const;

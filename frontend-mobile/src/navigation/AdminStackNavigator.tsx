@@ -6,7 +6,6 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { AddDishScreen } from "../screens/AddDishScreen";
 import { ManagerProfileScreen } from "../screens/ManagerProfileScreen";
-import { spacing } from "../constants/spacing";
 import { colors, typography } from "../theme";
 import { managerPalette } from "../components/managerProfile/managerProfileTheme";
 import { ROUTES } from "./routes";
@@ -26,9 +25,6 @@ export function AdminStackNavigator() {
 					color: colors.textPrimary,
 					fontWeight: typography.weights.bold,
 					fontSize: typography.sizes.lg,
-				},
-				headerLeftContainerStyle: {
-					paddingLeft: spacing.sm,
 				},
 				headerShadowVisible: false,
 			}}

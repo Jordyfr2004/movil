@@ -1,358 +1,352 @@
-import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useRef } from "react";
+import {
+  Animated,
+  Image,
+  Pressable,
+  StyleProp,
+  StyleSheet,
+  Text,
+  View,
+  ViewStyle,
+} from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { spacing } from "../constants/spacing";
-import { typography } from "../theme";
-import { studentPalette } from "../theme/studentPalette";
+import { useReduceMotion } from "../hooks/useReduceMotion";
+import { designSystem, typography } from "../theme";
 import { Restaurant } from "../types/models";
+import { StatusBadge } from "./StatusBadge";
+
+type RestaurantStatus = {
+  label: string;
+  tone: React.ComponentProps<typeof StatusBadge>["tone"];
+};
 
 type RestaurantCardProps = {
   restaurant: Restaurant;
   onPress?: (restaurant: Restaurant) => void;
   disabled?: boolean;
+  compact?: boolean;
+  variant?: "default" | "featured";
+  index?: number;
+  style?: StyleProp<ViewStyle>;
 };
+
+function parseTimeToMinutes(value?: string) {
+  if (!value) {
+    return null;
+  }
+
+  const match = value.trim().match(/^(\d{1,2}):(\d{2})/);
+  if (!match) {
+    return null;
+  }
+
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (hours > 23 || minutes > 59) {
+    return null;
+  }
+
+  return hours * 60 + minutes;
+}
+
+function formatTime(value?: string) {
+  if (!value) {
+    return null;
+  }
+
+  const match = value.trim().match(/^(\d{1,2}):(\d{2})/);
+  if (!match) {
+    return null;
+  }
+
+  return `${match[1].padStart(2, "0")}:${match[2]}`;
+}
+
+function getRestaurantStatus(restaurant: Restaurant): RestaurantStatus {
+  if (!restaurant.isActive) {
+    return { label: "Cerrado", tone: "danger" };
+  }
+
+  const opening = parseTimeToMinutes(restaurant.openingTime);
+  const closing = parseTimeToMinutes(restaurant.closingTime);
+
+  if (opening === null || closing === null) {
+    return { label: "Disponible", tone: "neutral" };
+  }
+
+  const now = new Date();
+  const current = now.getHours() * 60 + now.getMinutes();
+  const isOpen =
+    closing > opening
+      ? current >= opening && current <= closing
+      : current >= opening || current <= closing;
+
+  if (!isOpen) {
+    return { label: "Cerrado", tone: "danger" };
+  }
+
+  const minutesUntilClose =
+    closing >= current ? closing - current : 24 * 60 - current + closing;
+
+  if (minutesUntilClose <= 30) {
+    return { label: "Cierra pronto", tone: "warning" };
+  }
+
+  return { label: "Abierto", tone: "success" };
+}
 
 export function RestaurantCard({
   restaurant,
   onPress,
   disabled = false,
+  compact = false,
+  variant = "default",
+  index = 0,
+  style,
 }: RestaurantCardProps) {
+  const reduceMotion = useReduceMotion();
+  const opacity = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
+  const translateY = useRef(new Animated.Value(reduceMotion ? 0 : 14)).current;
   const isDisabled = disabled || !onPress;
-  const location = restaurant.location?.trim() || "Campus Manta";
-  const openingTime = restaurant.openingTime || "07:00";
-  const closingTime = restaurant.closingTime || "15:00";
+  const status = getRestaurantStatus(restaurant);
+  const openingTime = formatTime(restaurant.openingTime);
+  const closingTime = formatTime(restaurant.closingTime);
+  const hasSchedule = Boolean(openingTime && closingTime);
+  const isFeatured = variant === "featured";
+
+  useEffect(() => {
+    if (reduceMotion) {
+      opacity.setValue(1);
+      translateY.setValue(0);
+      return;
+    }
+
+    Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: designSystem.animation.normal,
+        delay: Math.min(index * 45, 180),
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: designSystem.animation.normal,
+        delay: Math.min(index * 45, 180),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [index, opacity, reduceMotion, translateY]);
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`Ver restaurante ${restaurant.name}`}
-      onPress={onPress ? () => onPress(restaurant) : undefined}
-      disabled={isDisabled}
-      style={({ pressed }) => [
-        styles.touchable,
-        pressed && !isDisabled && styles.pressed,
-        isDisabled && styles.disabled,
+    <Animated.View
+      style={[
+        style,
+        {
+          opacity,
+          transform: [{ translateY }],
+        },
       ]}
     >
-      <View style={styles.card}>
-        <View style={styles.imageArea}>
-          <View style={styles.fakePhotoBackground}>
-            <View style={styles.fakePhotoWall}>
-              <Text style={styles.fakePhotoText}>ULEAM</Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Ver restaurante ${restaurant.name}`}
+        onPress={onPress ? () => onPress(restaurant) : undefined}
+        disabled={isDisabled}
+        style={({ pressed }) => [
+          styles.card,
+          compact && styles.compactCard,
+          isFeatured && styles.featuredCard,
+          pressed && !isDisabled && styles.pressed,
+          isDisabled && styles.disabled,
+        ]}
+      >
+        <View
+          style={[
+            styles.media,
+            compact && styles.compactMedia,
+            isFeatured && styles.featuredMedia,
+          ]}
+        >
+          {restaurant.imageUrl ? (
+            <Image source={{ uri: restaurant.imageUrl }} style={styles.image} />
+          ) : (
+            <View style={styles.placeholder}>
+              <MaterialCommunityIcons
+                name={isFeatured ? "silverware-fork-knife" : "storefront-outline"}
+                size={isFeatured ? designSystem.iconSizes.lg : designSystem.iconSizes.xl}
+                color={designSystem.colors.primary}
+              />
+              <Text style={styles.placeholderText} numberOfLines={1}>
+                {restaurant.name}
+              </Text>
             </View>
+          )}
 
-            <View style={styles.tableRow}>
-              <View style={styles.table} />
-              <View style={styles.table} />
-              <View style={styles.table} />
-            </View>
-
-            <View style={styles.tableRow}>
-              <View style={styles.tableLarge} />
-              <View style={styles.tableLarge} />
-            </View>
-          </View>
-
-          <View style={styles.ratingBadge}>
-            <MaterialCommunityIcons
-              name="star"
-              size={16}
-              color={studentPalette.warning}
-            />
-            <Text style={styles.ratingText}>4.7</Text>
+          <View style={styles.status}>
+            <StatusBadge label={status.label} tone={status.tone} />
           </View>
         </View>
 
         <View style={styles.content}>
-          <Text style={styles.name} numberOfLines={2}>
+          <Text
+            style={[styles.name, compact && styles.compactName]}
+            numberOfLines={2}
+          >
             {restaurant.name}
           </Text>
 
-          <View style={styles.locationRow}>
-            <MaterialCommunityIcons
-              name="map-marker-outline"
-              size={18}
-              color={studentPalette.textMuted}
-            />
-            <Text style={styles.location} numberOfLines={1}>
-              {location}
-            </Text>
-          </View>
-
-          <View style={styles.metaRow}>
-            <View style={styles.statusPill}>
-              <View
-                style={[
-                  styles.statusDot,
-                  {
-                    backgroundColor: restaurant.isActive
-                      ? studentPalette.success
-                      : studentPalette.danger,
-                  },
-                ]}
+          {!isFeatured && restaurant.location ? (
+            <View style={styles.metaRow}>
+              <MaterialCommunityIcons
+                name="map-marker-outline"
+                size={designSystem.iconSizes.sm}
+                color={designSystem.colors.textMuted}
               />
-              <Text
-                style={[
-                  styles.statusText,
-                  {
-                    color: restaurant.isActive
-                      ? studentPalette.success
-                      : studentPalette.danger,
-                  },
-                ]}
-              >
-                {restaurant.isActive ? "Abierto" : "Cerrado"}
+              <Text style={styles.metaText} numberOfLines={1}>
+                {restaurant.location}
               </Text>
             </View>
+          ) : null}
 
-            <View style={styles.divider} />
-
-            <View style={styles.timeRow}>
+          {!isFeatured && hasSchedule ? (
+            <View style={styles.metaRow}>
               <MaterialCommunityIcons
                 name="clock-outline"
-                size={18}
-                color={studentPalette.textMuted}
+                size={designSystem.iconSizes.sm}
+                color={designSystem.colors.textMuted}
               />
-              <Text style={styles.timeText}>
+              <Text style={styles.metaText}>
                 {openingTime} - {closingTime}
               </Text>
             </View>
-          </View>
+          ) : null}
 
-          <View style={styles.menuNotice}>
-            <View style={styles.menuNoticeIcon}>
-              <MaterialCommunityIcons
-                name="silverware-fork-knife"
-                size={16}
-                color={studentPalette.primary}
-              />
-            </View>
-            <Text style={styles.menuNoticeText}>
-              Menú estudiantil disponible hoy
+          {!isFeatured && restaurant.description ? (
+            <Text style={styles.description} numberOfLines={2}>
+              {restaurant.description}
             </Text>
-          </View>
+          ) : null}
 
           {!isDisabled ? (
-            <View style={styles.actionButton}>
+            <View style={styles.actionRow}>
               <Text style={styles.actionText}>Ver menú</Text>
               <MaterialCommunityIcons
                 name="chevron-right"
-                size={22}
-                color={studentPalette.card}
+                size={designSystem.iconSizes.md}
+                color={designSystem.colors.primary}
               />
             </View>
           ) : null}
         </View>
-      </View>
-    </Pressable>
+      </Pressable>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  touchable: {
-    borderRadius: 24,
+  card: {
+    borderRadius: designSystem.radii.xl,
+    borderWidth: 1,
+    borderColor: designSystem.colors.border,
+    backgroundColor: designSystem.colors.surface,
+    overflow: "hidden",
+    ...designSystem.shadows.sm,
+  },
+  compactCard: {
+    width: 210,
+  },
+  featuredCard: {
+    borderColor: "rgba(240, 223, 201, 0.70)",
   },
   pressed: {
-    opacity: 0.95,
-    transform: [{ scale: 0.992 }],
+    transform: [{ scale: 0.985 }],
+    backgroundColor: designSystem.colors.surfacePressed,
   },
   disabled: {
-    opacity: 0.65,
+    opacity: 0.68,
   },
-  card: {
-    overflow: "hidden",
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: studentPalette.border,
-    backgroundColor: studentPalette.card,
-    shadowColor: studentPalette.shadow,
-    shadowOpacity: 1,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 7 },
-    elevation: 2,
-  },
-  imageArea: {
-    height: 190,
-    margin: spacing.md,
+  media: {
+    height: 116,
+    margin: spacing.sm,
     marginBottom: 0,
+    borderRadius: designSystem.radii.lg,
     overflow: "hidden",
-    borderRadius: 20,
-    backgroundColor: studentPalette.primaryPale,
+    backgroundColor: designSystem.colors.primaryFaint,
   },
-  fakePhotoBackground: {
-    flex: 1,
-    padding: spacing.md,
-    justifyContent: "flex-end",
-    backgroundColor: studentPalette.primaryFaint,
+  compactMedia: {
+    height: 88,
   },
-  fakePhotoWall: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    top: 0,
+  featuredMedia: {
     height: 92,
-    justifyContent: "center",
-    paddingLeft: spacing.xl,
-    backgroundColor: "#F4E3D1",
+    backgroundColor: designSystem.colors.primaryFaint,
   },
-  fakePhotoText: {
-    color: studentPalette.primary,
-    fontSize: 30,
-    fontWeight: typography.weights.bold,
-    opacity: 0.45,
-    letterSpacing: 1,
+  image: {
+    width: "100%",
+    height: "100%",
   },
-  tableRow: {
-    flexDirection: "row",
-    gap: spacing.md,
-    marginTop: spacing.sm,
-  },
-  table: {
+  placeholder: {
     flex: 1,
-    height: 24,
-    borderRadius: 8,
-    backgroundColor: "#B57947",
-    opacity: 0.7,
-  },
-  tableLarge: {
-    flex: 1,
-    height: 30,
-    borderRadius: 10,
-    backgroundColor: "#8B5A35",
-    opacity: 0.72,
-  },
-  ratingBadge: {
-    position: "absolute",
-    right: spacing.md,
-    top: spacing.md,
-    minWidth: 76,
-    minHeight: 50,
-    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    flexDirection: "row",
     gap: spacing.xs,
-    backgroundColor: studentPalette.card,
-    shadowColor: studentPalette.shadow,
-    shadowOpacity: 1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
+    padding: spacing.md,
   },
-  ratingText: {
-    color: studentPalette.textPrimary,
-    fontSize: typography.sizes.md,
+  placeholderText: {
+    maxWidth: "90%",
+    color: designSystem.colors.primary,
+    fontSize: typography.sizes.xs,
     fontWeight: typography.weights.bold,
+    textAlign: "center",
+  },
+  status: {
+    position: "absolute",
+    top: spacing.xs,
+    left: spacing.xs,
   },
   content: {
-    padding: spacing.lg,
-    paddingTop: spacing.md,
+    padding: spacing.md,
+    paddingTop: spacing.sm,
+    gap: spacing.xs,
   },
   name: {
-    color: studentPalette.textPrimary,
-    fontSize: 28,
-    lineHeight: 34,
+    color: designSystem.colors.textPrimary,
+    fontSize: typography.sizes.lg,
+    lineHeight: typography.lineHeights.lg,
     fontWeight: typography.weights.bold,
-    letterSpacing: -0.3,
     textTransform: "capitalize",
   },
-  locationRow: {
-    marginTop: spacing.sm,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  location: {
-    flex: 1,
-    color: studentPalette.textSecondary,
+  compactName: {
     fontSize: typography.sizes.md,
     lineHeight: typography.lineHeights.md,
   },
   metaRow: {
-    marginTop: spacing.md,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-    flexWrap: "wrap",
-  },
-  statusPill: {
-    minHeight: 32,
-    paddingHorizontal: spacing.md,
-    borderRadius: 999,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    backgroundColor: studentPalette.successSoft,
-  },
-  statusDot: {
-    width: 9,
-    height: 9,
-    borderRadius: 999,
-  },
-  statusText: {
-    fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.bold,
-  },
-  divider: {
-    width: 1,
-    height: 22,
-    backgroundColor: studentPalette.borderStrong,
-  },
-  timeRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
   },
-  timeText: {
-    color: studentPalette.textSecondary,
-    fontSize: typography.sizes.md,
-    fontWeight: typography.weights.semiBold,
-  },
-  menuNotice: {
-    marginTop: spacing.md,
-    minHeight: 48,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: studentPalette.border,
-    backgroundColor: studentPalette.primaryFaint,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: spacing.md,
-    gap: spacing.sm,
-  },
-  menuNoticeIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: studentPalette.primaryPale,
-  },
-  menuNoticeText: {
+  metaText: {
     flex: 1,
-    color: studentPalette.textPrimary,
+    color: designSystem.colors.textSecondary,
     fontSize: typography.sizes.sm,
+    lineHeight: typography.lineHeights.sm,
     fontWeight: typography.weights.semiBold,
   },
-  actionButton: {
-    marginTop: spacing.md,
-    minHeight: 58,
-    borderRadius: 16,
-    backgroundColor: studentPalette.primary,
+  description: {
+    color: designSystem.colors.textSecondary,
+    fontSize: typography.sizes.sm,
+    lineHeight: typography.lineHeights.sm,
+  },
+  actionRow: {
+    marginTop: 0,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.sm,
-    shadowColor: studentPalette.primary,
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 3,
+    gap: spacing.xs,
   },
   actionText: {
-    color: studentPalette.card,
-    fontSize: typography.sizes.md,
+    color: designSystem.colors.primary,
+    fontSize: typography.sizes.sm,
     fontWeight: typography.weights.bold,
   },
 });

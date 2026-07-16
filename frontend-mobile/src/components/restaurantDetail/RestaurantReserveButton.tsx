@@ -84,12 +84,12 @@ export function RestaurantReserveButton({
 
 const styles = StyleSheet.create({
   button: {
-    minWidth: 110,
-    minHeight: 38,
-    borderRadius: 13,
+    minWidth: 92,
+    minHeight: 34,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.sm,
   },
   primaryButton: {
     backgroundColor: studentPalette.primary,
@@ -100,14 +100,14 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   reservedButton: {
-    minWidth: 126,
+    minWidth: 112,
     backgroundColor: studentPalette.neutralSoft,
     borderWidth: 1,
     borderColor: studentPalette.neutralBorder,
   },
   pressed: {
     opacity: 0.94,
-    transform: [{ scale: 0.99 }],
+    transform: [{ scale: 0.97 }],
   },
   disabled: {
     opacity: 0.55,
@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   label: {
-    fontSize: typography.sizes.sm,
+    fontSize: typography.sizes.xs,
     fontWeight: typography.weights.bold,
     lineHeight: typography.lineHeights.sm,
   },

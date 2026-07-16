@@ -1,59 +1,88 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { colors, typography } from "../theme";
 import { spacing } from "../constants/spacing";
+import { designSystem, typography } from "../theme";
 
 type StatusBadgeProps = {
   label: string;
-  tone: "success" | "danger";
+  tone: "success" | "danger" | "warning" | "info" | "neutral";
 };
 
 export function StatusBadge({ label, tone }: StatusBadgeProps) {
-  const isSuccess = tone === "success";
+  const toneStyle = getToneStyle(tone);
 
   return (
     <View
       style={[
         styles.badge,
-        isSuccess ? styles.success : styles.danger,
-        isSuccess ? styles.successBorder : styles.dangerBorder,
+        {
+          backgroundColor: toneStyle.backgroundColor,
+          borderColor: toneStyle.borderColor,
+        },
       ]}
     >
-      <Text style={[styles.text, isSuccess ? styles.textSuccess : styles.textDanger]}>
+      <View style={[styles.dot, { backgroundColor: toneStyle.color }]} />
+      <Text style={[styles.text, { color: toneStyle.color }]}>
         {label}
       </Text>
     </View>
   );
 }
 
+function getToneStyle(tone: StatusBadgeProps["tone"]) {
+  switch (tone) {
+    case "success":
+      return {
+        color: designSystem.colors.success,
+        backgroundColor: designSystem.colors.successSoft,
+        borderColor: designSystem.colors.successBorder,
+      };
+    case "danger":
+      return {
+        color: designSystem.colors.danger,
+        backgroundColor: designSystem.colors.dangerSoft,
+        borderColor: designSystem.colors.dangerBorder,
+      };
+    case "warning":
+      return {
+        color: designSystem.colors.warning,
+        backgroundColor: designSystem.colors.warningSoft,
+        borderColor: designSystem.colors.warningBorder,
+      };
+    case "info":
+      return {
+        color: designSystem.colors.info,
+        backgroundColor: designSystem.colors.infoSoft,
+        borderColor: designSystem.colors.infoBorder,
+      };
+    case "neutral":
+    default:
+      return {
+        color: designSystem.colors.neutral,
+        backgroundColor: designSystem.colors.neutralSoft,
+        borderColor: designSystem.colors.neutralBorder,
+      };
+  }
+}
+
 const styles = StyleSheet.create({
   badge: {
+    minHeight: 26,
     borderRadius: 999,
     paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
-  },
-  success: {
-    backgroundColor: colors.successSoft,
-  },
-  danger: {
-    backgroundColor: colors.errorSoft,
-  },
-  successBorder: {
+    paddingVertical: spacing.xs,
     borderWidth: 1,
-    borderColor: "rgba(46, 125, 79, 0.20)",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
   },
-  dangerBorder: {
-    borderWidth: 1,
-    borderColor: "rgba(214, 69, 80, 0.20)",
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 999,
   },
   text: {
     fontSize: typography.sizes.xs,
     fontWeight: typography.weights.semiBold,
-  },
-  textSuccess: {
-    color: colors.success,
-  },
-  textDanger: {
-    color: colors.error,
   },
 });

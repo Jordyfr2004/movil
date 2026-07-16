@@ -12,17 +12,21 @@ import { spacing } from "../constants/spacing";
 type ScreenProps = {
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
+  bottomInset?: number;
 };
 
-export function Screen({ children, style }: ScreenProps) {
+export function Screen({ children, style, bottomInset = 0 }: ScreenProps) {
   const insets = useSafeAreaInsets();
+  void bottomInset;
 
   return (
     <SafeAreaView
-      edges={["bottom"]}
+      edges={["top", "bottom"]}
       style={[
         styles.container,
-        { paddingBottom: spacing.lg + Math.max(insets.bottom, 0) },
+        {
+          paddingBottom: spacing.lg + Math.max(insets.bottom, 0),
+        },
         style,
       ]}
     >
@@ -37,7 +41,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
+    paddingTop: spacing.sm,
     paddingBottom: spacing.lg,
   },
 });

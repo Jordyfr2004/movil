@@ -1,7 +1,6 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import Svg, { Path } from "react-native-svg";
 
 import { spacing } from "../../constants/spacing";
 import { typography } from "../../theme";
@@ -32,28 +31,6 @@ export function ProfileUserCard({
   return (
     <>
       <Card style={styles.card}>
-        <View
-          style={styles.decor}
-          pointerEvents="none"
-          accessible={false}
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-        >
-          <Svg
-            width="100%"
-            height={58}
-            viewBox="0 0 360 58"
-            preserveAspectRatio="none"
-            style={styles.decorWave}
-          >
-            <Path
-              d="M0 34 C72 16 139 52 217 36 C284 22 326 18 360 28 V58 H0 Z"
-              fill={studentPalette.primaryPale}
-            />
-          </Svg>
-          <View style={styles.decorCircle} />
-        </View>
-
         <View style={styles.profileRow}>
           <StudentVisualPlaceholder
             initial={initial}
@@ -191,42 +168,24 @@ function ProfileActionRow({
 const styles = StyleSheet.create({
   card: {
     position: "relative",
-    borderRadius: 22,
+    borderRadius: 18,
     borderColor: studentPalette.border,
-    backgroundColor: studentPalette.cardMuted,
+    backgroundColor: studentPalette.card,
     shadowColor: studentPalette.shadow,
     shadowOpacity: 1,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 1,
     overflow: "hidden",
-  },
-  decor: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  decorWave: {
-    position: "absolute",
-    right: 0,
-    bottom: 0,
-    left: 0,
-  },
-  decorCircle: {
-    position: "absolute",
-    width: 96,
-    height: 96,
-    borderRadius: 999,
-    right: -34,
-    top: -28,
-    backgroundColor: "rgba(247, 101, 2, 0.07)",
   },
   profileRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.md,
+    gap: spacing.sm,
   },
   avatar: {
-    width: 72,
-    height: 72,
+    width: 58,
+    height: 58,
     borderRadius: 999,
   },
   profileText: {
@@ -235,10 +194,10 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   name: {
-    fontSize: 22,
+    fontSize: typography.sizes.lg,
     fontWeight: typography.weights.bold,
     color: studentPalette.textPrimary,
-    lineHeight: 28,
+    lineHeight: typography.lineHeights.lg,
   },
   email: {
     fontSize: typography.sizes.sm,
@@ -246,8 +205,8 @@ const styles = StyleSheet.create({
     lineHeight: typography.lineHeights.sm,
   },
   infoCard: {
-    marginTop: spacing.md,
-    borderRadius: 18,
+    marginTop: spacing.sm,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: studentPalette.border,
     backgroundColor: studentPalette.card,
@@ -256,13 +215,13 @@ const styles = StyleSheet.create({
   field: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.md,
+    gap: spacing.sm,
     padding: spacing.sm,
   },
   fieldIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 12,
+    width: 30,
+    height: 30,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: studentPalette.primaryPale,
@@ -278,15 +237,15 @@ const styles = StyleSheet.create({
   },
   value: {
     marginTop: 1,
-    fontSize: typography.sizes.md,
+    fontSize: typography.sizes.sm,
     color: studentPalette.textPrimary,
     fontWeight: typography.weights.semiBold,
-    lineHeight: typography.lineHeights.md,
+    lineHeight: typography.lineHeights.sm,
   },
   actionsCard: {
-    marginTop: spacing.md,
+    marginTop: spacing.sm,
     padding: 0,
-    borderRadius: 20,
+    borderRadius: 16,
     borderColor: studentPalette.border,
     backgroundColor: studentPalette.card,
     shadowColor: studentPalette.shadow,
@@ -297,10 +256,10 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   actionRow: {
-    minHeight: 56,
+    minHeight: 50,
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.md,
+    gap: spacing.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
   },
@@ -311,9 +270,9 @@ const styles = StyleSheet.create({
     opacity: 0.65,
   },
   actionIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 12,
+    width: 30,
+    height: 30,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: studentPalette.primaryPale,
@@ -323,10 +282,10 @@ const styles = StyleSheet.create({
   },
   actionLabel: {
     flex: 1,
-    fontSize: typography.sizes.md,
+    fontSize: typography.sizes.sm,
     color: studentPalette.textPrimary,
     fontWeight: typography.weights.semiBold,
-    lineHeight: typography.lineHeights.md,
+    lineHeight: typography.lineHeights.sm,
   },
   actionLabelDanger: {
     color: studentPalette.primary,

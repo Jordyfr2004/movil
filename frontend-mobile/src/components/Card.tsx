@@ -50,15 +50,15 @@ const styles = StyleSheet.create({
   base: {
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: "rgba(231, 225, 218, 0.72)",
     padding: spacing.lg,
   },
   default: {
     backgroundColor: colors.surface,
     shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
     elevation: 1,
   },
   muted: {

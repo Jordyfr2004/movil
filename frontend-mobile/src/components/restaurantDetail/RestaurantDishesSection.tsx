@@ -48,13 +48,14 @@ export function RestaurantDishesSection({
         />
       ) : dishes.length > 0 ? (
         <View style={styles.menuList}>
-          {dishes.map((dish) => {
+          {dishes.map((dish, index) => {
             const dishId = String(dish.id);
 
             return (
               <RestaurantDishCard
                 key={dishId}
                 dish={dish}
+                index={index}
                 isCheckingReservation={isCheckingReservation}
                 isReserved={reservedDishIdSet.has(dishId)}
                 isReserving={isReservingDishId === dishId}

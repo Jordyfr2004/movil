@@ -1,17 +1,14 @@
 import React from "react";
-import { Pressable, StyleSheet } from "react-native";
-import { DrawerNavigationProp } from "@react-navigation/drawer";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import { HomeScreen } from "../screens/HomeScreen";
 import { MyReservationsScreen } from "../screens/MyReservationsScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
 import { RestaurantDetailScreen } from "../screens/RestaurantDetailScreen";
 import { colors, typography } from "../theme";
 import { studentPalette } from "../theme/studentPalette";
 import { ROUTES } from "./routes";
-import { StudentDrawerParamList, StudentStackParamList } from "./types";
+import { StudentMainTabs } from "./StudentMainTabs";
+import { StudentStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<StudentStackParamList>();
 
@@ -33,51 +30,8 @@ export function StudentStackNavigator() {
     >
       <Stack.Screen
         name={ROUTES.Home}
-        component={HomeScreen}
-        options={({ navigation }) => ({
-          title: "Explorar restaurantes",
-          headerLeft: () => (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Abrir menú"
-              onPress={() => {
-                const parent =
-                  navigation.getParent<
-                    DrawerNavigationProp<StudentDrawerParamList>
-                  >();
-                parent?.openDrawer();
-              }}
-              hitSlop={10}
-              style={({ pressed }) => [
-                styles.menuButton,
-                pressed && styles.menuButtonPressed,
-              ]}
-            >
-              <MaterialCommunityIcons
-                name="menu"
-                size={25}
-                color={studentPalette.primary}
-              />
-            </Pressable>
-          ),
-          headerRight: () => (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Notificaciones"
-              hitSlop={10}
-              style={({ pressed }) => [
-                styles.menuButton,
-                pressed && styles.menuButtonPressed,
-              ]}
-            >
-              <MaterialCommunityIcons
-                name="bell-outline"
-                size={23}
-                color={studentPalette.primary}
-              />
-            </Pressable>
-          ),
-        })}
+        component={StudentMainTabs}
+        options={{ headerShown: false }}
       />
 
       <Stack.Screen
@@ -100,17 +54,3 @@ export function StudentStackNavigator() {
     </Stack.Navigator>
   );
 }
-
-const styles = StyleSheet.create({
-  menuButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  menuButtonPressed: {
-    opacity: 0.85,
-    transform: [{ scale: 0.96 }],
-  },
-});
