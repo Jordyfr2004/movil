@@ -43,7 +43,7 @@ export function RatingScreen({ navigation, route }: Props) {
       <Text style={styles.title}>Calificar experiencia</Text>
       <Text style={styles.subtitle}>
         {alreadyRated
-          ? "Esta reserva ya tiene una calificación local. Puedes reemplazarla."
+          ? "Esta reserva ya tiene una calificación guardada. Puedes reemplazarla."
           : title}
       </Text>
 
@@ -87,17 +87,18 @@ export function RatingScreen({ navigation, route }: Props) {
         onChangeText={(text) => setComment(text.slice(0, 220))}
         placeholder="Comentario opcional"
         placeholderTextColor={designSystem.colors.textMuted}
+        accessibilityLabel="Comentario opcional"
+        accessibilityHint="Puedes agregar detalles sobre tu experiencia"
         multiline
         style={styles.input}
         textAlignVertical="top"
       />
 
       <Text style={styles.localNote}>
-        Se guardará localmente. La conexión al backend queda preparada cuando
-        exista un contrato confirmado.
+        Se guardará en este dispositivo y aparecerá en Pendientes.
       </Text>
 
-      <AppButton label="Guardar calificación local" onPress={submit} />
+      <AppButton label="Guardar calificación" onPress={submit} />
     </Screen>
   );
 }

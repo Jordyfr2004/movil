@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useNetworkStatus } from "../context/NetworkContext";
 import { acquireNotificationsSocket, releaseNotificationsSocket } from "../services/notificationsSocket";
 import { Dish, getPublicDishesByRestaurant } from "../services/dishService";
 import type { Socket } from "socket.io-client";
@@ -39,6 +40,7 @@ export function useDishesByRestaurant(restaurantId: string) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { accessToken } = useAuth();
+  const { recoveryTick } = useNetworkStatus();
   const restaurantIdRef = useRef(restaurantId);
   const refreshSeqRef = useRef(0);
   const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
@@ -95,6 +97,11 @@ export function useDishesByRestaurant(restaurantId: string) {
   useEffect(() => {
     refreshDishes(true);
   }, [restaurantId, refreshDishes]);
+
+  useEffect(() => {
+    if (recoveryTick <= 0) return;
+    refreshDishes(false);
+  }, [recoveryTick, refreshDishes]);
 
   useEffect(() => {
     return () => {

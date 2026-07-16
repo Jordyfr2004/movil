@@ -7,6 +7,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { AppNavigator } from "./src/navigation/AppNavigator";
 import { AuthProvider } from "./src/context/AuthContext";
 import { CartProvider } from "./src/context/CartContext";
+import { NetworkProvider, useNetworkStatus } from "./src/context/NetworkContext";
 import {
   AppPreferencesProvider,
   useAppPreferences,
@@ -17,15 +18,39 @@ import { LocalNotificationsProvider } from "./src/context/LocalNotificationsCont
 import { StripeProvider } from "@stripe/stripe-react-native";
 import { STRIPE_PUBLISHABLE_KEY } from "./src/constants/stripe";
 import { AppExperienceGate } from "./src/screens/AppExperienceGate";
+import { ErrorBoundary, OfflineBanner } from "./src/components";
+import { View, StyleSheet } from "react-native";
+import { spacing } from "./src/constants/spacing";
 
 function AppContent() {
   const { navigationTheme } = useAppPreferences();
+  const { checkConnection, hasCheckedConnection, isOnline, serverStatus } =
+    useNetworkStatus();
+  const shouldShowNetworkBanner =
+    hasCheckedConnection && (!isOnline || serverStatus === "slow");
+  const networkMessage =
+    serverStatus === "slow"
+      ? "El servidor está tardando en responder."
+      : undefined;
 
   return (
     <NavigationContainer theme={navigationTheme}>
-      <AppExperienceGate>
-        <AppNavigator />
-      </AppExperienceGate>
+      <ErrorBoundary>
+        <View style={styles.appRoot}>
+          <AppExperienceGate>
+            <AppNavigator />
+          </AppExperienceGate>
+          <View pointerEvents="box-none" style={styles.offlineBanner}>
+            <OfflineBanner
+              visible={shouldShowNetworkBanner}
+              message={networkMessage}
+              onRetry={() => {
+                void checkConnection();
+              }}
+            />
+          </View>
+        </View>
+      </ErrorBoundary>
     </NavigationContainer>
   );
 }
@@ -38,13 +63,15 @@ export default function App() {
           <AppPreferencesProvider>
             <AuthProvider>
               <CartProvider>
-                <FavoritesProvider>
-                  <LocalNotificationsProvider>
-                    <LocalFeedbackProvider>
-                      <AppContent />
-                    </LocalFeedbackProvider>
-                  </LocalNotificationsProvider>
-                </FavoritesProvider>
+                <NetworkProvider>
+                  <FavoritesProvider>
+                    <LocalNotificationsProvider>
+                      <LocalFeedbackProvider>
+                        <AppContent />
+                      </LocalFeedbackProvider>
+                    </LocalNotificationsProvider>
+                  </FavoritesProvider>
+                </NetworkProvider>
               </CartProvider>
             </AuthProvider>
           </AppPreferencesProvider>
@@ -53,3 +80,15 @@ export default function App() {
     </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  appRoot: {
+    flex: 1,
+  },
+  offlineBanner: {
+    position: "absolute",
+    left: spacing.md,
+    right: spacing.md,
+    bottom: spacing.md,
+  },
+});

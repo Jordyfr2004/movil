@@ -5,6 +5,7 @@ export * from "./Card";
 export * from "./CartFloatingBar";
 export * from "./DebugToast";
 export * from "./EmptyState";
+export * from "./ErrorBoundary";
 export * from "./ErrorState";
 export * from "./ErrorMessage";
 export * from "./FilterChip";

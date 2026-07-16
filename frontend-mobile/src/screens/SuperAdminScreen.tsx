@@ -74,7 +74,7 @@ export function SuperAdminScreen({
 
         <Text style={styles.subtitle}>
           Selecciona una funcionalidad para
-          probarla con el backend.
+          gestionar la plataforma.
         </Text>
 
         <Pressable

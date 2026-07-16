@@ -44,7 +44,7 @@ export function ProblemReportScreen({ navigation, route }: Props) {
     <Screen style={styles.container}>
       <Text style={styles.title}>Reportar problema</Text>
       <Text style={styles.subtitle}>
-        Se guardará como pendiente local hasta que exista un endpoint real.
+        Se guardará en este dispositivo y aparecerá en Pendientes.
       </Text>
 
       <View style={styles.options}>
@@ -74,6 +74,8 @@ export function ProblemReportScreen({ navigation, route }: Props) {
         onChangeText={(text) => setComment(text.slice(0, 260))}
         placeholder="Comentario opcional"
         placeholderTextColor={designSystem.colors.textMuted}
+        accessibilityLabel="Comentario opcional"
+        accessibilityHint="Describe el problema si necesitas agregar detalles"
         multiline
         style={styles.input}
         textAlignVertical="top"

@@ -25,7 +25,7 @@ export const HELP_TOPICS = {
   access: {
     icon: "account-key-outline" as const,
     title: "Sesión y acceso",
-    explanation: "Si tu sesión expira, vuelve a iniciar sesión. Tu carrito local se conserva.",
+    explanation: "Si tu sesión expira, vuelve a iniciar sesión. Tu carrito se conserva.",
     steps: ["Abre la app", "Inicia sesión", "Continúa donde lo dejaste"],
     errors: ["Correo o contraseña incorrectos", "Sesión expirada"],
     action: "Volver",

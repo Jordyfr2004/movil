@@ -22,6 +22,7 @@ import { STRIPE_PUBLISHABLE_KEY } from "../constants/stripe";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { useLocalNotifications } from "../context/LocalNotificationsContext";
+import { useNetworkStatus } from "../context/NetworkContext";
 import {
   ReservationListItem,
   useReservations,
@@ -146,6 +147,7 @@ export function MyReservationsScreen({
   const { accessToken } = useAuth();
   const { addDish } = useCart();
   const { addNotification } = useLocalNotifications();
+  const { isOnline } = useNetworkStatus();
   const { reservations, loading, error, reload } = useReservations(accessToken);
   const [isCancelling, setIsCancelling] = useState(false);
   const [payingReservationId, setPayingReservationId] = useState<string | null>(
@@ -261,6 +263,14 @@ export function MyReservationsScreen({
       return;
     }
 
+    if (!isOnline) {
+      Alert.alert(
+        "Sin conexión",
+        "Necesitas conexión a internet para completar el pago."
+      );
+      return;
+    }
+
     if (!STRIPE_PUBLISHABLE_KEY) {
       Alert.alert(
         "Falta configurar Stripe",
@@ -279,7 +289,7 @@ export function MyReservationsScreen({
 
       const intent = await createPaymentIntent(accessToken, reservationId);
       if (!intent.clientSecret) {
-        throw new Error("No se recibió clientSecret del servidor");
+        throw new Error("No pudimos preparar el pago.");
       }
 
       const init = await initPaymentSheet({

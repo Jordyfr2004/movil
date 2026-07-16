@@ -409,7 +409,7 @@ export function AppNavigator() {
 
   const profileKey =
     isAuthenticated && accessToken
-      ? `${accessToken}:${user?.user_id ?? ""}`
+      ? `session:${user?.user_id ?? ""}`
       : null;
 
   const currentProfileKeyRef =

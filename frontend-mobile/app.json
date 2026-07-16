@@ -12,12 +12,19 @@
       "backgroundColor": "#FAF9F7"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Usamos la cámara únicamente para que el manager escanee el QR de retiro.",
+        "NSPhotoLibraryUsageDescription": "Usamos tus fotos únicamente cuando eliges una imagen para un plato."
+      }
     },
     "android": {
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.comedoruleam"
+      "package": "com.anonymous.comedoruleam",
+      "permissions": [
+        "CAMERA"
+      ]
     },
     "web": {
       "output": "single"
@@ -27,6 +34,12 @@
     },
     "plugins": [
       "expo-secure-store",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Usamos la cámara únicamente para que el manager escanee el QR de retiro."
+        }
+      ],
       [
         "@stripe/stripe-react-native",
         {

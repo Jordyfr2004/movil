@@ -1,4 +1,5 @@
 import { API_URL } from "../constants/api";
+import { notifyHttpResponseReceived } from "../services/networkEvents";
 import { notifySessionExpired } from "../services/sessionExpiryService";
 import { ApiError, isApiError } from "./apiError";
 
@@ -152,6 +153,30 @@ function isSessionExpiredResponse(error: ApiError): boolean {
   return isTokenExpiredMessage(error.message);
 }
 
+function getFriendlyHttpMessage(status: number, fallback: string): string {
+  switch (status) {
+    case 400:
+      return fallback || "Revisa los datos e inténtalo nuevamente.";
+    case 401:
+      return "Tu sesión ha expirado. Inicia sesión nuevamente para continuar.";
+    case 403:
+      return "No tienes permiso para realizar esta acción.";
+    case 404:
+      return "No encontramos la información solicitada.";
+    case 409:
+      return "La acción no pudo completarse porque hay un conflicto con el estado actual.";
+    case 422:
+      return "Revisa los datos ingresados antes de continuar.";
+    case 429:
+      return "Has realizado demasiados intentos. Espera un momento e inténtalo otra vez.";
+    default:
+      if (status >= 500) {
+        return "El servidor no respondió correctamente. Inténtalo nuevamente más tarde.";
+      }
+      return fallback || DEFAULT_ERROR_MESSAGE;
+  }
+}
+
 async function parseResponseBody(response: Response): Promise<unknown> {
   const text = await response.text();
 
@@ -216,6 +241,8 @@ async function request<T>(
       signal: controller.signal,
     });
 
+    notifyHttpResponseReceived();
+
     const payload = await parseResponseBody(response);
 
     if (!response.ok) {
@@ -226,11 +253,15 @@ async function request<T>(
           ? (payload as { statusCode: number }).statusCode
           : response.status;
 
-      const apiError = new ApiError(extractErrorMessage(payload), {
+      const extractedMessage = extractErrorMessage(payload);
+      const apiError = new ApiError(
+        getFriendlyHttpMessage(response.status, extractedMessage),
+        {
         status: response.status,
         statusCode,
         payload,
-      });
+        }
+      );
 
       if (isSessionExpiredResponse(apiError)) {
         notifySessionExpired();

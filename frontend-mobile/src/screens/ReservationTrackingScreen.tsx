@@ -17,6 +17,7 @@ import { spacing } from "../constants/spacing";
 import { useAuth } from "../context/AuthContext";
 import { useLocalFeedback } from "../context/LocalFeedbackContext";
 import { useLocalNotifications } from "../context/LocalNotificationsContext";
+import { useNetworkStatus } from "../context/NetworkContext";
 import { ROUTES } from "../navigation/routes";
 import { StudentStackParamList } from "../navigation/types";
 import {
@@ -106,6 +107,7 @@ export function ReservationTrackingScreen({ navigation, route }: Props) {
   const { accessToken } = useAuth();
   const { hasRatingForReservation } = useLocalFeedback();
   const { addNotification } = useLocalNotifications();
+  const { isOnline } = useNetworkStatus();
   const [manualRefreshing, setManualRefreshing] = useState(false);
   const expiryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
@@ -285,6 +287,12 @@ export function ReservationTrackingScreen({ navigation, route }: Props) {
       return;
     }
 
+    if (!isOnline) {
+      setQrError("Necesitas conexión a internet para generar el QR.");
+      setQrState("error");
+      return;
+    }
+
     if (!canGenerateQr) {
       setQrState(reservation.status === "completed" ? "used" : "not_available");
       return;
@@ -385,7 +393,12 @@ export function ReservationTrackingScreen({ navigation, route }: Props) {
           </Text>
 
           {qrState === "available" && qr?.pickupToken ? (
-            <View style={styles.qrBox}>
+            <View
+              style={styles.qrBox}
+              accessible
+              accessibilityRole="image"
+              accessibilityLabel="Código QR de retiro disponible"
+            >
               <QRCode value={qr.pickupToken} size={210} />
               <Text style={styles.qrHint}>Disponible hasta {new Date(qr.expiresAt).toLocaleTimeString()}</Text>
             </View>
@@ -417,7 +430,7 @@ export function ReservationTrackingScreen({ navigation, route }: Props) {
             <AppButton
               label={
                 hasRatingForReservation(reservation.id)
-                  ? "Editar calificación local"
+                  ? "Editar calificación"
                   : "Calificar pedido"
               }
               onPress={() =>

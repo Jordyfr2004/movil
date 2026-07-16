@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useNetworkStatus } from "../context/NetworkContext";
 import { Restaurant } from "../types/models";
 import { getRestaurants } from "../services/restaurantService";
 
@@ -6,9 +7,20 @@ export function useRestaurants() {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { recoveryTick } = useNetworkStatus();
+  const requestRef = useRef<Promise<void> | null>(null);
 
   const reload = useCallback(() => {
     let isMounted = true;
+
+    if (requestRef.current) {
+      return {
+        request: requestRef.current,
+        cleanup: () => {
+          isMounted = false;
+        },
+      };
+    }
 
     setLoading(true);
     setError(null);
@@ -34,7 +46,10 @@ export function useRestaurants() {
         if (isMounted) {
           setLoading(false);
         }
+        requestRef.current = null;
       });
+
+    requestRef.current = request;
 
     return {
       request,
@@ -49,6 +64,11 @@ export function useRestaurants() {
 
     return cleanup;
   }, [reload]);
+
+  useEffect(() => {
+    if (recoveryTick <= 0) return;
+    void reload().request;
+  }, [recoveryTick, reload]);
 
   return { restaurants, loading, error, reload: () => reload().request };
 }

@@ -9,6 +9,7 @@ import { STRIPE_PUBLISHABLE_KEY } from "../constants/stripe";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { useLocalNotifications } from "../context/LocalNotificationsContext";
+import { useNetworkStatus } from "../context/NetworkContext";
 import { ROUTES } from "../navigation/routes";
 import { StudentStackParamList } from "../navigation/types";
 import { createPaymentIntent } from "../services/paymentService";
@@ -84,6 +85,7 @@ export function CheckoutScreen({ navigation }: Props) {
   const { accessToken } = useAuth();
   const { clearCart, items, restaurant, subtotal, total } = useCart();
   const { addNotification } = useLocalNotifications();
+  const { isOnline } = useNetworkStatus();
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const [submitting, setSubmitting] = useState(false);
   const [confirmationMessage, setConfirmationMessage] = useState<string | null>(
@@ -126,6 +128,14 @@ export function CheckoutScreen({ navigation }: Props) {
   const handleCheckout = async () => {
     if (submitting) return;
 
+    if (!isOnline) {
+      Alert.alert(
+        "Sin conexión",
+        "Necesitas conexión a internet para crear y pagar una reserva."
+      );
+      return;
+    }
+
     if (!accessToken) {
       Alert.alert("Sesión requerida", "Inicia sesión para continuar.");
       return;
@@ -157,13 +167,12 @@ export function CheckoutScreen({ navigation }: Props) {
 
       const intent = await createPaymentIntent(accessToken, reservation.id);
 
-      logCheckoutDebug("PaymentIntent creado", {
-        paymentIntentId: intent.payment_intent_id,
+      logCheckoutDebug("Pago preparado", {
         reservationId: reservation.id,
       });
 
       if (!intent.clientSecret) {
-        throw new Error("No se recibió clientSecret del servidor");
+        throw new Error("No pudimos preparar el pago.");
       }
 
       const init = await initPaymentSheet({
@@ -179,7 +188,6 @@ export function CheckoutScreen({ navigation }: Props) {
 
       logCheckoutDebug("Resultado de PaymentSheet", {
         hasError: Boolean(presented.error),
-        paymentIntentId: intent.payment_intent_id,
         reservationId: reservation.id,
       });
 
@@ -282,7 +290,7 @@ export function CheckoutScreen({ navigation }: Props) {
             (submitting ? "Procesando..." : "Crear reserva y pagar")
           }
           onPress={handleCheckout}
-          disabled={submitting}
+          disabled={submitting || !isOnline}
         />
       </View>
     </Screen>

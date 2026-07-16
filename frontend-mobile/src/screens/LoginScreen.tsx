@@ -121,7 +121,7 @@ export function LoginScreen({ navigation }: Props) {
 
       const message =
         errorKind === "timeout" || errorKind === "red"
-          ? "No pudimos conectar con el servidor. Verifica que el backend esté activo e inténtalo nuevamente."
+          ? "No pudimos conectar. Revisa tu conexión e inténtalo nuevamente."
           : errorMessage;
 
       Alert.alert("Error", message);

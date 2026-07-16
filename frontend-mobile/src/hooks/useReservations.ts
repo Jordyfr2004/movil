@@ -1,4 +1,5 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useNetworkStatus } from "../context/NetworkContext";
 import { isSessionExpiryInProgress } from "../services/sessionExpiryService";
 import { getMyReservations } from "../services/reservationService";
 import { getRestaurants } from "../services/restaurantService";
@@ -48,6 +49,8 @@ export function useReservations(accessToken: string | null) {
   const [reservations, setReservations] = useState<ReservationListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { recoveryTick } = useNetworkStatus();
+  const requestRef = useRef<Promise<void> | null>(null);
 
   const reload = useCallback(() => {
     if (!accessToken) {
@@ -57,10 +60,14 @@ export function useReservations(accessToken: string | null) {
       return Promise.resolve();
     }
 
+    if (requestRef.current) {
+      return requestRef.current;
+    }
+
     setLoading(true);
     setError(null);
 
-    return Promise.allSettled([getMyReservations(accessToken), getRestaurants()])
+    const request = Promise.allSettled([getMyReservations(accessToken), getRestaurants()])
       .then((results) => {
         const reservationsResult = results[0];
         const restaurantsResult = results[1];
@@ -112,8 +119,17 @@ export function useReservations(accessToken: string | null) {
       })
       .finally(() => {
         setLoading(false);
+        requestRef.current = null;
       });
+
+    requestRef.current = request;
+    return request;
   }, [accessToken]);
+
+  useEffect(() => {
+    if (recoveryTick <= 0) return;
+    void reload();
+  }, [recoveryTick, reload]);
 
   return { reservations, loading, error, reload };
 }

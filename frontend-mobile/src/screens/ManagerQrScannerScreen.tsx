@@ -9,6 +9,7 @@ import {
 import { AppButton, Screen } from "../components";
 import { spacing } from "../constants/spacing";
 import { useAuth } from "../context/AuthContext";
+import { useNetworkStatus } from "../context/NetworkContext";
 import {
   confirmPickupDelivery,
   ManagerReservation,
@@ -43,11 +44,16 @@ export function ManagerQrScannerScreen() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { isOnline } = useNetworkStatus();
 
   const handleBarcodeScanned = async (result: BarcodeScanningResult) => {
     if (isVerifying || reservation) return;
     const token = result.data?.trim();
     if (!token || !accessToken) return;
+    if (!isOnline) {
+      setError("Necesitas conexión a internet para validar el QR.");
+      return;
+    }
 
     try {
       setIsVerifying(true);
@@ -65,6 +71,13 @@ export function ManagerQrScannerScreen() {
 
   const confirmDelivery = () => {
     if (!accessToken || !scannedToken || isConfirming) return;
+    if (!isOnline) {
+      Alert.alert(
+        "Sin conexión",
+        "Necesitas conexión a internet para confirmar la entrega."
+      );
+      return;
+    }
 
     Alert.alert(
       "Confirmar entrega",
