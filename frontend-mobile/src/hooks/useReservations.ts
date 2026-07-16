@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { isSessionExpiryInProgress } from "../services/sessionExpiryService";
 import { getMyReservations } from "../services/reservationService";
 import { getRestaurants } from "../services/restaurantService";
 import { Reservation } from "../types/models";
@@ -16,6 +17,31 @@ function buildReservationTitle(reservation: Reservation) {
   }
 
   return first.dishName;
+}
+
+function isSessionError(error: unknown) {
+  const status =
+    typeof error === "object" &&
+    error !== null &&
+    typeof (error as { status?: unknown }).status === "number"
+      ? (error as { status: number }).status
+      : undefined;
+  const statusCode =
+    typeof error === "object" &&
+    error !== null &&
+    typeof (error as { statusCode?: unknown }).statusCode === "number"
+      ? (error as { statusCode: number }).statusCode
+      : undefined;
+  const message = error instanceof Error ? error.message.toLowerCase() : "";
+
+  return (
+    status === 401 ||
+    statusCode === 401 ||
+    message.includes("401") ||
+    message.includes("token") ||
+    message.includes("sesión") ||
+    message.includes("sesion")
+  );
 }
 
 export function useReservations(accessToken: string | null) {
@@ -67,7 +93,14 @@ export function useReservations(accessToken: string | null) {
 
         setReservations(enriched);
 
-        if (reservationsResult.status === "rejected") {
+        if (
+          reservationsResult.status === "rejected" &&
+          (isSessionError(reservationsResult.reason) ||
+            isSessionExpiryInProgress())
+        ) {
+          setReservations([]);
+          setError(null);
+        } else if (reservationsResult.status === "rejected") {
           setError(
             reservationsResult.reason instanceof Error
               ? reservationsResult.reason.message

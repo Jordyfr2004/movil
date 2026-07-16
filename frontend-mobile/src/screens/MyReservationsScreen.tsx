@@ -1,7 +1,10 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { Alert, FlatList, StyleSheet, Text, View } from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
-import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { Alert, FlatList, StyleSheet, Text, Vibration, View } from "react-native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import {
+  NativeStackNavigationProp,
+  NativeStackScreenProps,
+} from "@react-navigation/native-stack";
 import { useStripe } from "@stripe/stripe-react-native";
 
 import {
@@ -22,9 +25,13 @@ import {
   useReservations,
 } from "../hooks/useReservations";
 import { ROUTES } from "../navigation/routes";
-import { RootStackParamList } from "../navigation/types";
+import { StudentStackParamList } from "../navigation/types";
 import { createPaymentIntent } from "../services/paymentService";
 import { cancelReservation } from "../services/reservationService";
+import {
+  acquireNotificationsSocket,
+  releaseNotificationsSocket,
+} from "../services/notificationsSocket";
 import { typography } from "../theme";
 import { studentPalette } from "../theme/studentPalette";
 import type { ReservationStatus } from "../types/models";
@@ -32,7 +39,7 @@ import type { ReservationStatus } from "../types/models";
 type UnknownRecord = Record<string, unknown>;
 
 type Props = NativeStackScreenProps<
-  RootStackParamList,
+  StudentStackParamList,
   typeof ROUTES.MyReservations
 >;
 
@@ -105,6 +112,8 @@ function readErrorMessage(error: unknown, fallback: string): string {
 export function MyReservationsScreen({
   bottomInset = 0,
 }: Partial<Props> & { bottomInset?: number }) {
+  const navigation =
+    useNavigation<NativeStackNavigationProp<StudentStackParamList>>();
   const { accessToken } = useAuth();
   const { reservations, loading, error, reload } = useReservations(accessToken);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -118,6 +127,22 @@ export function MyReservationsScreen({
       reload();
     }, [reload])
   );
+
+  React.useEffect(() => {
+    if (!accessToken) return;
+
+    const socket = acquireNotificationsSocket(accessToken);
+    const handleDelivered = () => {
+      Vibration.vibrate(80);
+      void reload();
+    };
+
+    socket.on("reservation_delivered", handleDelivered);
+    return () => {
+      socket.off("reservation_delivered", handleDelivered);
+      releaseNotificationsSocket(accessToken);
+    };
+  }, [accessToken, reload]);
 
   const activeCount = useMemo(() => {
     return reservations.filter(
@@ -302,6 +327,11 @@ export function MyReservationsScreen({
               reservation={item.reservation}
               onCancel={confirmCancel}
               onPay={handlePay}
+              onPress={() =>
+                navigation?.navigate?.(ROUTES.ReservationTracking, {
+                  reservation: item.reservation,
+                })
+              }
             />
           )
         }

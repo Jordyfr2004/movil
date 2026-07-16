@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { spacing } from "../../constants/spacing";
@@ -28,6 +28,7 @@ type MyReservationCardProps = {
   reservation: ReservationCardItem;
   onCancel: (reservationId: string) => void;
   onPay: (reservationId: string) => void;
+  onPress?: () => void;
 };
 
 export function MyReservationCard({
@@ -37,12 +38,19 @@ export function MyReservationCard({
   reservation,
   onCancel,
   onPay,
+  onPress,
 }: MyReservationCardProps) {
   const badge = getReservationStatusBadge(reservation.status);
   const shouldShowActions = reservation.status === "pending_payment";
   const statusStyle = getStatusStyle(reservation.status);
 
   return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Ver reserva ${reservation.title}`}
+      onPress={onPress}
+      style={({ pressed }) => pressed && styles.pressed}
+    >
     <Card style={[styles.card, statusStyle.card]}>
       <View style={[styles.stateMark, statusStyle.mark]} pointerEvents="none" />
 
@@ -95,6 +103,7 @@ export function MyReservationCard({
         />
       ) : null}
     </Card>
+    </Pressable>
   );
 }
 
@@ -142,6 +151,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 1,
     overflow: "hidden",
+  },
+  pressed: {
+    transform: [{ scale: 0.99 }],
   },
   cardPending: {
     borderColor: studentPalette.warningBorder,

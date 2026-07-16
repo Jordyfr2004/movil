@@ -71,6 +71,13 @@ function AdminDrawerContent({ profile, ...props }: AdminDrawerContentProps) {
 		});
 	};
 
+	const handleGoToScanner = () => {
+		navigation.dispatch(DrawerActions.closeDrawer());
+		navigation.navigate("AdminStack", {
+			screen: ROUTES.ManagerQrScanner,
+		});
+	};
+
 	const handleLogout = async () => {
 		if (isLoggingOut) return;
 
@@ -156,6 +163,8 @@ function AdminDrawerContent({ profile, ...props }: AdminDrawerContentProps) {
 				<DrawerMenuItem iconName="home" label="Inicio" onPress={handleGoToProfile} />
 				<View style={styles.itemDivider} />
 				<DrawerMenuItem iconName="plus-box-outline" label="Añadir platos" onPress={handleGoToAddDish} />
+				<View style={styles.itemDivider} />
+				<DrawerMenuItem iconName="qrcode-scan" label="Escanear QR" onPress={handleGoToScanner} />
 			</View>
 
 			<View style={styles.grow} />

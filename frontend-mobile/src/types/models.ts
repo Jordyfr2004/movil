@@ -26,6 +26,9 @@ export type Reservation = {
   status: ReservationStatus;
   createdAt: string;
   items: ReservationItem[];
+  totalAmount?: number;
+  deliveredAt?: string | null;
+  deliveryStatus?: string;
 };
 
 export type ReservationItem = {
@@ -35,4 +38,5 @@ export type ReservationItem = {
   dishDescription?: string | null;
   restaurantId: string;
   unitPrice: number;
+  quantity?: number;
 };

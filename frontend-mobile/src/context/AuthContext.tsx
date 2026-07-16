@@ -1,7 +1,9 @@
-import React, {createContext,useCallback,useContext,useEffect,useMemo,useState,} from "react";
+import React, {createContext,useCallback,useContext,useEffect,useMemo,useRef,useState,} from "react";
+import { Alert } from "react-native";
 import {classifyAuthError,LoginPayload,LoginSuccessResponse,loginRequest,logoutRequest,refreshTokenRequest,} from "../services/authServices";
 import {clearTokens,getRefreshToken,getStoredSession,saveAuthUser,saveTokens,} from "../services/authStorage";
 import { disconnectNotificationsSocket } from "../services/notificationsSocket";
+import { registerSessionExpiredHandler } from "../services/sessionExpiryService";
 
 
 type UnknownRecord = Record<string, unknown>;
@@ -111,6 +113,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const isHandlingExpiredSessionRef = useRef(false);
 
   const resetSessionState = useCallback(() => {
     setUser(null);
@@ -228,6 +231,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setAccessToken(access_token);
       setUser(nextUser);
       setIsLoading(false);
+      isHandlingExpiredSessionRef.current = false;
       await Promise.all([
         saveTokens(access_token, refresh_token),
         saveAuthUser(nextUser),
@@ -250,6 +254,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     disconnectNotificationsSocket();
     await clearLocalSession();
   }, [clearLocalSession]);
+
+  const handleExpiredSession = useCallback(async () => {
+    if (isHandlingExpiredSessionRef.current) {
+      return;
+    }
+
+    isHandlingExpiredSessionRef.current = true;
+    await logoutLocal();
+
+    Alert.alert(
+      "Sesión expirada",
+      "Tu sesión ha expirado. Inicia sesión nuevamente para continuar."
+    );
+
+    setTimeout(() => {
+      isHandlingExpiredSessionRef.current = false;
+    }, 1000);
+  }, [logoutLocal]);
+
+  useEffect(() => {
+    registerSessionExpiredHandler(handleExpiredSession);
+
+    return () => {
+      registerSessionExpiredHandler(null);
+    };
+  }, [handleExpiredSession]);
 
   const logout = useCallback(async () => {
     let refreshToken: string | null = null;

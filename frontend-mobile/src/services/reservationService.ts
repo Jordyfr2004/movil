@@ -14,6 +14,7 @@ type ReservationItemApi = {
   dish_description?: string | null;
   restaurant_id: string;
   unit_price: string | number;
+  quantity?: string | number;
 };
 
 type ReservationApi = {
@@ -21,6 +22,10 @@ type ReservationApi = {
   status: string;
   created_at?: string;
   createdAt?: string;
+  reservation_date?: string;
+  total_amount?: string | number;
+  delivered_at?: string | null;
+  delivery_status?: string;
   items?: ReservationItemApi[];
 };
 
@@ -31,6 +36,30 @@ type ApiEnvelope<T> = {
 
 type CreateReservationPayload = {
   items: Array<{ dish_id: string; quantity: number }>;
+};
+
+export type PickupQr = {
+  pickupToken: string;
+  expiresAt: string;
+};
+
+export type ManagerReservation = {
+  reservationId: string;
+  reservationDate: string;
+  status: ReservationStatus;
+  deliveryStatus: string;
+  totalAmount: number;
+  deliveredAt?: string | null;
+  user?: {
+    id: string;
+    fullName: string;
+  };
+  items: Array<{
+    dishId: string;
+    dishName: string;
+    unitPrice: number;
+    quantity: number;
+  }>;
 };
 
 function isRecord(value: unknown): value is UnknownRecord {
@@ -134,6 +163,7 @@ function normalizeReservationItem(item: unknown): ReservationItem {
         : null,
     restaurantId: String(source.restaurant_id ?? source.restaurantId ?? ""),
     unitPrice: normalizeNumber(source.unit_price ?? source.unitPrice),
+    quantity: normalizeNumber(source.quantity ?? 1),
   };
 }
 
@@ -144,8 +174,53 @@ function normalizeReservation(payload: unknown): Reservation {
   return {
     id: String(source.id ?? ""),
     status: normalizeStatus(source.status),
-    createdAt: String(source.created_at ?? source.createdAt ?? ""),
+    createdAt: String(
+      source.created_at ?? source.createdAt ?? source.reservation_date ?? ""
+    ),
     items: items.map(normalizeReservationItem),
+    totalAmount: normalizeNumber(source.total_amount ?? source.totalAmount),
+    deliveredAt:
+      typeof source.delivered_at === "string" ? source.delivered_at : null,
+    deliveryStatus:
+      typeof source.delivery_status === "string"
+        ? source.delivery_status
+        : undefined,
+  };
+}
+
+function normalizeManagerReservation(payload: unknown): ManagerReservation {
+  const source = isRecord(payload) ? payload : {};
+  const user = isRecord(source.user) ? source.user : {};
+  const items = Array.isArray(source.items) ? source.items : [];
+
+  return {
+    reservationId: String(source.reservation_id ?? source.id ?? ""),
+    reservationDate: String(source.reservation_date ?? source.created_at ?? ""),
+    status: normalizeStatus(source.status),
+    deliveryStatus:
+      typeof source.delivery_status === "string"
+        ? source.delivery_status
+        : "",
+    totalAmount: normalizeNumber(source.total_amount),
+    deliveredAt:
+      typeof source.delivered_at === "string" ? source.delivered_at : null,
+    user:
+      typeof user.id === "string"
+        ? {
+            id: user.id,
+            fullName:
+              typeof user.full_name === "string" ? user.full_name : "",
+          }
+        : undefined,
+    items: items.map((item) => {
+      const row = isRecord(item) ? item : {};
+      return {
+        dishId: String(row.dish_id ?? ""),
+        dishName: String(row.dish_name ?? ""),
+        unitPrice: normalizeNumber(row.unit_price),
+        quantity: normalizeNumber(row.quantity ?? 1),
+      };
+    }),
   };
 }
 
@@ -190,6 +265,16 @@ export async function getMyReservations(accessToken: string): Promise<Reservatio
   }
 }
 
+export async function getMyReservationById(
+  accessToken: string,
+  reservationId: string
+): Promise<Reservation | null> {
+  const reservations = await getMyReservations(accessToken);
+  return (
+    reservations.find((reservation) => reservation.id === reservationId) ?? null
+  );
+}
+
 export async function createReservation(
   accessToken: string,
   payload: CreateReservationPayload
@@ -203,6 +288,66 @@ export async function createReservation(
   );
 
   return normalizeReservation(unwrapData(result));
+}
+
+export async function generatePickupQr(
+  accessToken: string,
+  reservationId: string
+): Promise<PickupQr> {
+  const result = await httpClient.post<ApiEnvelope<unknown>>(
+    `/reservations/${encodeURIComponent(reservationId)}/pickup-qr`,
+    undefined,
+    { accessToken }
+  );
+
+  const payload = unwrapData(result);
+  const source = isRecord(payload) ? payload : {};
+
+  return {
+    pickupToken:
+      typeof source.pickup_token === "string" ? source.pickup_token : "",
+    expiresAt: typeof source.expires_at === "string" ? source.expires_at : "",
+  };
+}
+
+export async function verifyPickupQr(
+  accessToken: string,
+  pickupToken: string
+): Promise<ManagerReservation> {
+  const result = await httpClient.post<ApiEnvelope<unknown>>(
+    "/reservations/pickup/verify",
+    { pickup_token: pickupToken },
+    { accessToken }
+  );
+
+  return normalizeManagerReservation(unwrapData(result));
+}
+
+export async function confirmPickupDelivery(
+  accessToken: string,
+  pickupToken: string
+): Promise<ManagerReservation> {
+  const result = await httpClient.post<ApiEnvelope<unknown>>(
+    "/reservations/pickup/confirm",
+    { pickup_token: pickupToken },
+    { accessToken }
+  );
+
+  return normalizeManagerReservation(unwrapData(result));
+}
+
+export async function getManagerReservations(
+  accessToken: string
+): Promise<ManagerReservation[]> {
+  const result = await httpClient.get<ApiEnvelope<unknown>>(
+    "/reservations/manager",
+    { accessToken }
+  );
+
+  const payload = unwrapData(result);
+  const list = Array.isArray(payload) ? payload : [];
+
+  return list.map(normalizeManagerReservation);
 }
 
 export async function cancelReservation(

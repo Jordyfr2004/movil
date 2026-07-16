@@ -1,7 +1,7 @@
 import { NavigatorScreenParams } from "@react-navigation/native";
 
 import { Dish } from "../services/dishService";
-import { Restaurant } from "../types/models";
+import { Reservation, Restaurant } from "../types/models";
 import { ROUTES } from "./routes";
 
 export type RootStackParamList = {
@@ -19,6 +19,9 @@ export type RootStackParamList = {
   [ROUTES.RestaurantDetail]: { restaurant: Restaurant };
   [ROUTES.FoodDetail]: { restaurant: Restaurant; dish: Dish };
   [ROUTES.Cart]: undefined;
+  [ROUTES.Checkout]: undefined;
+  [ROUTES.ReservationTracking]: { reservation: Reservation };
+  [ROUTES.ManagerQrScanner]: undefined;
   [ROUTES.MyReservations]: undefined;
   [ROUTES.Profile]: undefined;
   [ROUTES.Register]: undefined;
@@ -46,6 +49,8 @@ export type StudentStackParamList = Pick<
   | typeof ROUTES.RestaurantDetail
   | typeof ROUTES.FoodDetail
   | typeof ROUTES.Cart
+  | typeof ROUTES.Checkout
+  | typeof ROUTES.ReservationTracking
   | typeof ROUTES.MyReservations
   | typeof ROUTES.Profile
 >;
@@ -56,7 +61,7 @@ export type StudentDrawerParamList = {
 
 export type AdminStackParamList = Pick<
   RootStackParamList,
-  typeof ROUTES.ManagerProfile | typeof ROUTES.AddDish
+  typeof ROUTES.ManagerProfile | typeof ROUTES.AddDish | typeof ROUTES.ManagerQrScanner
 >;
 
 export type AdminDrawerParamList = {

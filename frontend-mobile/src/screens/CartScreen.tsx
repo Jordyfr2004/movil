@@ -95,10 +95,7 @@ export function CartScreen({ navigation }: Props) {
   };
 
   const handleContinue = () => {
-    Alert.alert(
-      "Pedido preparado",
-      "El carrito queda listo para el siguiente bloque. Aún no se crea el pedido ni se inicia pago."
-    );
+    navigation.navigate(ROUTES.Checkout);
   };
 
   return (

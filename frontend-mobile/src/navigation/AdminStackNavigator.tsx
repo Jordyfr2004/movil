@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { AddDishScreen } from "../screens/AddDishScreen";
+import { ManagerQrScannerScreen } from "../screens/ManagerQrScannerScreen";
 import { ManagerProfileScreen } from "../screens/ManagerProfileScreen";
 import { colors, typography } from "../theme";
 import { managerPalette } from "../components/managerProfile/managerProfileTheme";
@@ -87,6 +88,12 @@ export function AdminStackNavigator() {
 						</Pressable>
 					),
 				})}
+			/>
+
+			<Stack.Screen
+				name={ROUTES.ManagerQrScanner}
+				component={ManagerQrScannerScreen}
+				options={{ title: "Escanear QR" }}
 			/>
 		</Stack.Navigator>
 	);

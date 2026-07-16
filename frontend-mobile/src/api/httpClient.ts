@@ -1,4 +1,5 @@
 import { API_URL } from "../constants/api";
+import { notifySessionExpired } from "../services/sessionExpiryService";
 import { ApiError, isApiError } from "./apiError";
 
 const DEFAULT_TIMEOUT_MS = 20000;
@@ -123,6 +124,34 @@ function extractErrorMessage(payload: unknown): string {
   return DEFAULT_ERROR_MESSAGE;
 }
 
+function isTokenExpiredMessage(message: string): boolean {
+  const normalized = message
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  return (
+    normalized.includes("token invalido") ||
+    normalized.includes("token invalid") ||
+    normalized.includes("invalid token") ||
+    normalized.includes("token expirado") ||
+    normalized.includes("token expired") ||
+    normalized.includes("jwt expired") ||
+    normalized.includes("unauthorized") ||
+    normalized.includes("no autorizado") ||
+    normalized.includes("sesion expiro") ||
+    normalized.includes("sesion ha expirado")
+  );
+}
+
+function isSessionExpiredResponse(error: ApiError): boolean {
+  if (error.status === 401 || error.statusCode === 401) {
+    return true;
+  }
+
+  return isTokenExpiredMessage(error.message);
+}
+
 async function parseResponseBody(response: Response): Promise<unknown> {
   const text = await response.text();
 
@@ -202,6 +231,10 @@ async function request<T>(
         statusCode,
         payload,
       });
+
+      if (isSessionExpiredResponse(apiError)) {
+        notifySessionExpired();
+      }
 
       logHttpDebug("Request failed", {
         endpoint,

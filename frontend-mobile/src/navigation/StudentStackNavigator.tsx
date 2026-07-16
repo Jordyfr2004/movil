@@ -2,9 +2,11 @@ import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 import { CartScreen } from "../screens/CartScreen";
+import { CheckoutScreen } from "../screens/CheckoutScreen";
 import { FoodDetailScreen } from "../screens/FoodDetailScreen";
 import { MyReservationsScreen } from "../screens/MyReservationsScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
+import { ReservationTrackingScreen } from "../screens/ReservationTrackingScreen";
 import { RestaurantDetailScreen } from "../screens/RestaurantDetailScreen";
 import { colors, typography } from "../theme";
 import { studentPalette } from "../theme/studentPalette";
@@ -52,6 +54,18 @@ export function StudentStackNavigator() {
         name={ROUTES.Cart}
         component={CartScreen}
         options={{ title: "Carrito" }}
+      />
+
+      <Stack.Screen
+        name={ROUTES.Checkout}
+        component={CheckoutScreen}
+        options={{ title: "Checkout" }}
+      />
+
+      <Stack.Screen
+        name={ROUTES.ReservationTracking}
+        component={ReservationTrackingScreen}
+        options={{ title: "Seguimiento" }}
       />
 
       <Stack.Screen
