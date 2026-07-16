@@ -28,12 +28,6 @@ function formatMoney(value: number) {
   return `$${value.toFixed(2)}`;
 }
 
-function logCheckoutDebug(message: string, details: Record<string, unknown>) {
-  if (__DEV__) {
-    console.log(`[checkout] ${message}`, details);
-  }
-}
-
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -107,12 +101,6 @@ export function CheckoutScreen({ navigation }: Props) {
         reservationId
       );
 
-      logCheckoutDebug("Estado recibido después del pago", {
-        attempt,
-        reservationId,
-        status: nextReservation?.status ?? "not_found",
-      });
-
       if (!nextReservation) {
         continue;
       }
@@ -160,16 +148,7 @@ export function CheckoutScreen({ navigation }: Props) {
         })),
       });
 
-      logCheckoutDebug("Reserva creada", {
-        reservationId: reservation.id,
-        status: reservation.status,
-      });
-
       const intent = await createPaymentIntent(accessToken, reservation.id);
-
-      logCheckoutDebug("Pago preparado", {
-        reservationId: reservation.id,
-      });
 
       if (!intent.clientSecret) {
         throw new Error("No pudimos preparar el pago.");
@@ -185,11 +164,6 @@ export function CheckoutScreen({ navigation }: Props) {
       }
 
       const presented = await presentPaymentSheet();
-
-      logCheckoutDebug("Resultado de PaymentSheet", {
-        hasError: Boolean(presented.error),
-        reservationId: reservation.id,
-      });
 
       if (presented.error) {
         throw new Error(presented.error.message);

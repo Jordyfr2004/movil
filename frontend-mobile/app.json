@@ -6,6 +6,7 @@
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": false,
+    "icon": "./src/assets/images/logo_comedor_uleam_institucional_final.png",
     "splash": {
       "image": "./src/assets/images/logo_comedor_uleam_institucional_final.png",
       "resizeMode": "contain",
@@ -22,6 +23,11 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.anonymous.comedoruleam",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./src/assets/images/logo_comedor_uleam_institucional_final.png",
+        "backgroundColor": "#FAF9F7"
+      },
       "permissions": [
         "CAMERA"
       ]
