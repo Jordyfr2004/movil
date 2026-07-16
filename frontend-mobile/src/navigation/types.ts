@@ -22,6 +22,19 @@ export type RootStackParamList = {
   [ROUTES.Checkout]: undefined;
   [ROUTES.ReservationTracking]: { reservation: Reservation };
   [ROUTES.ManagerQrScanner]: undefined;
+  [ROUTES.Notifications]: undefined;
+  [ROUTES.Appearance]: undefined;
+  [ROUTES.Rating]: { reservation: Reservation };
+  [ROUTES.ProblemReport]: { reservationId?: string } | undefined;
+  [ROUTES.Help]: undefined;
+  [ROUTES.LocalPending]: undefined;
+  [ROUTES.OnboardingReview]: undefined;
+  [ROUTES.OnboardingStageDetail]: { index: number };
+  [ROUTES.OnboardingFull]: undefined;
+  [ROUTES.HelpDetail]: {
+    topic: "cart" | "access" | "payments" | "reservations" | "qr";
+  };
+  [ROUTES.PendingDetail]: { kind: "rating" | "report"; id: string };
   [ROUTES.MyReservations]: undefined;
   [ROUTES.Profile]: undefined;
   [ROUTES.Register]: undefined;
@@ -51,6 +64,17 @@ export type StudentStackParamList = Pick<
   | typeof ROUTES.Cart
   | typeof ROUTES.Checkout
   | typeof ROUTES.ReservationTracking
+  | typeof ROUTES.Notifications
+  | typeof ROUTES.Appearance
+  | typeof ROUTES.Rating
+  | typeof ROUTES.ProblemReport
+  | typeof ROUTES.Help
+  | typeof ROUTES.LocalPending
+  | typeof ROUTES.OnboardingReview
+  | typeof ROUTES.OnboardingStageDetail
+  | typeof ROUTES.OnboardingFull
+  | typeof ROUTES.HelpDetail
+  | typeof ROUTES.PendingDetail
   | typeof ROUTES.MyReservations
   | typeof ROUTES.Profile
 >;

@@ -9,6 +9,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  Pressable,
   View,
 } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -18,6 +19,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppButton, QuantityStepper, Screen } from "../components";
 import { spacing } from "../constants/spacing";
 import { useCart } from "../context/CartContext";
+import { useFavorites } from "../context/FavoritesContext";
 import { useReduceMotion } from "../hooks/useReduceMotion";
 import { ROUTES } from "../navigation/routes";
 import { StudentStackParamList } from "../navigation/types";
@@ -41,12 +43,14 @@ export function FoodDetailScreen({ navigation, route }: Props) {
   const [quantity, setQuantity] = useState(1);
   const [notes, setNotes] = useState("");
   const { addDish } = useCart();
+  const { isDishFavorite, toggleDish } = useFavorites();
   const insets = useSafeAreaInsets();
   const reduceMotion = useReduceMotion();
   const opacity = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
   const translateY = useRef(new Animated.Value(reduceMotion ? 0 : 14)).current;
 
   const isAvailable = dish.isActive && dish.isAvailable;
+  const favorite = isDishFavorite(dish.id);
 
   const subtotal = useMemo(() => {
     const price = Number(dish.price.replace(",", "."));
@@ -146,6 +150,20 @@ export function FoodDetailScreen({ navigation, route }: Props) {
                   <Text style={styles.name}>{dish.name}</Text>
                 </View>
                 <Text style={styles.price}>{formatMoney(dish.price)}</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    favorite ? "Quitar plato favorito" : "Guardar plato favorito"
+                  }
+                  onPress={() => toggleDish(restaurant, dish)}
+                  style={styles.favoriteButton}
+                >
+                  <MaterialCommunityIcons
+                    name={favorite ? "heart" : "heart-outline"}
+                    size={designSystem.iconSizes.md}
+                    color={designSystem.colors.primary}
+                  />
+                </Pressable>
               </View>
 
               {dish.description ? (
@@ -303,6 +321,14 @@ const styles = StyleSheet.create({
     color: designSystem.colors.primary,
     fontSize: typography.sizes.lg,
     fontWeight: typography.weights.bold,
+  },
+  favoriteButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: designSystem.colors.primaryFaint,
   },
   description: {
     color: designSystem.colors.textSecondary,

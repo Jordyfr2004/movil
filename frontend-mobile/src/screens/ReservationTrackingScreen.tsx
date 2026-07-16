@@ -15,6 +15,8 @@ import type { Socket } from "socket.io-client";
 import { AppButton, Screen } from "../components";
 import { spacing } from "../constants/spacing";
 import { useAuth } from "../context/AuthContext";
+import { useLocalFeedback } from "../context/LocalFeedbackContext";
+import { useLocalNotifications } from "../context/LocalNotificationsContext";
 import { ROUTES } from "../navigation/routes";
 import { StudentStackParamList } from "../navigation/types";
 import {
@@ -88,7 +90,7 @@ function logTrackingDebug(message: string, details: Record<string, unknown>) {
   }
 }
 
-export function ReservationTrackingScreen({ route }: Props) {
+export function ReservationTrackingScreen({ navigation, route }: Props) {
   const [reservation, setReservation] = useState<Reservation>(
     route.params.reservation
   );
@@ -102,8 +104,12 @@ export function ReservationTrackingScreen({ route }: Props) {
   );
   const [qrError, setQrError] = useState<string | null>(null);
   const { accessToken } = useAuth();
-  const [refreshing, setRefreshing] = useState(false);
+  const { hasRatingForReservation } = useLocalFeedback();
+  const { addNotification } = useLocalNotifications();
+  const [manualRefreshing, setManualRefreshing] = useState(false);
   const expiryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMountedRef = useRef(true);
+  const manualRefreshInFlightRef = useRef(false);
 
   const restaurantName =
     reservation.items[0]?.restaurantId ?? "Restaurante";
@@ -119,11 +125,37 @@ export function ReservationTrackingScreen({ route }: Props) {
 
   const canGenerateQr = reservation.status === "confirmed";
 
-  const refreshReservation = useCallback(async () => {
-    if (!accessToken || refreshing) return;
+  const applyReservationRefresh = useCallback(
+    (nextReservation: Reservation | null) => {
+      if (!nextReservation) {
+        return;
+      }
 
-    try {
-      setRefreshing(true);
+      setReservation((current) => {
+        const previousStatus = current.status;
+
+        if (nextReservation.status !== previousStatus) {
+          if (nextReservation.status === "completed") {
+            setQrState("used");
+            setQr(null);
+          } else if (
+            previousStatus === "confirmed" &&
+            nextReservation.status !== "confirmed"
+          ) {
+            setQrState("not_available");
+            setQr(null);
+          }
+        }
+
+        return nextReservation;
+      });
+    },
+    []
+  );
+
+  const fetchLatestReservation = useCallback(async () => {
+    if (!accessToken) return null;
+
       const nextReservation = await getMyReservationById(
         accessToken,
         reservation.id
@@ -134,35 +166,62 @@ export function ReservationTrackingScreen({ route }: Props) {
         status: nextReservation?.status ?? "not_found",
       });
 
-      if (nextReservation) {
-        setReservation(nextReservation);
-        if (nextReservation.status === "completed") {
-          setQrState("used");
-          setQr(null);
-        } else if (nextReservation.status !== "confirmed") {
-          setQrState("not_available");
-          setQr(null);
-        }
-      }
+      return nextReservation;
+  }, [accessToken, reservation.id]);
+
+  const refreshReservationSilently = useCallback(async () => {
+    try {
+      const nextReservation = await fetchLatestReservation();
+      if (!isMountedRef.current) return;
+      applyReservationRefresh(nextReservation);
     } catch (error: unknown) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "No se pudo actualizar la reserva.";
-      Alert.alert("No se pudo actualizar", message);
-    } finally {
-      setRefreshing(false);
+      logTrackingDebug("Actualización automática falló", {
+        message:
+          error instanceof Error
+            ? error.message
+            : "No se pudo actualizar la reserva.",
+        reservationId: reservation.id,
+      });
     }
-  }, [accessToken, refreshing, reservation.id]);
+  }, [applyReservationRefresh, fetchLatestReservation, reservation.id]);
+
+  const refreshReservationManually = useCallback(async () => {
+    if (manualRefreshInFlightRef.current) return;
+
+    manualRefreshInFlightRef.current = true;
+    setManualRefreshing(true);
+
+    try {
+      const nextReservation = await fetchLatestReservation();
+      if (!isMountedRef.current) return;
+      applyReservationRefresh(nextReservation);
+    } catch {
+      if (!isMountedRef.current) return;
+      Alert.alert(
+        "No se pudo actualizar",
+        "No pudimos consultar el estado de la reserva. Inténtalo nuevamente."
+      );
+    } finally {
+      manualRefreshInFlightRef.current = false;
+      if (isMountedRef.current) {
+        setManualRefreshing(false);
+      }
+    }
+  }, [applyReservationRefresh, fetchLatestReservation]);
 
   useEffect(() => {
-    void refreshReservation();
-  }, []);
+    isMountedRef.current = true;
+    void refreshReservationSilently();
+
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, [refreshReservationSilently]);
 
   useFocusEffect(
     useCallback(() => {
-      void refreshReservation();
-    }, [refreshReservation])
+      void refreshReservationSilently();
+    }, [refreshReservationSilently])
   );
 
   useEffect(() => {
@@ -184,6 +243,12 @@ export function ReservationTrackingScreen({ route }: Props) {
       }));
       setQrState("used");
       setQr(null);
+      addNotification({
+        kind: "delivered",
+        title: "Reserva entregada",
+        message: payload.message ?? "Tu reserva fue entregada correctamente.",
+        reservationId: reservation.id,
+      });
       Vibration.vibrate(80);
       Alert.alert("Reserva entregada", "Tu reserva fue entregada correctamente.");
     };
@@ -194,7 +259,7 @@ export function ReservationTrackingScreen({ route }: Props) {
       socket.off("reservation_delivered", handleDelivered);
       releaseNotificationsSocket(accessToken);
     };
-  }, [accessToken, reservation.id]);
+  }, [accessToken, addNotification, reservation.id]);
 
   useEffect(() => {
     return () => {
@@ -266,9 +331,9 @@ export function ReservationTrackingScreen({ route }: Props) {
           <Text style={styles.subtitle}>{restaurantName}</Text>
           <Text style={styles.status}>{statusLabel(reservation.status)}</Text>
           <AppButton
-            label={refreshing ? "Actualizando..." : "Actualizar estado"}
-            onPress={refreshReservation}
-            disabled={refreshing}
+            label={manualRefreshing ? "Actualizando..." : "Actualizar estado"}
+            onPress={refreshReservationManually}
+            disabled={manualRefreshing}
             variant="secondary"
             style={styles.refreshButton}
           />
@@ -343,6 +408,32 @@ export function ReservationTrackingScreen({ route }: Props) {
             onPress={handleGenerateQr}
             disabled={!canGenerateQr || qrState === "generating"}
             style={styles.qrButton}
+          />
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Experiencia</Text>
+          {reservation.status === "completed" ? (
+            <AppButton
+              label={
+                hasRatingForReservation(reservation.id)
+                  ? "Editar calificación local"
+                  : "Calificar pedido"
+              }
+              onPress={() =>
+                navigation.navigate(ROUTES.Rating, { reservation })
+              }
+              variant="secondary"
+            />
+          ) : null}
+          <AppButton
+            label="Reportar problema"
+            onPress={() =>
+              navigation.navigate(ROUTES.ProblemReport, {
+                reservationId: reservation.id,
+              })
+            }
+            variant="secondary"
           />
         </View>
       </ScrollView>

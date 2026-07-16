@@ -12,6 +12,7 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { spacing } from "../constants/spacing";
+import { useFavorites } from "../context/FavoritesContext";
 import { useReduceMotion } from "../hooks/useReduceMotion";
 import { designSystem, typography } from "../theme";
 import { Restaurant } from "../types/models";
@@ -111,6 +112,8 @@ export function RestaurantCard({
   const translateY = useRef(new Animated.Value(reduceMotion ? 0 : 14)).current;
   const isDisabled = disabled || !onPress;
   const status = getRestaurantStatus(restaurant);
+  const { isRestaurantFavorite, toggleRestaurant } = useFavorites();
+  const favorite = isRestaurantFavorite(restaurant.id);
   const openingTime = formatTime(restaurant.openingTime);
   const closingTime = formatTime(restaurant.closingTime);
   const hasSchedule = Boolean(openingTime && closingTime);
@@ -187,6 +190,24 @@ export function RestaurantCard({
           <View style={styles.status}>
             <StatusBadge label={status.label} tone={status.tone} />
           </View>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={
+              favorite ? "Quitar de favoritos" : "Guardar en favoritos"
+            }
+            onPress={(event) => {
+              event.stopPropagation();
+              toggleRestaurant(restaurant);
+            }}
+            style={styles.favoriteButton}
+          >
+            <MaterialCommunityIcons
+              name={favorite ? "heart" : "heart-outline"}
+              size={designSystem.iconSizes.md}
+              color={designSystem.colors.primary}
+            />
+          </Pressable>
         </View>
 
         <View style={styles.content}>
@@ -304,6 +325,17 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: spacing.xs,
     left: spacing.xs,
+  },
+  favoriteButton: {
+    position: "absolute",
+    top: spacing.xs,
+    right: spacing.xs,
+    width: 34,
+    height: 34,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.92)",
   },
   content: {
     padding: spacing.md,

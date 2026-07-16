@@ -29,6 +29,9 @@ type MyReservationCardProps = {
   onCancel: (reservationId: string) => void;
   onPay: (reservationId: string) => void;
   onPress?: () => void;
+  onRate?: () => void;
+  onReport?: () => void;
+  onReorder?: () => void;
 };
 
 export function MyReservationCard({
@@ -39,6 +42,9 @@ export function MyReservationCard({
   onCancel,
   onPay,
   onPress,
+  onRate,
+  onReport,
+  onReorder,
 }: MyReservationCardProps) {
   const badge = getReservationStatusBadge(reservation.status);
   const shouldShowActions = reservation.status === "pending_payment";
@@ -101,6 +107,67 @@ export function MyReservationCard({
           onCancel={() => onCancel(reservation.id)}
           onPay={() => onPay(reservation.id)}
         />
+      ) : null}
+
+      {onReorder ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Volver a pedir"
+          onPress={onReorder}
+          style={({ pressed }) => [
+            styles.reorderButton,
+            pressed && styles.reorderButtonPressed,
+          ]}
+        >
+          <MaterialCommunityIcons
+            name="repeat"
+            size={16}
+            color={studentPalette.primary}
+          />
+          <Text style={styles.reorderText}>Volver a pedir</Text>
+        </Pressable>
+      ) : null}
+
+      {(onRate || onReport) ? (
+        <View style={styles.quickActions}>
+          {onRate ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Calificar pedido"
+              onPress={onRate}
+              style={({ pressed }) => [
+                styles.quickActionButton,
+                pressed && styles.reorderButtonPressed,
+              ]}
+            >
+              <MaterialCommunityIcons
+                name="star-outline"
+                size={16}
+                color={studentPalette.primary}
+              />
+              <Text style={styles.reorderText}>Calificar pedido</Text>
+            </Pressable>
+          ) : null}
+
+          {onReport ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Reportar problema"
+              onPress={onReport}
+              style={({ pressed }) => [
+                styles.quickActionButton,
+                pressed && styles.reorderButtonPressed,
+              ]}
+            >
+              <MaterialCommunityIcons
+                name="alert-circle-outline"
+                size={16}
+                color={studentPalette.primary}
+              />
+              <Text style={styles.reorderText}>Reportar problema</Text>
+            </Pressable>
+          ) : null}
+        </View>
       ) : null}
     </Card>
     </Pressable>
@@ -231,5 +298,44 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.xs,
     color: studentPalette.textMuted,
     lineHeight: typography.lineHeights.xs,
+  },
+  reorderButton: {
+    marginTop: spacing.sm,
+    minHeight: 36,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.xs,
+    borderRadius: 999,
+    backgroundColor: studentPalette.primaryFaint,
+    borderWidth: 1,
+    borderColor: studentPalette.primarySoft,
+  },
+  reorderButtonPressed: {
+    opacity: 0.82,
+  },
+  reorderText: {
+    color: studentPalette.primary,
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.bold,
+  },
+  quickActions: {
+    marginTop: spacing.sm,
+    flexDirection: "row",
+    gap: spacing.sm,
+    flexWrap: "wrap",
+  },
+  quickActionButton: {
+    flexGrow: 1,
+    minHeight: 36,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    borderRadius: 999,
+    backgroundColor: studentPalette.primaryFaint,
+    borderWidth: 1,
+    borderColor: studentPalette.primarySoft,
   },
 });

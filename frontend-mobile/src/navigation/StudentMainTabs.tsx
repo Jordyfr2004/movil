@@ -30,6 +30,7 @@ import {
   SkeletonCard,
 } from "../components";
 import { spacing } from "../constants/spacing";
+import { useFavorites } from "../context/FavoritesContext";
 import { useRestaurants } from "../hooks/useRestaurants";
 import { useReduceMotion } from "../hooks/useReduceMotion";
 import { Dish, getPublicDishesByRestaurant } from "../services/dishService";
@@ -107,11 +108,16 @@ export function StudentMainTabs({ navigation }: Props) {
           <FavoritesTab
             bottomInset={bottomInset}
             onExplore={() => setActiveTab("explore")}
+            onOpenRestaurant={openRestaurant}
           />
         ) : null}
 
         {activeTab === "profile" ? (
-          <ProfileScreen navigation={navigation} bottomInset={bottomInset} />
+          <ProfileScreen
+            navigation={navigation}
+            bottomInset={bottomInset}
+            onOpenFavorites={() => setActiveTab("favorites")}
+          />
         ) : null}
       </TabScene>
 
@@ -487,7 +493,9 @@ function ExploreDishResult({
   }, [index, opacity, reduceMotion, translateY]);
 
   const { dish, restaurant } = result;
+  const { isDishFavorite, toggleDish } = useFavorites();
   const isAvailable = dish.isActive && dish.isAvailable;
+  const favorite = isDishFavorite(dish.id);
 
   return (
     <Animated.View style={{ opacity, transform: [{ translateY }] }}>
@@ -535,6 +543,21 @@ function ExploreDishResult({
             </Text>
           </View>
         </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={favorite ? "Quitar favorito" : "Guardar favorito"}
+          onPress={(event) => {
+            event.stopPropagation();
+            toggleDish(restaurant, dish);
+          }}
+          style={styles.resultFavorite}
+        >
+          <MaterialCommunityIcons
+            name={favorite ? "heart" : "heart-outline"}
+            size={designSystem.iconSizes.md}
+            color={designSystem.colors.primary}
+          />
+        </Pressable>
         <MaterialCommunityIcons
           name="chevron-right"
           size={designSystem.iconSizes.md}
@@ -548,10 +571,15 @@ function ExploreDishResult({
 function FavoritesTab({
   bottomInset,
   onExplore,
+  onOpenRestaurant,
 }: {
   bottomInset: number;
   onExplore: () => void;
+  onOpenRestaurant: (restaurant: Restaurant, dish?: Dish) => void;
 }) {
+  const { restaurants: favoriteRestaurants, dishes: favoriteDishes } =
+    useFavorites();
+  const { restaurants } = useRestaurants();
   const reduceMotion = useReduceMotion();
   const opacity = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
   const scale = useRef(new Animated.Value(reduceMotion ? 1 : 0.96)).current;
@@ -577,14 +605,77 @@ function FavoritesTab({
     ]).start();
   }, [opacity, reduceMotion, scale]);
 
+  const restaurantById = useMemo(() => {
+    return new Map(restaurants.map((item) => [String(item.id), item]));
+  }, [restaurants]);
+
+  const rows = useMemo(() => {
+    const restaurantRows = favoriteRestaurants.map((item) => ({
+      key: `restaurant-${item.id}`,
+      type: "restaurant" as const,
+      restaurant:
+        restaurantById.get(item.id) ??
+        ({
+          id: item.id,
+          name: item.name,
+          isActive: item.isActive ?? false,
+          imageUrl: item.imageUrl,
+          location: item.location,
+          description: item.description,
+        } satisfies Restaurant),
+    }));
+
+    const dishRows = favoriteDishes.map((item) => {
+      const restaurant =
+        restaurantById.get(item.restaurantId) ??
+        ({
+          id: item.restaurantId,
+          name: item.restaurantName,
+          isActive: false,
+        } satisfies Restaurant);
+
+      const dish: Dish = {
+        id: item.id,
+        restaurantId: item.restaurantId,
+        name: item.name,
+        description: item.description,
+        price: item.price,
+        imageUrl: item.imageUrl,
+        isAvailable: item.isAvailable ?? false,
+        isActive: item.isActive ?? false,
+      };
+
+      return {
+        key: `dish-${item.id}`,
+        type: "dish" as const,
+        restaurant,
+        dish,
+      };
+    });
+
+    return [
+      ...(restaurantRows.length
+        ? [{ key: "section-restaurants", type: "section" as const, title: "Restaurantes" }]
+        : []),
+      ...restaurantRows,
+      ...(dishRows.length
+        ? [{ key: "section-dishes", type: "section" as const, title: "Platos" }]
+        : []),
+      ...dishRows,
+    ];
+  }, [favoriteDishes, favoriteRestaurants, restaurantById]);
+
+  const hasFavorites = favoriteRestaurants.length > 0 || favoriteDishes.length > 0;
+
   return (
     <ScreenContainer bottomInset={bottomInset} contentStyle={styles.favorites}>
       <SectionHeader
         title="Favoritos"
-        subtitle="Tus restaurantes guardados"
+        subtitle="Tus restaurantes y platos guardados"
       />
 
-      <View style={styles.emptyCenter}>
+      {!hasFavorites ? (
+        <View style={styles.emptyCenter}>
         <Animated.View
           style={[
             styles.emptyState,
@@ -618,6 +709,75 @@ function FavoritesTab({
           />
         </Animated.View>
       </View>
+      ) : (
+        <FlatList
+          style={styles.flexList}
+          data={rows}
+          keyExtractor={(item) => item.key}
+          contentContainerStyle={{ gap: spacing.sm, paddingBottom: bottomInset + spacing.xxl }}
+          renderItem={({ item }) => {
+            if (item.type === "section") {
+              return <Text style={styles.favoriteSectionTitle}>{item.title}</Text>;
+            }
+
+            if (item.type === "restaurant") {
+              return (
+                <RestaurantCard
+                  restaurant={item.restaurant}
+                  compact
+                  onPress={() => onOpenRestaurant(item.restaurant)}
+                />
+              );
+            }
+
+            const available =
+              item.restaurant.isActive && item.dish.isActive && item.dish.isAvailable;
+
+            return (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Ver ${item.dish.name}`}
+                onPress={() => onOpenRestaurant(item.restaurant, item.dish)}
+                style={({ pressed }) => [
+                  styles.favoriteDishCard,
+                  pressed && styles.resultPressed,
+                ]}
+              >
+                <View style={styles.resultMedia}>
+                  {item.dish.imageUrl ? (
+                    <Image source={{ uri: item.dish.imageUrl }} style={styles.resultImage} />
+                  ) : (
+                    <MaterialCommunityIcons
+                      name="food-outline"
+                      size={designSystem.iconSizes.lg}
+                      color={designSystem.colors.primary}
+                    />
+                  )}
+                </View>
+                <View style={styles.resultText}>
+                  <Text style={styles.resultRestaurant} numberOfLines={1}>
+                    {item.restaurant.name}
+                  </Text>
+                  <Text style={styles.resultName} numberOfLines={2}>
+                    {item.dish.name}
+                  </Text>
+                  <View style={styles.resultMeta}>
+                    <Text style={styles.resultPrice}>${item.dish.price}</Text>
+                    <Text
+                      style={[
+                        styles.resultStatus,
+                        available ? styles.available : styles.unavailable,
+                      ]}
+                    >
+                      {available ? "Disponible" : "No disponible"}
+                    </Text>
+                  </View>
+                </View>
+              </Pressable>
+            );
+          }}
+        />
+      )}
     </ScreenContainer>
   );
 }
@@ -763,6 +923,14 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     flexWrap: "wrap",
   },
+  resultFavorite: {
+    width: 36,
+    height: 36,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: designSystem.colors.primaryFaint,
+  },
   resultPrice: {
     color: designSystem.colors.primary,
     fontSize: typography.sizes.sm,
@@ -806,6 +974,24 @@ const styles = StyleSheet.create({
     width: 78,
     height: 62,
     marginBottom: spacing.sm,
+  },
+  favoriteSectionTitle: {
+    marginTop: spacing.sm,
+    color: designSystem.colors.textPrimary,
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.bold,
+  },
+  favoriteDishCard: {
+    minHeight: 94,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    padding: spacing.sm,
+    borderRadius: 18,
+    backgroundColor: designSystem.colors.surface,
+    borderWidth: 1,
+    borderColor: designSystem.colors.border,
+    ...designSystem.shadows.sm,
   },
   favoriteIconMain: {
     position: "absolute",

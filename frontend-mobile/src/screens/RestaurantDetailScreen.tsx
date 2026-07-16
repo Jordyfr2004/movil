@@ -1,6 +1,7 @@
 import React from "react";
-import { ScrollView, StyleSheet } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import {
   RestaurantDetailHeader,
@@ -9,10 +10,12 @@ import {
 } from "../components/restaurantDetail";
 import { Screen } from "../components/Screen";
 import { spacing } from "../constants/spacing";
+import { useFavorites } from "../context/FavoritesContext";
 import { useDishesByRestaurant } from "../hooks/useDishesByRestaurant";
 import { ROUTES } from "../navigation/routes";
 import { RootStackParamList } from "../navigation/types";
 import { studentPalette } from "../theme/studentPalette";
+import { designSystem } from "../theme";
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
@@ -23,6 +26,8 @@ export function RestaurantDetailScreen({ navigation, route }: Props) {
   const { restaurant } = route.params;
   const initial = restaurant.name?.trim()?.charAt(0)?.toUpperCase() ?? "R";
   const restaurantId = String(restaurant.id);
+  const { isRestaurantFavorite, toggleRestaurant } = useFavorites();
+  const favorite = isRestaurantFavorite(restaurant.id);
 
   const { dishes, loading, error, reload } = useDishesByRestaurant(restaurantId);
 
@@ -33,7 +38,23 @@ export function RestaurantDetailScreen({ navigation, route }: Props) {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <RestaurantDetailHeader initial={initial} restaurant={restaurant} />
+        <View>
+          <RestaurantDetailHeader initial={initial} restaurant={restaurant} />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={
+              favorite ? "Quitar restaurante favorito" : "Guardar restaurante favorito"
+            }
+            onPress={() => toggleRestaurant(restaurant)}
+            style={styles.favoriteButton}
+          >
+            <MaterialCommunityIcons
+              name={favorite ? "heart" : "heart-outline"}
+              size={designSystem.iconSizes.md}
+              color={designSystem.colors.primary}
+            />
+          </Pressable>
+        </View>
         <RestaurantDetailSummary description={restaurant.description} />
 
         <RestaurantDishesSection
@@ -64,5 +85,18 @@ const styles = StyleSheet.create({
   scroll: {
     flex: 1,
     backgroundColor: "transparent",
+  },
+  favoriteButton: {
+    position: "absolute",
+    top: spacing.md,
+    right: spacing.md,
+    width: 40,
+    height: 40,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.94)",
+    borderWidth: 1,
+    borderColor: designSystem.colors.border,
   },
 });

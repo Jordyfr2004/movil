@@ -8,6 +8,7 @@ import { spacing } from "../constants/spacing";
 import { STRIPE_PUBLISHABLE_KEY } from "../constants/stripe";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
+import { useLocalNotifications } from "../context/LocalNotificationsContext";
 import { ROUTES } from "../navigation/routes";
 import { StudentStackParamList } from "../navigation/types";
 import { createPaymentIntent } from "../services/paymentService";
@@ -82,6 +83,7 @@ function isSessionError(error: unknown) {
 export function CheckoutScreen({ navigation }: Props) {
   const { accessToken } = useAuth();
   const { clearCart, items, restaurant, subtotal, total } = useCart();
+  const { addNotification } = useLocalNotifications();
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const [submitting, setSubmitting] = useState(false);
   const [confirmationMessage, setConfirmationMessage] = useState<string | null>(
@@ -192,6 +194,12 @@ export function CheckoutScreen({ navigation }: Props) {
       const nextReservation = confirmedReservation ?? reservation;
 
       if (nextReservation.status === "pending_payment") {
+        addNotification({
+          kind: "pending_payment",
+          title: "Pago pendiente de confirmación",
+          message: "El servidor aún no confirma el pago de tu reserva.",
+          reservationId: nextReservation.id,
+        });
         Alert.alert(
           "Pago en confirmación",
           "Stripe completó el pago, pero el servidor aún no confirmó la reserva. Puedes actualizar el estado desde el seguimiento."

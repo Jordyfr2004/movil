@@ -20,6 +20,8 @@ import {
 import { spacing } from "../constants/spacing";
 import { STRIPE_PUBLISHABLE_KEY } from "../constants/stripe";
 import { useAuth } from "../context/AuthContext";
+import { useCart } from "../context/CartContext";
+import { useLocalNotifications } from "../context/LocalNotificationsContext";
 import {
   ReservationListItem,
   useReservations,
@@ -28,10 +30,12 @@ import { ROUTES } from "../navigation/routes";
 import { StudentStackParamList } from "../navigation/types";
 import { createPaymentIntent } from "../services/paymentService";
 import { cancelReservation } from "../services/reservationService";
+import { getPublicDishesByRestaurant } from "../services/dishService";
 import {
   acquireNotificationsSocket,
   releaseNotificationsSocket,
 } from "../services/notificationsSocket";
+import { getRestaurants } from "../services/restaurantService";
 import { typography } from "../theme";
 import { studentPalette } from "../theme/studentPalette";
 import type { ReservationStatus } from "../types/models";
@@ -66,34 +70,59 @@ type ReservationListRow =
 
 const RESERVATION_SECTIONS: ReservationSectionConfig[] = [
   {
-    key: "pending_payment",
-    title: "Pendiente de pago",
-    subtitle: "Reservas por completar",
-    statuses: ["pending_payment"],
-    tone: "warning",
+    key: "today",
+    title: "Hoy",
+    subtitle: "Movimientos de hoy",
+    statuses: ["pending_payment", "confirmed", "completed", "cancelled", "expired"],
+    tone: "info",
   },
   {
-    key: "confirmed",
-    title: "Confirmadas",
-    subtitle: "Listas para retirar",
-    statuses: ["confirmed"],
+    key: "week",
+    title: "Esta semana",
+    subtitle: "Reservas recientes",
+    statuses: ["pending_payment", "confirmed", "completed", "cancelled", "expired"],
     tone: "success",
   },
   {
-    key: "cancelled",
-    title: "Canceladas",
-    subtitle: "Canceladas o expiradas",
-    statuses: ["cancelled", "expired"],
-    tone: "danger",
+    key: "month",
+    title: "Este mes",
+    subtitle: "Historial del mes",
+    statuses: ["pending_payment", "confirmed", "completed", "cancelled", "expired"],
+    tone: "warning",
   },
   {
-    key: "completed",
-    title: "Completadas",
-    subtitle: "Historial finalizado",
-    statuses: ["completed"],
+    key: "older",
+    title: "Anteriores",
+    subtitle: "Reservas pasadas",
+    statuses: ["pending_payment", "confirmed", "completed", "cancelled", "expired"],
     tone: "info",
   },
 ];
+
+function startOfDay(value: Date) {
+  return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+}
+
+function getDateGroup(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "older";
+
+  const today = startOfDay(new Date());
+  const target = startOfDay(date);
+  const diffDays = Math.floor(
+    (today.getTime() - target.getTime()) / (24 * 60 * 60 * 1000)
+  );
+
+  if (diffDays === 0) return "today";
+  if (diffDays >= 0 && diffDays < 7) return "week";
+  if (
+    target.getMonth() === today.getMonth() &&
+    target.getFullYear() === today.getFullYear()
+  ) {
+    return "month";
+  }
+  return "older";
+}
 
 function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === "object" && value !== null;
@@ -115,6 +144,8 @@ export function MyReservationsScreen({
   const navigation =
     useNavigation<NativeStackNavigationProp<StudentStackParamList>>();
   const { accessToken } = useAuth();
+  const { addDish } = useCart();
+  const { addNotification } = useLocalNotifications();
   const { reservations, loading, error, reload } = useReservations(accessToken);
   const [isCancelling, setIsCancelling] = useState(false);
   const [payingReservationId, setPayingReservationId] = useState<string | null>(
@@ -132,7 +163,13 @@ export function MyReservationsScreen({
     if (!accessToken) return;
 
     const socket = acquireNotificationsSocket(accessToken);
-    const handleDelivered = () => {
+    const handleDelivered = (payload?: { reservation_id?: string; message?: string }) => {
+      addNotification({
+        kind: "delivered",
+        title: "Reserva entregada",
+        message: payload?.message ?? "Tu reserva fue entregada correctamente.",
+        reservationId: payload?.reservation_id,
+      });
       Vibration.vibrate(80);
       void reload();
     };
@@ -142,7 +179,7 @@ export function MyReservationsScreen({
       socket.off("reservation_delivered", handleDelivered);
       releaseNotificationsSocket(accessToken);
     };
-  }, [accessToken, reload]);
+  }, [accessToken, addNotification, reload]);
 
   const activeCount = useMemo(() => {
     return reservations.filter(
@@ -154,8 +191,10 @@ export function MyReservationsScreen({
 
   const reservationRows = useMemo<ReservationListRow[]>(() => {
     return RESERVATION_SECTIONS.flatMap((section) => {
-      const items = reservations.filter((reservation) =>
-        section.statuses.includes(reservation.status)
+      const items = reservations.filter(
+        (reservation) =>
+          section.statuses.includes(reservation.status) &&
+          getDateGroup(reservation.reservationDate) === section.key
       );
 
       if (items.length === 0) {
@@ -269,6 +308,71 @@ export function MyReservationsScreen({
     }
   };
 
+  const handleReorder = async (reservation: ReservationListItem) => {
+    const restaurantId = reservation.items[0]?.restaurantId;
+    if (!restaurantId) {
+      Alert.alert("No disponible", "No se pudo identificar el restaurante.");
+      return;
+    }
+
+    try {
+      const [restaurants, dishes] = await Promise.all([
+        getRestaurants(),
+        getPublicDishesByRestaurant(restaurantId),
+      ]);
+      const restaurant = restaurants.find(
+        (item) => String(item.id) === String(restaurantId)
+      );
+
+      if (!restaurant || !restaurant.isActive) {
+        Alert.alert("No disponible", "El restaurante ya no está disponible.");
+        return;
+      }
+
+      const dishById = new Map(dishes.map((dish) => [String(dish.id), dish]));
+      const unavailable: string[] = [];
+      let added = 0;
+
+      for (const item of reservation.items) {
+        const dish = dishById.get(String(item.dishId));
+        if (!dish || !dish.isActive || !dish.isAvailable) {
+          unavailable.push(item.dishName);
+          continue;
+        }
+
+        const result = addDish(restaurant, dish, item.quantity ?? 1, "");
+        if (result.status === "restaurant-conflict") {
+          Alert.alert(
+            "Carrito de otro restaurante",
+            "Vacía tu carrito actual antes de repetir esta reserva."
+          );
+          return;
+        }
+        added += 1;
+      }
+
+      if (added === 0) {
+        Alert.alert(
+          "No disponible",
+          "Ningún producto de esta reserva está disponible actualmente."
+        );
+        return;
+      }
+
+      Alert.alert(
+        "Agregado al carrito",
+        unavailable.length
+          ? `Se agregaron los productos disponibles. No disponibles: ${unavailable.join(", ")}.`
+          : "Se agregaron los productos disponibles con precios actuales."
+      );
+    } catch {
+      Alert.alert(
+        "No se pudo repetir",
+        "No pudimos verificar disponibilidad y precios actuales."
+      );
+    }
+  };
+
   const renderContent = () => {
     if (loading) {
       return (
@@ -332,6 +436,20 @@ export function MyReservationsScreen({
                   reservation: item.reservation,
                 })
               }
+              onRate={
+                item.reservation.status === "completed"
+                  ? () =>
+                      navigation.navigate(ROUTES.Rating, {
+                        reservation: item.reservation,
+                      })
+                  : undefined
+              }
+              onReport={() =>
+                navigation.navigate(ROUTES.ProblemReport, {
+                  reservationId: item.reservation.id,
+                })
+              }
+              onReorder={() => handleReorder(item.reservation)}
             />
           )
         }
