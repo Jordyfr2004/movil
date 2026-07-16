@@ -32,11 +32,14 @@ export function FoodCard({ dish, onPress }: FoodCardProps) {
         {dish.imageUrl ? (
           <Image source={{ uri: dish.imageUrl }} style={styles.image} />
         ) : (
-          <MaterialCommunityIcons
-            name="food-outline"
-            size={designSystem.iconSizes.xl}
-            color={designSystem.colors.primary}
-          />
+          <View style={styles.placeholder}>
+            <View style={styles.placeholderGlow} />
+            <MaterialCommunityIcons
+              name="food-variant"
+              size={designSystem.iconSizes.xl}
+              color={designSystem.colors.primary}
+            />
+          </View>
         )}
       </View>
 
@@ -66,11 +69,11 @@ const styles = StyleSheet.create({
   card: {
     width: 224,
     borderRadius: designSystem.radii.xl,
-    backgroundColor: designSystem.colors.surface,
+    backgroundColor: designSystem.colors.surfaceElevated,
     borderWidth: 1,
     borderColor: designSystem.colors.border,
     overflow: "hidden",
-    ...designSystem.shadows.sm,
+    ...designSystem.shadows.low,
   },
   pressed: {
     transform: [{ scale: 0.98 }],
@@ -84,6 +87,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: designSystem.colors.primaryFaint,
+  },
+  placeholder: {
+    flex: 1,
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  placeholderGlow: {
+    position: "absolute",
+    width: 120,
+    height: 120,
+    borderRadius: 999,
+    backgroundColor: designSystem.colors.primarySoft,
+    opacity: 0.46,
+    transform: [{ translateX: 48 }, { translateY: -20 }],
   },
   image: {
     width: "100%",
@@ -101,14 +120,15 @@ const styles = StyleSheet.create({
   name: {
     flex: 1,
     color: designSystem.colors.textPrimary,
-    fontSize: typography.sizes.md,
-    lineHeight: typography.lineHeights.md,
-    fontWeight: typography.weights.bold,
+    fontSize: typography.roles.cardTitle.fontSize,
+    lineHeight: typography.roles.cardTitle.lineHeight,
+    fontWeight: typography.roles.cardTitle.fontWeight,
   },
   price: {
     color: designSystem.colors.primary,
-    fontSize: typography.sizes.md,
-    fontWeight: typography.weights.bold,
+    fontSize: typography.roles.price.fontSize,
+    lineHeight: typography.roles.price.lineHeight,
+    fontWeight: typography.roles.price.fontWeight,
   },
   description: {
     color: designSystem.colors.textSecondary,

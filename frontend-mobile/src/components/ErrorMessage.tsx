@@ -23,7 +23,7 @@ export function ErrorMessage({
   style,
 }: ErrorMessageProps) {
   return (
-    <Card style={[styles.card, style]}>
+    <Card variant="compact" style={[styles.card, style]}>
       <View style={styles.content}>
         <MaterialCommunityIcons
           name="alert-circle-outline"
@@ -54,7 +54,7 @@ export function ErrorMessage({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.errorSoft,
-    borderColor: colors.error,
+    borderColor: colors.errorBorder,
     shadowOpacity: 0,
     shadowRadius: 0,
     elevation: 0,
@@ -66,14 +66,15 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   title: {
-    fontSize: typography.sizes.md,
-    fontWeight: typography.weights.bold,
+    fontSize: typography.roles.cardTitle.fontSize,
+    lineHeight: typography.roles.cardTitle.lineHeight,
+    fontWeight: typography.roles.cardTitle.fontWeight,
     color: colors.error,
   },
   message: {
-    fontSize: typography.sizes.sm,
+    fontSize: typography.roles.bodySmall.fontSize,
+    lineHeight: typography.roles.bodySmall.lineHeight,
     color: colors.textSecondary,
-    lineHeight: typography.lineHeights.sm,
   },
   action: {
     alignItems: "flex-start",

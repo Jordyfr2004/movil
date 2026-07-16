@@ -71,7 +71,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: spacing.sm,
     borderRadius: designSystem.radii.pill,
-    backgroundColor: designSystem.colors.surface,
+    backgroundColor: designSystem.colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: designSystem.colors.warningBorder,
   },
   retryText: {
     color: designSystem.colors.warning,

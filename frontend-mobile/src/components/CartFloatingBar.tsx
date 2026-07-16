@@ -85,15 +85,17 @@ const styles = StyleSheet.create({
     right: spacing.lg,
   },
   bar: {
-    minHeight: 48,
-    borderRadius: designSystem.radii.pill,
+    minHeight: 50,
+    borderRadius: designSystem.radii.floating,
     paddingHorizontal: spacing.lg,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: spacing.sm,
     backgroundColor: designSystem.colors.primary,
-    ...designSystem.shadows.md,
+    borderWidth: 1,
+    borderColor: designSystem.colors.primaryPressed,
+    ...designSystem.shadows.high,
   },
   pressed: {
     transform: [{ scale: 0.985 }],
@@ -102,9 +104,9 @@ const styles = StyleSheet.create({
   text: {
     flex: 1,
     color: designSystem.colors.textInverted,
-    fontSize: typography.sizes.sm,
-    lineHeight: typography.lineHeights.sm,
-    fontWeight: typography.weights.bold,
+    fontSize: typography.roles.button.fontSize,
+    lineHeight: typography.roles.button.lineHeight,
+    fontWeight: typography.roles.button.fontWeight,
     textAlign: "center",
   },
 });

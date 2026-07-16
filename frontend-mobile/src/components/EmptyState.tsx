@@ -25,14 +25,16 @@ export function EmptyState({
   style,
 }: EmptyStateProps) {
   return (
-    <Card style={style}>
+    <Card variant="empty" style={style}>
       <View style={styles.content}>
         {iconName ? (
-          <MaterialCommunityIcons
-            name={iconName}
-            size={22}
-            color={colors.textMuted}
-          />
+          <View style={styles.iconWrap}>
+            <MaterialCommunityIcons
+              name={iconName}
+              size={24}
+              color={colors.primary}
+            />
+          </View>
         ) : null}
 
         <View style={styles.textBlock}>
@@ -58,7 +60,7 @@ export function EmptyState({
 const styles = StyleSheet.create({
   content: {
     alignItems: "center",
-    gap: spacing.sm,
+    gap: spacing.md,
   },
   textBlock: {
     gap: spacing.xs,
@@ -78,5 +80,15 @@ const styles = StyleSheet.create({
   action: {
     alignItems: "center",
     marginTop: spacing.xs,
+  },
+  iconWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.primaryFaint,
+    borderWidth: 1,
+    borderColor: colors.primarySoft,
   },
 });

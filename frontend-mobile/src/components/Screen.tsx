@@ -6,7 +6,7 @@ import {
   ViewStyle,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors } from "../theme";
+import { colors, designSystem } from "../theme";
 import { spacing } from "../constants/spacing";
 
 type ScreenProps = {
@@ -25,7 +25,7 @@ export function Screen({ children, style, bottomInset = 0 }: ScreenProps) {
       style={[
         styles.container,
         {
-          paddingBottom: spacing.lg + Math.max(insets.bottom, 0),
+          paddingBottom: spacing.xl + Math.max(insets.bottom, 0),
         },
         style,
       ]}
@@ -40,8 +40,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.lg,
+    paddingHorizontal: designSystem.spacing.screenHorizontal,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xl,
   },
 });

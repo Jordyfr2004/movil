@@ -9,6 +9,7 @@ type FilterChipProps = {
   label: string;
   iconName?: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
   selected?: boolean;
+  tone?: "neutral" | "success" | "warning" | "error";
   onPress?: () => void;
 };
 
@@ -16,8 +17,11 @@ export function FilterChip({
   label,
   iconName,
   selected = false,
+  tone = "neutral",
   onPress,
 }: FilterChipProps) {
+  const toneStyle = getChipTone(tone);
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -26,7 +30,10 @@ export function FilterChip({
       onPress={onPress}
       style={({ pressed }) => [
         styles.chip,
-        selected && styles.selected,
+        {
+          borderColor: selected ? toneStyle.color : toneStyle.borderColor,
+          backgroundColor: selected ? toneStyle.color : toneStyle.backgroundColor,
+        },
         pressed && styles.pressed,
       ]}
     >
@@ -37,42 +44,69 @@ export function FilterChip({
           color={
             selected
               ? designSystem.colors.textInverted
-              : designSystem.colors.primary
+              : toneStyle.color
           }
         />
       ) : null}
-      <Text style={[styles.text, selected && styles.selectedText]}>
+      <Text
+        style={[
+          styles.text,
+          { color: selected ? designSystem.colors.textInverted : toneStyle.color },
+        ]}
+      >
         {label}
       </Text>
     </Pressable>
   );
 }
 
+function getChipTone(tone: NonNullable<FilterChipProps["tone"]>) {
+  switch (tone) {
+    case "success":
+      return {
+        color: designSystem.colors.success,
+        backgroundColor: designSystem.colors.successSoft,
+        borderColor: designSystem.colors.successBorder,
+      };
+    case "warning":
+      return {
+        color: designSystem.colors.warning,
+        backgroundColor: designSystem.colors.warningSoft,
+        borderColor: designSystem.colors.warningBorder,
+      };
+    case "error":
+      return {
+        color: designSystem.colors.danger,
+        backgroundColor: designSystem.colors.dangerSoft,
+        borderColor: designSystem.colors.dangerBorder,
+      };
+    case "neutral":
+    default:
+      return {
+        color: designSystem.colors.textSecondary,
+        backgroundColor: designSystem.colors.surface,
+        borderColor: designSystem.colors.border,
+      };
+  }
+}
+
 const styles = StyleSheet.create({
   chip: {
-    minHeight: 36,
+    minHeight: designSystem.spacing.chipHeight,
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    borderRadius: designSystem.radii.pill,
-    backgroundColor: designSystem.colors.surface,
+    paddingHorizontal: spacing.md,
+    borderRadius: designSystem.radii.chip,
     borderWidth: 1,
-    borderColor: designSystem.colors.border,
-  },
-  selected: {
-    backgroundColor: designSystem.colors.primary,
-    borderColor: designSystem.colors.primary,
   },
   pressed: {
     transform: [{ scale: 0.97 }],
   },
   text: {
-    color: designSystem.colors.textPrimary,
-    fontSize: typography.sizes.xs,
-    fontWeight: typography.weights.semiBold,
-  },
-  selectedText: {
-    color: designSystem.colors.textInverted,
+    fontSize: typography.roles.label.fontSize,
+    lineHeight: typography.roles.label.lineHeight,
+    fontWeight: typography.roles.label.fontWeight,
+    letterSpacing: typography.roles.label.letterSpacing,
   },
 });

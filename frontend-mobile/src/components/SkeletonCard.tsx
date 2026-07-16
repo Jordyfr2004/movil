@@ -53,17 +53,17 @@ export function SkeletonCard({ compact = false }: SkeletonCardProps) {
 const styles = StyleSheet.create({
   card: {
     borderRadius: designSystem.radii.xl,
-    backgroundColor: designSystem.colors.surface,
+    backgroundColor: designSystem.colors.surfaceElevated,
     borderWidth: 1,
     borderColor: designSystem.colors.border,
     overflow: "hidden",
-    ...designSystem.shadows.sm,
+    ...designSystem.shadows.low,
   },
   compact: {
     width: 220,
   },
   block: {
-    backgroundColor: designSystem.colors.surfaceMuted,
+    backgroundColor: designSystem.colors.skeletonBase,
   },
   media: {
     height: 104,

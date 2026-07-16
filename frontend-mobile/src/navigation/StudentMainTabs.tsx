@@ -58,12 +58,13 @@ const TABS: Array<{
   key: TabKey;
   label: string;
   iconName: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
+  activeIconName: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
 }> = [
-  { key: "home", label: "Inicio", iconName: "home-variant-outline" },
-  { key: "explore", label: "Explorar", iconName: "compass-outline" },
-  { key: "orders", label: "Pedidos", iconName: "receipt-text-outline" },
-  { key: "favorites", label: "Favoritos", iconName: "heart-outline" },
-  { key: "profile", label: "Perfil", iconName: "account-outline" },
+  { key: "home", label: "Inicio", iconName: "home-variant-outline", activeIconName: "home-variant" },
+  { key: "explore", label: "Explorar", iconName: "compass-outline", activeIconName: "compass" },
+  { key: "orders", label: "Pedidos", iconName: "receipt-text-outline", activeIconName: "receipt-text" },
+  { key: "favorites", label: "Favoritos", iconName: "heart-outline", activeIconName: "heart" },
+  { key: "profile", label: "Perfil", iconName: "account-outline", activeIconName: "account" },
 ];
 
 export function StudentMainTabs({ navigation }: Props) {
@@ -134,6 +135,7 @@ export function StudentMainTabs({ navigation }: Props) {
             key={tab.key}
             active={activeTab === tab.key}
             iconName={tab.iconName}
+            activeIconName={tab.activeIconName}
             label={tab.label}
             onPress={() => setActiveTab(tab.key)}
           />
@@ -178,11 +180,13 @@ function TabScene({
 function TabButton({
   active,
   iconName,
+  activeIconName,
   label,
   onPress,
 }: {
   active: boolean;
   iconName: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
+  activeIconName: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
   label: string;
   onPress: () => void;
 }) {
@@ -226,11 +230,11 @@ function TabButton({
         ]}
       >
         <MaterialCommunityIcons
-          name={iconName}
+          name={active ? activeIconName : iconName}
           size={designSystem.iconSizes.sm}
           color={
             active
-              ? designSystem.colors.textInverted
+              ? designSystem.colors.primary
               : designSystem.colors.textMuted
           }
         />
@@ -799,13 +803,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: spacing.xs,
+    paddingHorizontal: spacing.sm,
     paddingTop: spacing.xs,
-    borderRadius: designSystem.radii.lg,
-    backgroundColor: designSystem.colors.surface,
+    borderRadius: designSystem.radii.xl,
+    backgroundColor: designSystem.colors.surfaceElevated,
     borderWidth: 1,
     borderColor: designSystem.colors.border,
-    ...designSystem.shadows.sm,
+    ...designSystem.shadows.medium,
   },
   tabButton: {
     flex: 1,
@@ -815,17 +819,19 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   tabButtonPressed: {
-    opacity: 0.78,
+    opacity: 0.82,
   },
   tabIconWrap: {
-    width: 28,
-    height: 28,
+    width: 30,
+    height: 30,
     borderRadius: designSystem.radii.pill,
     alignItems: "center",
     justifyContent: "center",
   },
   tabIconWrapActive: {
-    backgroundColor: designSystem.colors.primary,
+    backgroundColor: designSystem.colors.primaryFaint,
+    borderWidth: 1,
+    borderColor: designSystem.colors.primarySoft,
   },
   tabLabel: {
     color: designSystem.colors.textMuted,

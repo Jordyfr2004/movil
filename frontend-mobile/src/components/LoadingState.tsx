@@ -24,7 +24,7 @@ export function LoadingState({
   style,
 }: LoadingStateProps) {
   return (
-    <Card variant="muted" style={style}>
+    <Card variant="compact" style={style}>
       <View style={styles.content}>
         <ActivityIndicator size={size} color={colors.primary} />
         <Text style={styles.message}>{message}</Text>
@@ -40,8 +40,8 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   message: {
-    fontSize: typography.sizes.sm,
+    fontSize: typography.roles.bodySmall.fontSize,
+    lineHeight: typography.roles.bodySmall.lineHeight,
     color: colors.textSecondary,
-    lineHeight: typography.lineHeights.sm,
   },
 });

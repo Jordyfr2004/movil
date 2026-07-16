@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
-import { colors, typography } from "../theme";
+import { colors, designSystem, typography } from "../theme";
 import { spacing } from "../constants/spacing";
 
 type AppInputProps = {
@@ -69,23 +69,28 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   label: {
-    fontSize: typography.sizes.sm,
+    fontSize: typography.roles.label.fontSize,
+    lineHeight: typography.roles.label.lineHeight,
+    fontWeight: typography.roles.label.fontWeight,
     color: colors.textSecondary,
   },
   input: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 12,
+    borderRadius: designSystem.radii.input,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
-    fontSize: typography.sizes.md,
+    minHeight: designSystem.components.input.minHeight,
+    fontSize: typography.roles.body.fontSize,
+    lineHeight: typography.roles.body.lineHeight,
     color: colors.textPrimary,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceElevated,
   },
   inputMultiline: {
     minHeight: 96,
   },
   inputFocused: {
     borderColor: colors.primary,
+    backgroundColor: colors.surface,
   },
 });

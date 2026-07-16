@@ -40,7 +40,7 @@ export function ScreenContainer({
           styles.content,
           withHorizontalPadding && styles.horizontalPadding,
           {
-            paddingBottom: spacing.lg + Math.max(insets.bottom, 0),
+            paddingBottom: spacing.xl + Math.max(insets.bottom, 0),
           },
           contentStyle,
         ]}
@@ -58,10 +58,10 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingTop: spacing.sm,
+    paddingTop: spacing.md,
     backgroundColor: "transparent",
   },
   horizontalPadding: {
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: designSystem.spacing.screenHorizontal,
   },
 });

@@ -38,10 +38,10 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     padding: spacing.lg,
     borderRadius: designSystem.radii.xl,
-    backgroundColor: designSystem.colors.surface,
+    backgroundColor: designSystem.colors.surfaceElevated,
     borderWidth: 1,
-    borderColor: designSystem.colors.border,
-    ...designSystem.shadows.sm,
+    borderColor: designSystem.colors.dangerBorder,
+    ...designSystem.shadows.low,
   },
   icon: {
     width: 48,

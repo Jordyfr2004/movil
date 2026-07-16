@@ -176,6 +176,7 @@ export function RestaurantCard({
             <Image source={{ uri: restaurant.imageUrl }} style={styles.image} />
           ) : (
             <View style={styles.placeholder}>
+              <View style={styles.placeholderGlow} />
               <MaterialCommunityIcons
                 name={isFeatured ? "silverware-fork-knife" : "storefront-outline"}
                 size={isFeatured ? designSystem.iconSizes.lg : designSystem.iconSizes.xl}
@@ -271,15 +272,16 @@ const styles = StyleSheet.create({
     borderRadius: designSystem.radii.xl,
     borderWidth: 1,
     borderColor: designSystem.colors.border,
-    backgroundColor: designSystem.colors.surface,
+    backgroundColor: designSystem.colors.surfaceElevated,
     overflow: "hidden",
-    ...designSystem.shadows.sm,
+    ...designSystem.shadows.low,
   },
   compactCard: {
     width: 210,
   },
   featuredCard: {
-    borderColor: "rgba(240, 223, 201, 0.70)",
+    borderColor: designSystem.colors.primarySoft,
+    ...designSystem.shadows.medium,
   },
   pressed: {
     transform: [{ scale: 0.985 }],
@@ -292,9 +294,9 @@ const styles = StyleSheet.create({
     height: 116,
     margin: spacing.sm,
     marginBottom: 0,
-    borderRadius: designSystem.radii.lg,
+    borderRadius: designSystem.radii.image,
     overflow: "hidden",
-    backgroundColor: designSystem.colors.primaryFaint,
+    backgroundColor: designSystem.colors.surfaceSecondary,
   },
   compactMedia: {
     height: 88,
@@ -313,6 +315,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: spacing.xs,
     padding: spacing.md,
+    overflow: "hidden",
+  },
+  placeholderGlow: {
+    position: "absolute",
+    width: 128,
+    height: 128,
+    borderRadius: 999,
+    backgroundColor: designSystem.colors.primarySoft,
+    opacity: 0.42,
+    transform: [{ translateX: 42 }, { translateY: -26 }],
   },
   placeholderText: {
     maxWidth: "90%",
@@ -335,7 +347,9 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.92)",
+    backgroundColor: designSystem.colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: designSystem.colors.border,
   },
   content: {
     padding: spacing.md,
@@ -344,9 +358,9 @@ const styles = StyleSheet.create({
   },
   name: {
     color: designSystem.colors.textPrimary,
-    fontSize: typography.sizes.lg,
-    lineHeight: typography.lineHeights.lg,
-    fontWeight: typography.weights.bold,
+    fontSize: typography.roles.cardTitle.fontSize,
+    lineHeight: typography.roles.cardTitle.lineHeight,
+    fontWeight: typography.roles.cardTitle.fontWeight,
     textTransform: "capitalize",
   },
   compactName: {

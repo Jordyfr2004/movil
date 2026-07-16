@@ -1,5 +1,6 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { spacing } from "../constants/spacing";
 import { designSystem, typography } from "../theme";
 
@@ -10,9 +11,13 @@ type StatusBadgeProps = {
 
 export function StatusBadge({ label, tone }: StatusBadgeProps) {
   const toneStyle = getToneStyle(tone);
+  const iconName = getToneIcon(tone);
 
   return (
     <View
+      accessible
+      accessibilityRole="text"
+      accessibilityLabel={label}
       style={[
         styles.badge,
         {
@@ -21,12 +26,34 @@ export function StatusBadge({ label, tone }: StatusBadgeProps) {
         },
       ]}
     >
-      <View style={[styles.dot, { backgroundColor: toneStyle.color }]} />
+      <MaterialCommunityIcons
+        name={iconName}
+        size={designSystem.iconSizes.xs}
+        color={toneStyle.color}
+      />
       <Text style={[styles.text, { color: toneStyle.color }]}>
         {label}
       </Text>
     </View>
   );
+}
+
+function getToneIcon(
+  tone: StatusBadgeProps["tone"]
+): React.ComponentProps<typeof MaterialCommunityIcons>["name"] {
+  switch (tone) {
+    case "success":
+      return "check-circle";
+    case "danger":
+      return "close-circle";
+    case "warning":
+      return "clock-alert-outline";
+    case "info":
+      return "information-outline";
+    case "neutral":
+    default:
+      return "circle-medium";
+  }
 }
 
 function getToneStyle(tone: StatusBadgeProps["tone"]) {
@@ -67,22 +94,19 @@ function getToneStyle(tone: StatusBadgeProps["tone"]) {
 
 const styles = StyleSheet.create({
   badge: {
-    minHeight: 26,
-    borderRadius: 999,
-    paddingHorizontal: spacing.sm,
+    minHeight: 28,
+    borderRadius: designSystem.radii.pill,
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     borderWidth: 1,
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.xs,
   },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 999,
-  },
   text: {
-    fontSize: typography.sizes.xs,
-    fontWeight: typography.weights.semiBold,
+    fontSize: typography.roles.caption.fontSize,
+    lineHeight: typography.roles.caption.lineHeight,
+    fontWeight: typography.roles.caption.fontWeight,
+    letterSpacing: typography.roles.caption.letterSpacing,
   },
 });

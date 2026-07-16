@@ -1,15 +1,23 @@
 import React from "react";
-import { Pressable, StyleProp, StyleSheet, Text, ViewStyle } from "react-native";
-import { colors, typography } from "../theme";
+import { ActivityIndicator, Pressable, StyleProp, StyleSheet, Text, ViewStyle } from "react-native";
+import { colors, designSystem, typography } from "../theme";
 import { spacing } from "../constants/spacing";
 
-type AppButtonVariant = "primary" | "secondary" | "danger";
-type AppButtonSize = "md" | "sm";
+type AppButtonVariant =
+  | "primary"
+  | "secondary"
+  | "outline"
+  | "ghost"
+  | "danger"
+  | "destructive"
+  | "floating";
+type AppButtonSize = "md" | "sm" | "lg";
 
 type AppButtonProps = {
   label: string;
   onPress: () => void;
   disabled?: boolean;
+  loading?: boolean;
   variant?: AppButtonVariant;
   size?: AppButtonSize;
   style?: StyleProp<ViewStyle>;
@@ -21,43 +29,62 @@ export function AppButton({
   label,
   onPress,
   disabled,
+  loading = false,
   variant = "primary",
   size = "md",
   style,
   accessibilityLabel,
   accessibilityHint,
 }: AppButtonProps) {
+  const isDisabled = disabled || loading;
+  const isDanger = variant === "danger" || variant === "destructive";
+
   return (
     <Pressable
       onPress={onPress}
-      disabled={disabled}
+      disabled={isDisabled}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
       accessibilityHint={accessibilityHint}
-      accessibilityState={{ disabled: Boolean(disabled) }}
+      accessibilityState={{ disabled: Boolean(isDisabled), busy: loading }}
       style={({ pressed }) => [
         styles.base,
         size === "sm" ? styles.sizeSm : styles.sizeMd,
-        variant === "primary"
-          ? styles.primary
-          : variant === "secondary"
-            ? styles.secondary
-            : styles.danger,
-        variant === "primary" && styles.primaryShadow,
-        pressed && !disabled && styles.pressed,
-        disabled && styles.disabled,
+        size === "lg" && styles.sizeLg,
+        variant === "primary" && styles.primary,
+        variant === "secondary" && styles.secondary,
+        variant === "outline" && styles.outline,
+        variant === "ghost" && styles.ghost,
+        isDanger && styles.danger,
+        variant === "floating" && styles.floating,
+        (variant === "primary" || variant === "floating") && styles.primaryShadow,
+        pressed && !isDisabled && styles.pressed,
+        isDisabled && styles.disabled,
         style,
       ]}
     >
+      {loading ? (
+        <ActivityIndicator
+          size="small"
+          color={
+            variant === "primary" || variant === "floating"
+              ? colors.onPrimary
+              : colors.primary
+          }
+        />
+      ) : null}
       <Text
         style={[
           styles.label,
           size === "sm" && styles.labelSm,
-          variant === "primary"
+          size === "lg" && styles.labelLg,
+          (variant === "primary" || variant === "floating")
             ? styles.labelOnPrimary
-            : variant === "danger"
+            : isDanger
               ? styles.labelDanger
-              : styles.labelSecondary,
+              : variant === "ghost"
+                ? styles.labelGhost
+                : styles.labelSecondary,
         ]}
       >
         {label}
@@ -68,60 +95,82 @@ export function AppButton({
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: 14,
+    borderRadius: designSystem.radii.button,
     alignItems: "center",
     justifyContent: "center",
+    flexDirection: "row",
+    gap: spacing.sm,
     paddingHorizontal: spacing.lg,
   },
   sizeMd: {
-    minHeight: 48,
+    minHeight: designSystem.components.button.heightMd,
     paddingVertical: spacing.md,
   },
+  sizeLg: {
+    minHeight: designSystem.components.button.heightLg,
+    paddingHorizontal: spacing.xl,
+  },
   sizeSm: {
-    minHeight: 36,
+    minHeight: designSystem.components.button.heightSm,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
-    borderRadius: 999,
+    borderRadius: designSystem.radii.pill,
   },
   primary: {
     backgroundColor: colors.primary,
   },
   secondary: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.primaryFaint,
+    borderWidth: 1,
+    borderColor: colors.primarySoft,
+  },
+  outline: {
+    backgroundColor: "transparent",
     borderWidth: 1,
     borderColor: colors.borderStrong,
+  },
+  ghost: {
+    backgroundColor: "transparent",
   },
   danger: {
     backgroundColor: colors.errorSoft,
     borderWidth: 1,
-    borderColor: colors.error,
+    borderColor: colors.errorBorder,
+  },
+  floating: {
+    backgroundColor: colors.primary,
+    borderRadius: designSystem.radii.floating,
   },
   primaryShadow: {
-    shadowColor: "#000",
-    shadowOpacity: 0.10,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
+    ...designSystem.shadows.medium,
   },
   pressed: {
     opacity: 0.95,
-    transform: [{ scale: 0.99 }],
+    transform: [{ scale: 0.975 }],
   },
   disabled: {
-    opacity: 0.55,
+    opacity: 0.58,
   },
   label: {
-    fontSize: typography.sizes.md,
-    fontWeight: typography.weights.semiBold,
+    fontSize: typography.roles.button.fontSize,
+    lineHeight: typography.roles.button.lineHeight,
+    fontWeight: typography.roles.button.fontWeight,
+    letterSpacing: typography.roles.button.letterSpacing,
   },
   labelSm: {
     fontSize: typography.sizes.sm,
+  },
+  labelLg: {
+    fontSize: typography.sizes.md,
   },
   labelOnPrimary: {
     color: colors.onPrimary,
   },
   labelSecondary: {
-    color: colors.textPrimary,
+    color: colors.primary,
+  },
+  labelGhost: {
+    color: colors.textSecondary,
   },
   labelDanger: {
     color: colors.error,

@@ -8,9 +8,17 @@ import {
 } from "react-native";
 
 import { spacing } from "../constants/spacing";
-import { colors } from "../theme";
+import { colors, designSystem } from "../theme";
 
-type CardVariant = "default" | "muted";
+type CardVariant =
+  | "default"
+  | "muted"
+  | "compact"
+  | "horizontal"
+  | "featured"
+  | "elevated"
+  | "interactive"
+  | "empty";
 
 type CardProps = ViewProps & {
   children: React.ReactNode;
@@ -37,7 +45,14 @@ export function Card({
       {...rest}
       style={[
         styles.base,
-        variant === "muted" ? styles.muted : styles.default,
+        variant === "muted" && styles.muted,
+        variant === "compact" && styles.compact,
+        variant === "horizontal" && styles.horizontal,
+        variant === "featured" && styles.featured,
+        variant === "elevated" && styles.elevated,
+        variant === "interactive" && styles.interactive,
+        variant === "empty" && styles.empty,
+        variant === "default" && styles.default,
         style,
       ]}
     >
@@ -48,20 +63,46 @@ export function Card({
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: 18,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: "rgba(231, 225, 218, 0.72)",
-    padding: spacing.lg,
+    borderColor: colors.border,
+    padding: spacing.cardPadding,
+    backgroundColor: colors.surface,
   },
   default: {
-    backgroundColor: colors.surface,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 1,
+    ...designSystem.shadows.low,
   },
   muted: {
-    backgroundColor: colors.surfaceMuted,
+    backgroundColor: colors.surfaceSecondary,
+    borderColor: colors.divider,
+  },
+  compact: {
+    borderRadius: designSystem.radii.cardSm,
+    padding: spacing.md,
+    ...designSystem.shadows.low,
+  },
+  horizontal: {
+    borderRadius: designSystem.radii.cardSm,
+    padding: spacing.md,
+    ...designSystem.shadows.low,
+  },
+  featured: {
+    borderRadius: designSystem.radii.cardLg,
+    backgroundColor: colors.surfaceElevated,
+    borderColor: colors.primarySoft,
+    ...designSystem.shadows.medium,
+  },
+  elevated: {
+    backgroundColor: colors.surfaceElevated,
+    ...designSystem.shadows.medium,
+  },
+  interactive: {
+    backgroundColor: colors.surfaceElevated,
+    ...designSystem.shadows.low,
+  },
+  empty: {
+    borderStyle: "dashed",
+    backgroundColor: colors.surfaceSecondary,
+    ...designSystem.shadows.none,
   },
 });

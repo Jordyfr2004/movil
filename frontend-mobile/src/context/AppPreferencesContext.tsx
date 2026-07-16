@@ -9,9 +9,9 @@ import React, {
 } from "react";
 import { ColorSchemeName, useColorScheme } from "react-native";
 import * as SecureStore from "expo-secure-store";
-import { DarkTheme, DefaultTheme, Theme } from "@react-navigation/native";
+import { Theme } from "@react-navigation/native";
 
-import { designSystem } from "../theme";
+import { appThemes } from "../theme";
 
 const PREFERENCES_STORAGE_KEY = "student_app_preferences_v1";
 
@@ -95,32 +95,10 @@ export function AppPreferencesProvider({ children }: { children: ReactNode }) {
 
   const navigationTheme = useMemo<Theme>(() => {
     if (resolvedScheme === "dark") {
-      return {
-        ...DarkTheme,
-        colors: {
-          ...DarkTheme.colors,
-          background: "#17120D",
-          card: "#221A14",
-          primary: designSystem.colors.primary,
-          text: "#FFF7ED",
-          border: "rgba(255,255,255,0.12)",
-          notification: designSystem.colors.primary,
-        },
-      };
+      return appThemes.dark;
     }
 
-    return {
-      ...DefaultTheme,
-      colors: {
-        ...DefaultTheme.colors,
-        background: designSystem.colors.background,
-        card: designSystem.colors.surface,
-        primary: designSystem.colors.primary,
-        text: designSystem.colors.textPrimary,
-        border: designSystem.colors.border,
-        notification: designSystem.colors.primary,
-      },
-    };
+    return appThemes.light;
   }, [resolvedScheme]);
 
   const setAppearanceMode = useCallback((appearanceMode: AppearanceMode) => {

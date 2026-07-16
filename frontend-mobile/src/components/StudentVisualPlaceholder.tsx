@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     right: -34,
     bottom: -34,
-    backgroundColor: "rgba(247, 101, 2, 0.08)",
+    backgroundColor: studentPalette.decorOrangeSoft,
   },
   circleSmall: {
     position: "absolute",
@@ -116,7 +116,8 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     top: -14,
     left: -12,
-    backgroundColor: "rgba(255, 255, 255, 0.62)",
+    backgroundColor: studentPalette.cardElevated,
+    opacity: 0.72,
   },
   iconShell: {
     minWidth: 40,
@@ -125,9 +126,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 10,
-    backgroundColor: "rgba(255, 255, 255, 0.86)",
+    backgroundColor: studentPalette.cardElevated,
     borderWidth: 1,
-    borderColor: "rgba(247, 101, 2, 0.16)",
+    borderColor: studentPalette.primarySoft,
   },
   initial: {
     fontSize: typography.sizes.lg,

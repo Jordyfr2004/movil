@@ -53,7 +53,7 @@ export function AppHeader({
 
 const styles = StyleSheet.create({
   container: {
-    minHeight: 52,
+    minHeight: 58,
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.md,
@@ -64,15 +64,16 @@ const styles = StyleSheet.create({
   },
   title: {
     color: designSystem.colors.textPrimary,
-    fontSize: typography.sizes.xl,
-    lineHeight: typography.lineHeights.xl,
-    fontWeight: typography.weights.bold,
+    fontSize: typography.roles.screenTitle.fontSize,
+    lineHeight: typography.roles.screenTitle.lineHeight,
+    fontWeight: typography.roles.screenTitle.fontWeight,
+    letterSpacing: typography.roles.screenTitle.letterSpacing,
   },
   subtitle: {
     marginTop: spacing.xs,
     color: designSystem.colors.textSecondary,
-    fontSize: typography.sizes.sm,
-    lineHeight: typography.lineHeights.sm,
+    fontSize: typography.roles.bodySmall.fontSize,
+    lineHeight: typography.roles.bodySmall.lineHeight,
   },
   actionButton: {
     width: 44,
@@ -83,7 +84,7 @@ const styles = StyleSheet.create({
     backgroundColor: designSystem.colors.surface,
     borderWidth: 1,
     borderColor: designSystem.colors.border,
-    ...designSystem.shadows.sm,
+    ...designSystem.shadows.low,
   },
   actionButtonPressed: {
     transform: [{ scale: 0.96 }],

@@ -71,21 +71,22 @@ const styles = StyleSheet.create({
   },
   title: {
     color: designSystem.colors.textPrimary,
-    fontSize: typography.sizes.xl,
-    fontWeight: typography.weights.bold,
+    fontSize: typography.roles.screenTitle.fontSize,
+    lineHeight: typography.roles.screenTitle.lineHeight,
+    fontWeight: typography.roles.screenTitle.fontWeight,
     textAlign: "center",
   },
   message: {
     marginTop: spacing.sm,
     color: designSystem.colors.textSecondary,
-    fontSize: typography.sizes.md,
-    lineHeight: typography.lineHeights.md,
+    fontSize: typography.roles.body.fontSize,
+    lineHeight: typography.roles.body.lineHeight,
     textAlign: "center",
   },
   debug: {
     marginTop: spacing.md,
     color: designSystem.colors.danger,
-    fontSize: typography.sizes.xs,
+    fontSize: typography.roles.caption.fontSize,
     textAlign: "center",
   },
   actions: {

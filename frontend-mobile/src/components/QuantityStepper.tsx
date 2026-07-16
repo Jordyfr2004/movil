@@ -66,7 +66,12 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
+    gap: spacing.xs,
+    padding: spacing.xs,
+    borderRadius: designSystem.radii.pill,
+    backgroundColor: designSystem.colors.surfaceSecondary,
+    borderWidth: 1,
+    borderColor: designSystem.colors.border,
   },
   disabled: {
     opacity: 0.55,
@@ -77,9 +82,9 @@ const styles = StyleSheet.create({
     borderRadius: designSystem.radii.pill,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: designSystem.colors.primaryFaint,
+    backgroundColor: designSystem.colors.surfaceElevated,
     borderWidth: 1,
-    borderColor: designSystem.colors.border,
+    borderColor: designSystem.colors.primarySoft,
   },
   buttonDisabled: {
     opacity: 0.45,
