@@ -17,6 +17,9 @@ export type Dish = {
   isAvailable: boolean;
   isActive: boolean;
   imageUrl?: string;
+  category?: string;
+  ingredients?: string[];
+  additionalInfo?: string;
 };
 
 type CreateDishPayload = {
@@ -57,6 +60,17 @@ function parseBoolean(value: unknown, fallback: boolean) {
   return Boolean(value);
 }
 
+function readStringList(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+
+  const list = value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  return list.length > 0 ? list : undefined;
+}
+
 function normalizeDish(item: unknown): Dish {
   const api = isRecord(item) ? item : {};
 
@@ -69,6 +83,11 @@ function normalizeDish(item: unknown): Dish {
     isAvailable: parseBoolean(api.is_available ?? api.isAvailable, true),
     isActive: parseBoolean(api.is_active ?? api.isActive, true),
     imageUrl: readTrimmedString(api.image_url ?? api.imageUrl),
+    category: readTrimmedString(api.category ?? api.category_name ?? api.categoryName),
+    ingredients: readStringList(api.ingredients),
+    additionalInfo: readTrimmedString(
+      api.additional_info ?? api.additionalInfo ?? api.notes
+    ),
   };
 }
 

@@ -7,6 +7,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { AppNavigator } from "./src/navigation/AppNavigator";
 import { appTheme } from "./src/theme";
 import { AuthProvider } from "./src/context/AuthContext";
+import { CartProvider } from "./src/context/CartContext";
 import { StripeProvider } from "@stripe/stripe-react-native";
 import { STRIPE_PUBLISHABLE_KEY } from "./src/constants/stripe";
 
@@ -16,9 +17,11 @@ export default function App() {
       <SafeAreaProvider>
         <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY}>
           <AuthProvider>
-            <NavigationContainer theme={appTheme}>
-              <AppNavigator />
-            </NavigationContainer>
+            <CartProvider>
+              <NavigationContainer theme={appTheme}>
+                <AppNavigator />
+              </NavigationContainer>
+            </CartProvider>
           </AuthProvider>
         </StripeProvider>
       </SafeAreaProvider>

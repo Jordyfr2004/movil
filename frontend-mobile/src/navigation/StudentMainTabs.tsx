@@ -1,10 +1,18 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Animated,
   FlatList,
+  Image,
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -12,6 +20,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
+  CartFloatingBar,
   EmptyState,
   ErrorState,
   FilterChip,
@@ -23,6 +32,7 @@ import {
 import { spacing } from "../constants/spacing";
 import { useRestaurants } from "../hooks/useRestaurants";
 import { useReduceMotion } from "../hooks/useReduceMotion";
+import { Dish, getPublicDishesByRestaurant } from "../services/dishService";
 import { MyReservationsScreen } from "../screens/MyReservationsScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
 import { HomeContent } from "../screens/HomeScreen";
@@ -34,6 +44,12 @@ import { StudentStackParamList } from "./types";
 type Props = NativeStackScreenProps<StudentStackParamList, typeof ROUTES.Home>;
 
 type TabKey = "home" | "explore" | "orders" | "favorites" | "profile";
+
+type ExploreResult = {
+  key: string;
+  restaurant: Restaurant;
+  dish: Dish;
+};
 
 const TAB_BAR_HEIGHT = 58;
 
@@ -55,7 +71,12 @@ export function StudentMainTabs({ navigation }: Props) {
   const tabBottomPadding = Math.max(insets.bottom, spacing.xs);
   const bottomInset = TAB_BAR_HEIGHT + tabBottomPadding + spacing.md;
 
-  const openRestaurant = (restaurant: Restaurant) => {
+  const openRestaurant = (restaurant: Restaurant, dish?: Dish) => {
+    if (dish) {
+      navigation.navigate(ROUTES.FoodDetail, { restaurant, dish });
+      return;
+    }
+
     navigation.navigate(ROUTES.RestaurantDetail, { restaurant });
   };
 
@@ -112,6 +133,11 @@ export function StudentMainTabs({ navigation }: Props) {
           />
         ))}
       </View>
+
+      <CartFloatingBar
+        bottomOffset={bottomInset + spacing.sm}
+        onPress={() => navigation.navigate(ROUTES.Cart)}
+      />
     </View>
   );
 }
@@ -215,9 +241,94 @@ function ExploreTab({
   onOpenRestaurant,
 }: {
   bottomInset: number;
-  onOpenRestaurant: (restaurant: Restaurant) => void;
+  onOpenRestaurant: (restaurant: Restaurant, dish?: Dish) => void;
 }) {
   const { restaurants, loading, error, reload } = useRestaurants();
+  const [dishResults, setDishResults] = useState<ExploreResult[]>([]);
+  const [dishLoading, setDishLoading] = useState(false);
+  const [dishError, setDishError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<string | null>(null);
+
+  const loadDishes = useCallback(async () => {
+    if (restaurants.length === 0) {
+      setDishResults([]);
+      setDishError(null);
+      return;
+    }
+
+    setDishLoading(true);
+    setDishError(null);
+
+    try {
+      const settled = await Promise.allSettled(
+        restaurants.map(async (restaurant) => {
+          const dishes = await getPublicDishesByRestaurant(String(restaurant.id));
+          return dishes.map((dish) => ({
+            key: `${restaurant.id}-${dish.id}`,
+            restaurant,
+            dish,
+          }));
+        })
+      );
+
+      const nextResults = settled.flatMap((result) =>
+        result.status === "fulfilled" ? result.value : []
+      );
+      const hasRejected = settled.some((result) => result.status === "rejected");
+
+      setDishResults(nextResults);
+      setDishError(
+        hasRejected && nextResults.length === 0
+          ? "No se pudieron cargar los platos."
+          : null
+      );
+    } catch (reason: unknown) {
+      setDishResults([]);
+      setDishError(
+        reason instanceof Error
+          ? reason.message
+          : "No se pudieron cargar los platos."
+      );
+    } finally {
+      setDishLoading(false);
+    }
+  }, [restaurants]);
+
+  useEffect(() => {
+    void loadDishes();
+  }, [loadDishes]);
+
+  const categories = useMemo(() => {
+    const values = dishResults
+      .map((result) => result.dish.category?.trim())
+      .filter((value): value is string => Boolean(value));
+    return Array.from(new Set(values));
+  }, [dishResults]);
+
+  const filteredResults = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+
+    return dishResults.filter(({ dish, restaurant }) => {
+      const price = Number(dish.price.replace(",", "."));
+      const matchesQuery =
+        !normalizedQuery ||
+        dish.name.toLowerCase().includes(normalizedQuery) ||
+        restaurant.name.toLowerCase().includes(normalizedQuery);
+      const matchesFilter =
+        !filter ||
+        (filter === "available" && dish.isActive && dish.isAvailable) ||
+        (filter === "under3" && Number.isFinite(price) && price < 3) ||
+        (filter === "under5" && Number.isFinite(price) && price < 5) ||
+        (filter === "restaurant" && Boolean(restaurant.name)) ||
+        dish.category === filter;
+
+      return matchesQuery && matchesFilter;
+    });
+  }, [dishResults, filter, query]);
+
+  const isLoading = loading || dishLoading;
+  const resolvedError = error ?? dishError;
 
   return (
     <ScreenContainer bottomInset={bottomInset} contentStyle={styles.explore}>
@@ -232,46 +343,100 @@ function ExploreTab({
           size={designSystem.iconSizes.sm}
           color={designSystem.colors.textMuted}
         />
-        <Text style={styles.searchText}>Buscar restaurantes</Text>
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Buscar restaurante o plato"
+          placeholderTextColor={designSystem.colors.textMuted}
+          style={styles.searchInput}
+        />
       </View>
 
       <View style={styles.filterRow}>
-        <FilterChip label="Todos" selected />
-        <FilterChip label="Abiertos" iconName="storefront-check-outline" />
-        <FilterChip label="Con menú" iconName="food-outline" />
+        <FilterChip
+          label="Disponible"
+          iconName="check-circle-outline"
+          selected={filter === "available"}
+          onPress={() => setFilter(filter === "available" ? null : "available")}
+        />
+        <FilterChip
+          label="Menos de $3"
+          iconName="cash"
+          selected={filter === "under3"}
+          onPress={() => setFilter(filter === "under3" ? null : "under3")}
+        />
+        <FilterChip
+          label="Menos de $5"
+          iconName="cash-multiple"
+          selected={filter === "under5"}
+          onPress={() => setFilter(filter === "under5" ? null : "under5")}
+        />
+        <FilterChip
+          label="Restaurante"
+          iconName="storefront-outline"
+          selected={filter === "restaurant"}
+          onPress={() =>
+            setFilter(filter === "restaurant" ? null : "restaurant")
+          }
+        />
+        {categories.map((category) => (
+          <FilterChip
+            key={category}
+            label={category}
+            selected={filter === category}
+            onPress={() => setFilter(filter === category ? null : category)}
+          />
+        ))}
+        {(filter || query) ? (
+          <FilterChip
+            label="Limpiar"
+            iconName="close"
+            onPress={() => {
+              setFilter(null);
+              setQuery("");
+            }}
+          />
+        ) : null}
       </View>
 
-      {loading ? (
+      {isLoading ? (
         <View style={styles.feedbackStack}>
           <SkeletonCard />
           <SkeletonCard />
         </View>
-      ) : error ? (
+      ) : resolvedError ? (
         <ErrorState
-          title="No se pudieron cargar los restaurantes"
-          message={error}
-          onRetry={reload}
+          title="No se pudieron cargar los resultados"
+          message={resolvedError}
+          onRetry={() => {
+            void reload().then(loadDishes);
+          }}
           style={styles.feedbackState}
         />
-      ) : restaurants.length === 0 ? (
+      ) : filteredResults.length === 0 ? (
         <EmptyState
-          title="Sin restaurantes activos"
-          message="Actualiza para revisar si ya hay opciones disponibles."
-          iconName="store-off-outline"
-          actionLabel="Actualizar"
-          onActionPress={reload}
+          title="Sin resultados"
+          message="Prueba con otra búsqueda o limpia los filtros."
+          iconName="food-off-outline"
+          actionLabel="Limpiar filtros"
+          onActionPress={() => {
+            setFilter(null);
+            setQuery("");
+          }}
           style={styles.feedbackState}
         />
       ) : (
         <FlatList
           style={styles.flexList}
-          data={restaurants}
-          keyExtractor={(item) => `explore-${item.id}`}
+          data={filteredResults}
+          keyExtractor={(item) => item.key}
           renderItem={({ item, index }) => (
-            <RestaurantCard
-              restaurant={item}
+            <ExploreDishResult
+              result={item}
               index={index}
-              onPress={onOpenRestaurant}
+              onOpenDish={(restaurant, dish) =>
+                onOpenRestaurant(restaurant, dish)
+              }
             />
           )}
           contentContainerStyle={[
@@ -282,6 +447,101 @@ function ExploreTab({
         />
       )}
     </ScreenContainer>
+  );
+}
+
+function ExploreDishResult({
+  index,
+  onOpenDish,
+  result,
+}: {
+  index: number;
+  result: ExploreResult;
+  onOpenDish: (restaurant: Restaurant, dish: Dish) => void;
+}) {
+  const reduceMotion = useReduceMotion();
+  const opacity = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
+  const translateY = useRef(new Animated.Value(reduceMotion ? 0 : 10)).current;
+
+  useEffect(() => {
+    if (reduceMotion) {
+      opacity.setValue(1);
+      translateY.setValue(0);
+      return;
+    }
+
+    Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: designSystem.animation.normal,
+        delay: Math.min(index * 35, 160),
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: designSystem.animation.normal,
+        delay: Math.min(index * 35, 160),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [index, opacity, reduceMotion, translateY]);
+
+  const { dish, restaurant } = result;
+  const isAvailable = dish.isActive && dish.isAvailable;
+
+  return (
+    <Animated.View style={{ opacity, transform: [{ translateY }] }}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Ver ${dish.name}`}
+        onPress={() => onOpenDish(restaurant, dish)}
+        style={({ pressed }) => [
+          styles.resultCard,
+          pressed && styles.resultPressed,
+        ]}
+      >
+        <View style={styles.resultMedia}>
+          {dish.imageUrl ? (
+            <Image source={{ uri: dish.imageUrl }} style={styles.resultImage} />
+          ) : (
+            <MaterialCommunityIcons
+              name="food-outline"
+              size={designSystem.iconSizes.lg}
+              color={designSystem.colors.primary}
+            />
+          )}
+        </View>
+        <View style={styles.resultText}>
+          <Text style={styles.resultRestaurant} numberOfLines={1}>
+            {restaurant.name}
+          </Text>
+          <Text style={styles.resultName} numberOfLines={2}>
+            {dish.name}
+          </Text>
+          {dish.description ? (
+            <Text style={styles.resultDescription} numberOfLines={1}>
+              {dish.description}
+            </Text>
+          ) : null}
+          <View style={styles.resultMeta}>
+            <Text style={styles.resultPrice}>${dish.price}</Text>
+            <Text
+              style={[
+                styles.resultStatus,
+                isAvailable ? styles.available : styles.unavailable,
+              ]}
+            >
+              {isAvailable ? "Disponible" : "No disponible"}
+            </Text>
+          </View>
+        </View>
+        <MaterialCommunityIcons
+          name="chevron-right"
+          size={designSystem.iconSizes.md}
+          color={designSystem.colors.textMuted}
+        />
+      </Pressable>
+    </Animated.View>
   );
 }
 
@@ -431,11 +691,11 @@ const styles = StyleSheet.create({
     borderColor: "rgba(240, 223, 201, 0.72)",
     ...designSystem.shadows.sm,
   },
-  searchText: {
+  searchInput: {
     flex: 1,
-    color: designSystem.colors.textMuted,
+    color: designSystem.colors.textPrimary,
     fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.semiBold,
+    paddingVertical: spacing.sm,
   },
   filterRow: {
     flexDirection: "row",
@@ -445,6 +705,78 @@ const styles = StyleSheet.create({
   exploreList: {
     gap: spacing.sm,
     paddingTop: spacing.sm,
+  },
+  resultCard: {
+    minHeight: 96,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    padding: spacing.sm,
+    borderRadius: 18,
+    backgroundColor: designSystem.colors.surface,
+    borderWidth: 1,
+    borderColor: "rgba(240, 223, 201, 0.72)",
+    ...designSystem.shadows.sm,
+  },
+  resultPressed: {
+    transform: [{ scale: 0.99 }],
+    backgroundColor: designSystem.colors.primaryFaint,
+  },
+  resultMedia: {
+    width: 72,
+    height: 72,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+    backgroundColor: designSystem.colors.primaryFaint,
+  },
+  resultImage: {
+    width: "100%",
+    height: "100%",
+  },
+  resultText: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  resultRestaurant: {
+    color: designSystem.colors.primary,
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.bold,
+  },
+  resultName: {
+    color: designSystem.colors.textPrimary,
+    fontSize: typography.sizes.md,
+    lineHeight: typography.lineHeights.md,
+    fontWeight: typography.weights.bold,
+  },
+  resultDescription: {
+    color: designSystem.colors.textSecondary,
+    fontSize: typography.sizes.xs,
+    lineHeight: typography.lineHeights.xs,
+  },
+  resultMeta: {
+    marginTop: spacing.xs,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    flexWrap: "wrap",
+  },
+  resultPrice: {
+    color: designSystem.colors.primary,
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.bold,
+  },
+  resultStatus: {
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.bold,
+  },
+  available: {
+    color: designSystem.colors.success,
+  },
+  unavailable: {
+    color: designSystem.colors.neutral,
   },
   flexList: {
     flex: 1,

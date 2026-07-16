@@ -17,6 +17,8 @@ export type RootStackParamList = {
     | undefined;
   [ROUTES.Home]: undefined;
   [ROUTES.RestaurantDetail]: { restaurant: Restaurant };
+  [ROUTES.FoodDetail]: { restaurant: Restaurant; dish: Dish };
+  [ROUTES.Cart]: undefined;
   [ROUTES.MyReservations]: undefined;
   [ROUTES.Profile]: undefined;
   [ROUTES.Register]: undefined;
@@ -42,6 +44,8 @@ export type StudentStackParamList = Pick<
   RootStackParamList,
   | typeof ROUTES.Home
   | typeof ROUTES.RestaurantDetail
+  | typeof ROUTES.FoodDetail
+  | typeof ROUTES.Cart
   | typeof ROUTES.MyReservations
   | typeof ROUTES.Profile
 >;

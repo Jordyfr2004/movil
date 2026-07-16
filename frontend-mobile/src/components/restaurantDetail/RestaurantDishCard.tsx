@@ -7,6 +7,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { spacing } from "../../constants/spacing";
 import { useReduceMotion } from "../../hooks/useReduceMotion";
@@ -15,30 +16,19 @@ import { designSystem, typography } from "../../theme";
 import { studentPalette } from "../../theme/studentPalette";
 import { StudentStatusPill } from "../StudentStatusPill";
 import { StudentVisualPlaceholder } from "../StudentVisualPlaceholder";
-import { RestaurantReserveButton } from "./RestaurantReserveButton";
 
 type RestaurantDishCardProps = {
   dish: Dish;
-  isCheckingReservation: boolean;
-  isReserved: boolean;
-  isReserving: boolean;
-  isReservationBusy: boolean;
   index?: number;
-  onReserve: (dishId: string) => void;
+  onPress: (dish: Dish) => void;
 };
 
 export function RestaurantDishCard({
   dish,
-  isCheckingReservation,
-  isReserved,
-  isReserving,
-  isReservationBusy,
   index = 0,
-  onReserve,
+  onPress,
 }: RestaurantDishCardProps) {
-  const dishId = String(dish.id);
   const hasImage = Boolean(dish.imageUrl);
-  const isDisabled = isReservationBusy || isReserved || isCheckingReservation;
   const reduceMotion = useReduceMotion();
   const opacity = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
   const translateY = useRef(new Animated.Value(reduceMotion ? 0 : 10)).current;
@@ -70,13 +60,11 @@ export function RestaurantDishCard({
     <Animated.View style={{ opacity, transform: [{ translateY }] }}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`Reservar ${dish.name}`}
-        disabled={isDisabled}
-        onPress={() => onReserve(dishId)}
+        accessibilityLabel={`Ver detalle de ${dish.name}`}
+        onPress={() => onPress(dish)}
         style={({ pressed }) => [
           styles.card,
-          isReserved && styles.cardReserved,
-          pressed && !isDisabled && styles.cardPressed,
+          pressed && styles.cardPressed,
         ]}
       >
         {hasImage ? (
@@ -117,12 +105,10 @@ export function RestaurantDishCard({
               ${dish.price}
             </Text>
 
-            <RestaurantReserveButton
-              dishName={dish.name}
-              disabled={isDisabled}
-              isReserved={isReserved}
-              isReserving={isReserving}
-              onPress={() => onReserve(dishId)}
+            <MaterialCommunityIcons
+              name="chevron-right"
+              size={designSystem.iconSizes.md}
+              color={studentPalette.textMuted}
             />
           </View>
         </View>
@@ -150,10 +136,6 @@ const styles = StyleSheet.create({
   cardPressed: {
     transform: [{ scale: 0.99 }],
     backgroundColor: studentPalette.primaryFaint,
-  },
-  cardReserved: {
-    opacity: 0.75,
-    backgroundColor: "#F3F3F3",
   },
   image: {
     width: 86,

@@ -1,6 +1,8 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
+import { CartScreen } from "../screens/CartScreen";
+import { FoodDetailScreen } from "../screens/FoodDetailScreen";
 import { MyReservationsScreen } from "../screens/MyReservationsScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
 import { RestaurantDetailScreen } from "../screens/RestaurantDetailScreen";
@@ -38,6 +40,18 @@ export function StudentStackNavigator() {
         name={ROUTES.RestaurantDetail}
         component={RestaurantDetailScreen}
         options={{ title: "Detalle del restaurante" }}
+      />
+
+      <Stack.Screen
+        name={ROUTES.FoodDetail}
+        component={FoodDetailScreen}
+        options={{ title: "Detalle del plato" }}
+      />
+
+      <Stack.Screen
+        name={ROUTES.Cart}
+        component={CartScreen}
+        options={{ title: "Carrito" }}
       />
 
       <Stack.Screen

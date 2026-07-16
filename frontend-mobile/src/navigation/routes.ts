@@ -8,6 +8,8 @@ export const ROUTES = {
   SuperAdmin: "SuperAdmin",
   Home: "Home",
   RestaurantDetail: "RestaurantDetail",
+  FoodDetail: "FoodDetail",
+  Cart: "Cart",
   MyReservations: "MyReservations",
   Profile: "Profile",
   Register: "Register",
