@@ -170,6 +170,8 @@ const styles = StyleSheet.create({
     position: "relative",
     borderRadius: 24,
     overflow: "hidden",
+    backgroundColor: studentPalette.primary,
+    borderColor: studentPalette.primary,
   },
   profileRow: {
     flexDirection: "row",
@@ -189,20 +191,20 @@ const styles = StyleSheet.create({
   name: {
     fontSize: typography.roles.screenTitle.fontSize,
     fontWeight: typography.roles.screenTitle.fontWeight,
-    color: studentPalette.textPrimary,
+    color: "#FFFDF8",
     lineHeight: typography.lineHeights.lg,
   },
   email: {
     fontSize: typography.sizes.sm,
-    color: studentPalette.textSecondary,
+    color: "#FFE9D5",
     lineHeight: typography.lineHeights.sm,
   },
   infoCard: {
     marginTop: spacing.sm,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: studentPalette.border,
-    backgroundColor: studentPalette.cardElevated,
+    borderColor: "rgba(255, 255, 255, 0.20)",
+    backgroundColor: "rgba(255, 255, 255, 0.14)",
     overflow: "hidden",
   },
   field: {
@@ -217,7 +219,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: studentPalette.primaryPale,
+    backgroundColor: "rgba(255, 255, 255, 0.18)",
   },
   fieldText: {
     flex: 1,
@@ -225,13 +227,13 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: typography.sizes.xs,
-    color: studentPalette.textMuted,
+    color: "#FFE3C9",
     lineHeight: typography.lineHeights.xs,
   },
   value: {
     marginTop: 1,
     fontSize: typography.sizes.sm,
-    color: studentPalette.textPrimary,
+    color: "#FFFDF8",
     fontWeight: typography.weights.semiBold,
     lineHeight: typography.lineHeights.sm,
   },

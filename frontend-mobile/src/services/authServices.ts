@@ -150,6 +150,7 @@ export async function refreshTokenRequest(
       refresh_token: refreshToken,
     },
     {
+      skipAuthRefresh: true,
       timeoutMs: SESSION_RESTORE_TIMEOUT_MS,
     }
   );
@@ -164,6 +165,7 @@ export async function logoutRequest(
       refresh_token: refreshToken,
     },
     {
+      skipAuthRefresh: true,
       timeoutMs: REMOTE_LOGOUT_TIMEOUT_MS,
     }
   );

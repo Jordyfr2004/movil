@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { Alert, FlatList, StyleSheet, Text, View } from "react-native";
+import { Alert, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import {
   NativeStackNavigationProp,
@@ -69,6 +69,18 @@ type ReservationListRow =
       key: string;
       reservation: ReservationListItem;
     };
+
+type OrderTabKey = "active" | "completed" | "cancelled";
+
+const ORDER_TABS: Array<{
+  key: OrderTabKey;
+  label: string;
+  statuses: ReservationStatus[];
+}> = [
+  { key: "active", label: "Activos", statuses: ["pending_payment", "confirmed"] },
+  { key: "completed", label: "Completados", statuses: ["completed"] },
+  { key: "cancelled", label: "Cancelados", statuses: ["cancelled", "expired"] },
+];
 
 const RESERVATION_SECTIONS: ReservationSectionConfig[] = [
   {
@@ -154,6 +166,7 @@ export function MyReservationsScreen({
   const [payingReservationId, setPayingReservationId] = useState<string | null>(
     null
   );
+  const [selectedTab, setSelectedTab] = useState<OrderTabKey>("active");
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
 
   useFocusEffect(
@@ -193,9 +206,13 @@ export function MyReservationsScreen({
   }, [reservations]);
 
   const reservationRows = useMemo<ReservationListRow[]>(() => {
+    const selectedStatuses =
+      ORDER_TABS.find((tab) => tab.key === selectedTab)?.statuses ?? [];
+
     return RESERVATION_SECTIONS.flatMap((section) => {
       const items = reservations.filter(
         (reservation) =>
+          selectedStatuses.includes(reservation.status) &&
           section.statuses.includes(reservation.status) &&
           getDateGroup(reservation.reservationDate) === section.key
       );
@@ -218,7 +235,7 @@ export function MyReservationsScreen({
         })),
       ];
     });
-  }, [reservations]);
+  }, [reservations, selectedTab]);
 
   const handleCancel = async (reservationId: string) => {
     if (isCancelling) {
@@ -407,7 +424,7 @@ export function MyReservationsScreen({
       );
     }
 
-    if (reservations.length === 0) {
+    if (reservations.length === 0 || reservationRows.length === 0) {
       return (
         <MyReservationsFeedback
           error={null}
@@ -476,6 +493,28 @@ export function MyReservationsScreen({
         loading={loading}
       />
 
+      <View style={styles.tabs}>
+        {ORDER_TABS.map((tab) => {
+          const active = selectedTab === tab.key;
+
+          return (
+            <Pressable
+              key={tab.key}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: active }}
+              accessibilityLabel={tab.label}
+              onPress={() => setSelectedTab(tab.key)}
+              style={styles.tab}
+            >
+              <Text style={[styles.tabText, active && styles.tabTextActive]}>
+                {tab.label}
+              </Text>
+              <View style={[styles.tabIndicator, active && styles.tabIndicatorActive]} />
+            </Pressable>
+          );
+        })}
+      </View>
+
       {renderContent()}
     </Screen>
   );
@@ -541,6 +580,38 @@ const styles = StyleSheet.create({
   list: {
     flex: 1,
     backgroundColor: "transparent",
+  },
+  tabs: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
+    paddingHorizontal: spacing.xs,
+  },
+  tab: {
+    flex: 1,
+    minHeight: 42,
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: spacing.xs,
+  },
+  tabText: {
+    color: studentPalette.textSecondary,
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semiBold,
+  },
+  tabTextActive: {
+    color: studentPalette.primary,
+    fontWeight: typography.weights.bold,
+  },
+  tabIndicator: {
+    width: "72%",
+    height: 3,
+    borderRadius: 999,
+    backgroundColor: "transparent",
+  },
+  tabIndicatorActive: {
+    backgroundColor: studentPalette.primary,
   },
   statusSection: {
     marginTop: spacing.lg,

@@ -140,6 +140,34 @@ export function FoodDetailScreen({ navigation, route }: Props) {
                   />
                 </View>
               )}
+              <View style={styles.mediaActions}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Volver"
+                  onPress={() => navigation.goBack()}
+                  style={styles.mediaActionButton}
+                >
+                  <MaterialCommunityIcons
+                    name="chevron-left"
+                    size={designSystem.iconSizes.md}
+                    color={designSystem.colors.textPrimary}
+                  />
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    favorite ? "Quitar plato favorito" : "Guardar plato favorito"
+                  }
+                  onPress={() => toggleDish(restaurant, dish)}
+                  style={styles.mediaActionButton}
+                >
+                  <MaterialCommunityIcons
+                    name={favorite ? "heart" : "heart-outline"}
+                    size={designSystem.iconSizes.md}
+                    color={designSystem.colors.primary}
+                  />
+                </Pressable>
+              </View>
             </View>
 
             <View style={styles.card}>
@@ -151,20 +179,6 @@ export function FoodDetailScreen({ navigation, route }: Props) {
                   <Text style={styles.name}>{dish.name}</Text>
                 </View>
                 <Text style={styles.price}>{formatMoney(dish.price)}</Text>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={
-                    favorite ? "Quitar plato favorito" : "Guardar plato favorito"
-                  }
-                  onPress={() => toggleDish(restaurant, dish)}
-                  style={styles.favoriteButton}
-                >
-                  <MaterialCommunityIcons
-                    name={favorite ? "heart" : "heart-outline"}
-                    size={designSystem.iconSizes.md}
-                    color={designSystem.colors.primary}
-                  />
-                </Pressable>
               </View>
 
               {dish.description ? (
@@ -280,6 +294,24 @@ const styles = StyleSheet.create({
     borderColor: studentPalette.border,
     ...designSystem.shadows.medium,
   },
+  mediaActions: {
+    position: "absolute",
+    top: spacing.md,
+    left: spacing.md,
+    right: spacing.md,
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  mediaActionButton: {
+    width: 40,
+    height: 40,
+    borderRadius: designSystem.radii.pill,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255, 253, 249, 0.92)",
+    borderWidth: 1,
+    borderColor: "rgba(236, 217, 197, 0.68)",
+  },
   image: {
     width: "100%",
     height: "100%",
@@ -335,16 +367,6 @@ const styles = StyleSheet.create({
     fontSize: typography.roles.price.fontSize,
     lineHeight: typography.roles.price.lineHeight,
     fontWeight: typography.roles.price.fontWeight,
-  },
-  favoriteButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 999,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: designSystem.colors.surfaceElevated,
-    borderWidth: 1,
-    borderColor: designSystem.colors.border,
   },
   description: {
     color: designSystem.colors.textSecondary,

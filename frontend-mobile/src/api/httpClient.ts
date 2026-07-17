@@ -1,6 +1,10 @@
 import { API_URL } from "../constants/api";
+import { getRefreshToken, saveTokens } from "../services/authStorage";
 import { notifyHttpResponseReceived } from "../services/networkEvents";
-import { notifySessionExpired } from "../services/sessionExpiryService";
+import {
+  notifyAccessTokenRefreshed,
+  notifySessionExpired,
+} from "../services/sessionExpiryService";
 import { ApiError, isApiError } from "./apiError";
 
 const DEFAULT_TIMEOUT_MS = 20000;
@@ -15,7 +19,21 @@ export type HttpRequestOptions = {
   headers?: HeadersInit;
   body?: RequestBody;
   timeoutMs?: number;
+  skipAuthRefresh?: boolean;
+  retryOnUnauthorized?: boolean;
 };
+
+type RefreshTokenPayload = {
+  data?: {
+    access_token?: unknown;
+    refresh_token?: unknown;
+  };
+};
+
+const REFRESH_ENDPOINT = "/auth/refresh";
+const SESSION_RESTORE_TIMEOUT_MS = 15000;
+
+let refreshSessionPromise: Promise<string | null> | null = null;
 
 function logHttpDebug(message: string, details?: UnknownRecord) {
   if (!__DEV__) {
@@ -191,6 +209,84 @@ async function parseResponseBody(response: Response): Promise<unknown> {
   }
 }
 
+function readRefreshResponseTokens(payload: unknown) {
+  const data =
+    typeof payload === "object" && payload !== null
+      ? (payload as RefreshTokenPayload).data
+      : undefined;
+
+  const accessToken = data?.access_token;
+  const refreshToken = data?.refresh_token;
+
+  if (typeof accessToken !== "string" || typeof refreshToken !== "string") {
+    throw new ApiError("Respuesta inválida al renovar la sesión");
+  }
+
+  return {
+    accessToken,
+    refreshToken,
+  };
+}
+
+async function requestTokenRefresh(): Promise<string | null> {
+  const refreshToken = await getRefreshToken();
+
+  if (!refreshToken) {
+    return null;
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(
+    () => controller.abort(),
+    SESSION_RESTORE_TIMEOUT_MS
+  );
+
+  try {
+    const response = await fetch(`${API_URL}${REFRESH_ENDPOINT}`, {
+      method: "POST",
+      headers: new Headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ refresh_token: refreshToken }),
+      signal: controller.signal,
+    });
+
+    const payload = await parseResponseBody(response);
+
+    if (!response.ok) {
+      const statusCode =
+        typeof payload === "object" &&
+        payload !== null &&
+        typeof (payload as { statusCode?: unknown }).statusCode === "number"
+          ? (payload as { statusCode: number }).statusCode
+          : response.status;
+      const message = extractErrorMessage(payload);
+
+      throw new ApiError(getFriendlyHttpMessage(response.status, message), {
+        status: response.status,
+        statusCode,
+        payload,
+      });
+    }
+
+    const tokens = readRefreshResponseTokens(payload);
+    await saveTokens(tokens.accessToken, tokens.refreshToken);
+    notifyAccessTokenRefreshed(tokens.accessToken);
+
+    return tokens.accessToken;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function refreshSessionOnce() {
+  if (!refreshSessionPromise) {
+    refreshSessionPromise = requestTokenRefresh().finally(() => {
+      refreshSessionPromise = null;
+    });
+  }
+
+  return refreshSessionPromise;
+}
+
 function buildHeaders(
   headers?: HeadersInit,
   accessToken?: string | null,
@@ -263,7 +359,38 @@ async function request<T>(
         }
       );
 
-      if (isSessionExpiredResponse(apiError)) {
+      if (
+        isSessionExpiredResponse(apiError) &&
+        !options.skipAuthRefresh &&
+        options.retryOnUnauthorized !== false &&
+        options.accessToken
+      ) {
+        try {
+          const nextAccessToken = await refreshSessionOnce();
+
+          if (nextAccessToken) {
+            return await request<T>(method, endpoint, {
+              ...options,
+              accessToken: nextAccessToken,
+              retryOnUnauthorized: false,
+            });
+          }
+
+          notifySessionExpired();
+        } catch (refreshError: unknown) {
+          if (
+            isApiError(refreshError) &&
+            (refreshError.status === 401 ||
+              refreshError.status === 403 ||
+              refreshError.statusCode === 401 ||
+              refreshError.statusCode === 403)
+          ) {
+            notifySessionExpired();
+          }
+
+          throw apiError;
+        }
+      } else if (isSessionExpiredResponse(apiError) && options.skipAuthRefresh) {
         notifySessionExpired();
       }
 

@@ -7,6 +7,7 @@ import { useReduceMotion } from "../../hooks/useReduceMotion";
 import { designSystem, typography } from "../../theme";
 import { studentPalette } from "../../theme/studentPalette";
 import type { Restaurant } from "../../types/models";
+import { getRestaurantImageSource } from "../../utils/foodImages";
 import { Card } from "../Card";
 import { StudentStatusPill } from "../StudentStatusPill";
 import { RestaurantDetailSchedule } from "./RestaurantDetailSchedule";
@@ -49,19 +50,11 @@ export function RestaurantDetailHeader({
     <Animated.View style={{ opacity, transform: [{ translateY }] }}>
       <Card variant="featured" style={styles.hero}>
         <View style={styles.media}>
-          {restaurant.imageUrl ? (
-            <Image source={{ uri: restaurant.imageUrl }} style={styles.image} />
-          ) : (
-            <View style={styles.placeholder}>
-              <View style={styles.placeholderGlow} />
-              <Text style={styles.placeholderInitial}>{initial}</Text>
-              <MaterialCommunityIcons
-                name="storefront-outline"
-                size={designSystem.iconSizes.md}
-                color={studentPalette.primary}
-              />
-            </View>
-          )}
+          <Image
+            source={getRestaurantImageSource(restaurant)}
+            style={styles.image}
+            resizeMode="cover"
+          />
         </View>
 
         <View style={styles.heroText}>
@@ -117,29 +110,6 @@ const styles = StyleSheet.create({
   image: {
     width: "100%",
     height: "100%",
-  },
-  placeholder: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.xs,
-    overflow: "hidden",
-  },
-  placeholderGlow: {
-    position: "absolute",
-    width: 220,
-    height: 220,
-    borderRadius: 999,
-    right: -80,
-    top: -80,
-    backgroundColor: studentPalette.primarySoft,
-    opacity: 0.5,
-  },
-  placeholderInitial: {
-    color: studentPalette.primary,
-    fontSize: 34,
-    lineHeight: 40,
-    fontWeight: typography.weights.bold,
   },
   heroText: {
     padding: spacing.sm,

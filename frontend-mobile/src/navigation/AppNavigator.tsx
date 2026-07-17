@@ -1,11 +1,10 @@
-import React, {
+﻿import React, {
   useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
 import {
-  Alert,
   StyleSheet,
 } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -157,7 +156,7 @@ function classifyProfileLoadError(
     return {
       kind: "expired",
       message:
-        "Tu sesión expiró. Vuelve a iniciar sesión.",
+        "Tu sesiÃ³n expirÃ³. Vuelve a iniciar sesiÃ³n.",
     };
   }
 
@@ -176,7 +175,7 @@ function classifyProfileLoadError(
     return {
       kind: "server",
       message:
-        `El servidor no respondió correctamente. ${message}`,
+        `El servidor no respondiÃ³ correctamente. ${message}`,
     };
   }
 
@@ -187,7 +186,7 @@ function classifyProfileLoadError(
     return {
       kind: "timeout",
       message:
-        `La carga de tu perfil tardó demasiado. ${message}`,
+        `La carga de tu perfil tardÃ³ demasiado. ${message}`,
     };
   }
 
@@ -339,8 +338,8 @@ function ProfileErrorScreen({
       <AppButton
         label={
           isSigningOut
-            ? "Cerrando sesión…"
-            : "Cerrar sesión"
+            ? "Cerrando sesiÃ³nâ€¦"
+            : "Cerrar sesiÃ³n"
         }
         onPress={onLogout}
         variant="secondary"
@@ -551,7 +550,7 @@ export function AppNavigator() {
       showDebugToast(
         "Evento socket: menu_available",
         payload?.message ||
-          "Llegó un evento desde el servidor.",
+          "LlegÃ³ un evento desde el servidor.",
       );
     },
     onError: (message) => {
@@ -679,7 +678,7 @@ export function AppNavigator() {
             profileKey
         ) {
           logSessionDebug(
-            "Perfil rechazó la sesión actual",
+            "Perfil rechazÃ³ la sesiÃ³n actual",
             {
               status,
               hasUserId:
@@ -689,26 +688,6 @@ export function AppNavigator() {
             },
           );
 
-          resetProfileState();
-          setIsSigningOut(true);
-
-          void logoutLocal()
-            .catch(() => undefined)
-            .finally(() => {
-              if (
-                !isMountedRef.current
-              ) {
-                return;
-              }
-
-              resetProfileState();
-              setIsSigningOut(false);
-
-              Alert.alert(
-                "Sesión expirada",
-                "Tu sesión expiró. Vuelve a iniciar sesión.",
-              );
-            });
 
           return;
         }
@@ -724,7 +703,7 @@ export function AppNavigator() {
             );
 
           logSessionDebug(
-            "La carga del perfil falló",
+            "La carga del perfil fallÃ³",
             {
               status:
                 status ?? -1,
@@ -900,7 +879,7 @@ export function AppNavigator() {
   if (isLoading) {
     return (
       <InitialLoadingScreen
-        message="Cargando sesión…"
+        message="Cargando sesiÃ³nâ€¦"
       />
     );
   }
@@ -1135,7 +1114,7 @@ export function AppNavigator() {
             }
             options={{
               title:
-                "Iniciar sesión",
+                "Iniciar sesiÃ³n",
             }}
           />
 
@@ -1193,7 +1172,7 @@ export function AppNavigator() {
             }
             options={{
               title:
-                "Añadir plato",
+                "AÃ±adir plato",
             }}
           />
 

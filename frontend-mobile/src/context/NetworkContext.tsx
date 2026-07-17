@@ -86,12 +86,16 @@ export function NetworkProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const checkConnection = useCallback(async () => {
+  const runConnectionCheck = useCallback(async (options?: { silent?: boolean }) => {
     if (inFlightRef.current) {
       return inFlightRef.current;
     }
 
-    setIsCheckingConnection(true);
+    const silent = options?.silent ?? false;
+
+    if (!silent) {
+      setIsCheckingConnection(true);
+    }
 
     const request = (async () => {
       let lastResult: ProbeResult = { kind: "network-error" };
@@ -118,21 +122,25 @@ export function NetworkProvider({ children }: { children: ReactNode }) {
             : "unavailable";
 
       if (mountedRef.current) {
-        setHasCheckedConnection(true);
+        setHasCheckedConnection((previous) => (previous ? previous : true));
         setIsOnline((previous) => {
           if (!previous && nextOnline) {
             setRecoveryTick((value) => value + 1);
           }
-          return nextOnline;
+          return previous === nextOnline ? previous : nextOnline;
         });
-        setServerStatus(nextServerStatus);
-        setIsCheckingConnection(false);
+        setServerStatus((previous) =>
+          previous === nextServerStatus ? previous : nextServerStatus
+        );
+        if (!silent) {
+          setIsCheckingConnection(false);
+        }
       }
 
       return nextOnline;
     })()
       .then((nextOnline) => {
-        if (mountedRef.current) {
+        if (mountedRef.current && !silent) {
           setIsCheckingConnection(false);
         }
         return nextOnline;
@@ -145,17 +153,21 @@ export function NetworkProvider({ children }: { children: ReactNode }) {
     return request;
   }, []);
 
+  const checkConnection = useCallback(() => {
+    return runConnectionCheck({ silent: false });
+  }, [runConnectionCheck]);
+
   useEffect(() => {
     mountedRef.current = true;
-    void checkConnection();
+    void runConnectionCheck({ silent: false });
 
     const timer = setInterval(() => {
-      void checkConnection();
+      void runConnectionCheck({ silent: true });
     }, CONNECTION_CHECK_MS);
 
     const subscription = AppState.addEventListener("change", (state) => {
       if (state === "active") {
-        void checkConnection();
+        void runConnectionCheck({ silent: true });
       }
     });
 
@@ -168,7 +180,7 @@ export function NetworkProvider({ children }: { children: ReactNode }) {
       unsubscribeHttpResponse();
       subscription.remove();
     };
-  }, [checkConnection, markOnlineFromHttpResponse]);
+  }, [markOnlineFromHttpResponse, runConnectionCheck]);
 
   useEffect(() => {
     if (isOnline) {
@@ -176,13 +188,13 @@ export function NetworkProvider({ children }: { children: ReactNode }) {
     }
 
     const recoveryTimer = setInterval(() => {
-      void checkConnection();
+      void runConnectionCheck({ silent: true });
     }, OFFLINE_RECOVERY_CHECK_MS);
 
     return () => {
       clearInterval(recoveryTimer);
     };
-  }, [checkConnection, isOnline]);
+  }, [isOnline, runConnectionCheck]);
 
   const value = useMemo<NetworkContextValue>(
     () => ({

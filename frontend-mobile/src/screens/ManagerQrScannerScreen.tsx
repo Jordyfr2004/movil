@@ -136,9 +136,10 @@ export function ManagerQrScannerScreen() {
 
   return (
     <Screen style={styles.container}>
+      <View style={styles.scannerShell}>
       <View style={styles.headerCard}>
-        <Text style={styles.title}>Escanear QR</Text>
-        <Text style={styles.description}>
+        <Text style={[styles.title, styles.scannerTitle]}>Escanear QR</Text>
+        <Text style={[styles.description, styles.scannerDescription]}>
           Apunta la cámara al código del estudiante.
         </Text>
       </View>
@@ -204,12 +205,22 @@ export function ManagerQrScannerScreen() {
 
       {isVerifying ? <Text style={styles.feedback}>Validando QR...</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
+      </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: studentPalette.background },
+  scannerShell: {
+    flex: 1,
+    marginHorizontal: -spacing.screenHorizontal,
+    marginTop: -spacing.md,
+    marginBottom: -spacing.xl,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    backgroundColor: "#1F1A15",
+  },
   title: {
     color: designSystem.colors.textPrimary,
     fontSize: typography.roles.screenTitle.fontSize,
@@ -222,13 +233,19 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.sm,
     lineHeight: typography.lineHeights.sm,
   },
+  scannerTitle: {
+    color: "#FFF7EC",
+  },
+  scannerDescription: {
+    color: "#D8C8B8",
+  },
   permissionCard: {
     gap: spacing.md,
     padding: spacing.lg,
     borderRadius: designSystem.radii.xl,
-    backgroundColor: designSystem.colors.surfaceElevated,
+    backgroundColor: "rgba(255, 255, 255, 0.06)",
     borderWidth: 1,
-    borderColor: designSystem.colors.border,
+    borderColor: "rgba(255, 255, 255, 0.10)",
     ...designSystem.shadows.low,
   },
   headerCard: {

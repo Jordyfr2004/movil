@@ -16,6 +16,7 @@ import { useFavorites } from "../context/FavoritesContext";
 import { useReduceMotion } from "../hooks/useReduceMotion";
 import { designSystem, typography } from "../theme";
 import { Restaurant } from "../types/models";
+import { getRestaurantImageSource } from "../utils/foodImages";
 import { StatusBadge } from "./StatusBadge";
 
 type RestaurantStatus = {
@@ -172,21 +173,11 @@ export function RestaurantCard({
             isFeatured && styles.featuredMedia,
           ]}
         >
-          {restaurant.imageUrl ? (
-            <Image source={{ uri: restaurant.imageUrl }} style={styles.image} />
-          ) : (
-            <View style={styles.placeholder}>
-              <View style={styles.placeholderGlow} />
-              <MaterialCommunityIcons
-                name={isFeatured ? "silverware-fork-knife" : "storefront-outline"}
-                size={isFeatured ? designSystem.iconSizes.lg : designSystem.iconSizes.xl}
-                color={designSystem.colors.primary}
-              />
-              <Text style={styles.placeholderText} numberOfLines={1}>
-                {restaurant.name}
-              </Text>
-            </View>
-          )}
+          <Image
+            source={getRestaurantImageSource(restaurant)}
+            style={styles.image}
+            resizeMode="cover"
+          />
 
           <View style={styles.status}>
             <StatusBadge label={status.label} tone={status.tone} />

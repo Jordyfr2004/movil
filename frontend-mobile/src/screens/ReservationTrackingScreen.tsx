@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useFocusEffect } from "@react-navigation/native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import QRCode from "react-native-qrcode-svg";
 import type { Socket } from "socket.io-client";
 
@@ -362,21 +363,47 @@ export function ReservationTrackingScreen({ navigation, route }: Props) {
         </View>
 
         <View style={styles.progressCard}>
-          {["Creada", "Confirmada", "Entregada"].map((label, index) => (
+          {["Pedido confirmado", "Pago confirmado", "En preparación", "Entregado"].map((label, index) => {
+            const stepIndex = Math.min(index, 2);
+            const active = stepIndex <= progress;
+            const current = stepIndex === progress;
+
+            return (
             <View key={label} style={styles.progressItem}>
+              {index < 3 ? <View style={styles.progressLine} /> : null}
               <View
                 style={[
                   styles.progressDot,
-                  index <= progress && styles.progressDotActive,
+                  active && styles.progressDotActive,
+                  current && styles.progressDotCurrent,
                 ]}
               >
-                <Text style={[styles.progressIcon, index <= progress && styles.progressIconActive]}>
-                  {index + 1}
+                <MaterialCommunityIcons
+                  name={active ? "check" : "circle-medium"}
+                  size={active ? 16 : 14}
+                  color={
+                    active
+                      ? designSystem.colors.textInverted
+                      : designSystem.colors.textMuted
+                  }
+                />
+              </View>
+              <View style={styles.progressCopy}>
+                <Text
+                  style={[
+                    styles.progressLabel,
+                    active && styles.progressLabelActive,
+                  ]}
+                >
+                  {label}
+                </Text>
+                <Text style={styles.progressMeta}>
+                  {active ? statusLabel(reservation.status) : "Pendiente"}
                 </Text>
               </View>
-              <Text style={styles.progressLabel}>{label}</Text>
             </View>
-          ))}
+            );
+          })}
         </View>
 
         <View style={styles.card}>
@@ -504,16 +531,30 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   progressCard: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    padding: spacing.md,
+    gap: spacing.sm,
+    padding: spacing.lg,
     borderRadius: designSystem.radii.xl,
     backgroundColor: designSystem.colors.surfaceElevated,
     borderWidth: 1,
     borderColor: designSystem.colors.border,
     ...designSystem.shadows.low,
   },
-  progressItem: { flex: 1, alignItems: "center", gap: spacing.xs },
+  progressItem: {
+    position: "relative",
+    minHeight: 58,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: spacing.md,
+  },
+  progressLine: {
+    position: "absolute",
+    left: 16,
+    top: 34,
+    bottom: -24,
+    width: 2,
+    borderRadius: 999,
+    backgroundColor: designSystem.colors.border,
+  },
   progressDot: {
     width: 34,
     height: 34,
@@ -528,15 +569,29 @@ const styles = StyleSheet.create({
     backgroundColor: designSystem.colors.primary,
     borderColor: designSystem.colors.primary,
   },
-  progressIcon: {
-    color: designSystem.colors.textMuted,
-    fontSize: typography.roles.caption.fontSize,
+  progressDotCurrent: {
+    shadowColor: designSystem.colors.primary,
+    shadowOpacity: 0.28,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  progressCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  progressLabel: {
+    color: designSystem.colors.textSecondary,
+    fontSize: typography.sizes.sm,
     fontWeight: typography.weights.bold,
   },
-  progressIconActive: {
-    color: designSystem.colors.textInverted,
+  progressLabelActive: {
+    color: designSystem.colors.textPrimary,
   },
-  progressLabel: { color: designSystem.colors.textSecondary, fontSize: typography.sizes.xs },
+  progressMeta: {
+    color: designSystem.colors.textMuted,
+    fontSize: typography.sizes.xs,
+  },
   card: {
     gap: spacing.md,
     padding: spacing.lg,

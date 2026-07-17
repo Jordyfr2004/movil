@@ -36,7 +36,7 @@ export function ScreenContainer({
   return (
     <SafeAreaView
       edges={["top", "bottom"]}
-      style={[styles.safeArea, { backgroundColor: theme.background }, style]}
+      style={[styles.safeArea, style, { backgroundColor: theme.background }]}
     >
       <StatusBar
         barStyle={resolvedScheme === "dark" ? "light-content" : "dark-content"}

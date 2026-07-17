@@ -3,7 +3,10 @@ import { Alert } from "react-native";
 import {classifyAuthError,LoginPayload,LoginSuccessResponse,loginRequest,logoutRequest,refreshTokenRequest,} from "../services/authServices";
 import {clearTokens,getRefreshToken,getStoredSession,saveAuthUser,saveTokens,} from "../services/authStorage";
 import { disconnectNotificationsSocket } from "../services/notificationsSocket";
-import { registerSessionExpiredHandler } from "../services/sessionExpiryService";
+import {
+  registerAccessTokenRefreshedHandler,
+  registerSessionExpiredHandler,
+} from "../services/sessionExpiryService";
 
 
 type UnknownRecord = Record<string, unknown>;
@@ -275,9 +278,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     registerSessionExpiredHandler(handleExpiredSession);
+    registerAccessTokenRefreshedHandler((nextAccessToken) => {
+      setAccessToken(nextAccessToken);
+      isHandlingExpiredSessionRef.current = false;
+    });
 
     return () => {
       registerSessionExpiredHandler(null);
+      registerAccessTokenRefreshedHandler(null);
     };
   }, [handleExpiredSession]);
 

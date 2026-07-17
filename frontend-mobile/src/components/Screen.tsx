@@ -28,11 +28,11 @@ export function Screen({ children, style, bottomInset = 0 }: ScreenProps) {
       edges={["top", "bottom"]}
       style={[
         styles.container,
+        style,
         {
           paddingBottom: spacing.xl + Math.max(insets.bottom, 0),
           backgroundColor: theme.background,
         },
-        style,
       ]}
     >
       <StatusBar
