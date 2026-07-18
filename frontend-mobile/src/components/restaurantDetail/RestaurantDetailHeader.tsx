@@ -7,7 +7,7 @@ import { useReduceMotion } from "../../hooks/useReduceMotion";
 import { designSystem, typography } from "../../theme";
 import { studentPalette } from "../../theme/studentPalette";
 import type { Restaurant } from "../../types/models";
-import { getRestaurantImageSource } from "../../utils/foodImages";
+
 import { Card } from "../Card";
 import { StudentStatusPill } from "../StudentStatusPill";
 import { RestaurantDetailSchedule } from "./RestaurantDetailSchedule";
@@ -50,11 +50,15 @@ export function RestaurantDetailHeader({
     <Animated.View style={{ opacity, transform: [{ translateY }] }}>
       <Card variant="featured" style={styles.hero}>
         <View style={styles.media}>
-          <Image
-            source={getRestaurantImageSource(restaurant)}
-            style={styles.image}
-            resizeMode="cover"
-          />
+          {restaurant.imageUrl ? (
+            <Image
+              source={{ uri: restaurant.imageUrl }}
+              style={styles.image}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.image} />
+          )}
         </View>
 
         <View style={styles.heroText}>

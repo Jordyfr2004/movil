@@ -23,10 +23,6 @@ import { useThemeColors } from "../hooks/useThemeColors";
 import { Dish, getPublicDishesByRestaurant } from "../services/dishService";
 import { designSystem, typography } from "../theme";
 import { Restaurant } from "../types/models";
-import {
-  getDishImageSource,
-  getRestaurantImageSource,
-} from "../utils/foodImages";
 
 type ExploreScreenProps = {
   bottomInset: number;
@@ -661,19 +657,31 @@ function SearchSuggestionRow({
     >
       <View style={[styles.suggestionThumb, { backgroundColor: theme.surfaceSecondary }]}>
         {suggestion.type === "restaurant" ? (
-          <Image
-            source={getRestaurantImageSource(suggestion.restaurant)}
-            style={styles.resultImage}
-            resizeMode="cover"
-          />
+          suggestion.restaurant.imageUrl ? (
+            <Image
+              source={{ uri: suggestion.restaurant.imageUrl }}
+              style={styles.resultImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.resultImage} />
+          )
         ) : suggestion.type === "dish" ? (
-          <Image
-            source={getDishImageSource(suggestion.dish, suggestion.restaurant)}
-            style={styles.resultImage}
-            resizeMode="cover"
-          />
+          suggestion.dish.imageUrl ? (
+            <Image
+              source={{ uri: suggestion.dish.imageUrl }}
+              style={styles.resultImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.resultImage} />
+          )
         ) : (
-          <MaterialCommunityIcons name={iconName} size={18} color={theme.primary} />
+          <MaterialCommunityIcons
+            name={iconName}
+            size={18}
+            color={theme.primary}
+          />
         )}
       </View>
       <View style={styles.suggestionText}>
@@ -1251,11 +1259,15 @@ function ExploreRestaurantRow({
         ]}
       >
         <View style={[styles.restaurantRowImage, { backgroundColor: theme.surfaceSecondary }]}>
-          <Image
-            source={getRestaurantImageSource(restaurant)}
-            style={styles.resultImage}
-            resizeMode="cover"
-          />
+          {restaurant.imageUrl ? (
+            <Image
+              source={{ uri: restaurant.imageUrl }}
+              style={styles.resultImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.resultImage} />
+          )}
         </View>
         <View style={styles.resultText}>
           <Text
@@ -1368,11 +1380,15 @@ function ExploreDishCard({
         ]}
       >
         <View style={styles.exploreDishMedia}>
-          <Image
-            source={getDishImageSource(dish, restaurant)}
-            style={styles.resultImage}
-            resizeMode="cover"
-          />
+          {dish.imageUrl ? (
+            <Image
+              source={{ uri: dish.imageUrl }}
+              style={styles.resultImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.resultImage} />
+          )}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={favorite ? "Quitar favorito" : "Guardar favorito"}

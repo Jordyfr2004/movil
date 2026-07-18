@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   AppState,
@@ -37,10 +37,7 @@ import { RootStackParamList } from "../navigation/types";
 import { Dish, getPublicDishesByRestaurant } from "../services/dishService";
 import { designSystem, typography } from "../theme";
 import { Restaurant } from "../types/models";
-import {
-  getDishImageSource,
-  getRestaurantImageSource,
-} from "../utils/foodImages";
+
 
 type Props = NativeStackScreenProps<RootStackParamList, typeof ROUTES.Home>;
 
@@ -272,7 +269,7 @@ export function HomeContent({
     return new Map(restaurants.map((restaurant) => [String(restaurant.id), restaurant]));
   }, [restaurants]);
 
-  const heroRestaurant = restaurants[0];
+  
 
   const categoryShortcuts = useMemo<CategoryShortcut[]>(
     () => [
@@ -396,8 +393,7 @@ export function HomeContent({
 
       <AnimatedSection reduceMotion={reduceMotion}>
         <HomeHero
-          featuredRestaurant={heroRestaurant}
-          restaurantCount={restaurants.length}
+          restaurants={restaurants}
           onOpenRestaurant={onOpenRestaurant}
         />
       </AnimatedSection>
@@ -597,54 +593,163 @@ function IconButton({
 }
 
 function HomeHero({
-  featuredRestaurant,
+  restaurants,
   onOpenRestaurant,
-  restaurantCount,
 }: {
-  featuredRestaurant?: Restaurant;
+  restaurants: Restaurant[];
   onOpenRestaurant: (restaurant: Restaurant) => void;
-  restaurantCount: number;
 }) {
   const theme = useThemeColors();
+  const listRef = useRef<FlatList<Restaurant>>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [heroWidth, setHeroWidth] = useState(0);
 
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={
-        featuredRestaurant
-          ? `Ver restaurante ${featuredRestaurant.name}`
-          : "Explorar restaurantes"
-      }
-      disabled={!featuredRestaurant}
-      onPress={() => featuredRestaurant && onOpenRestaurant(featuredRestaurant)}
-      style={({ pressed }) => [
-        styles.hero,
-        { backgroundColor: theme.surfaceElevated },
-        pressed && featuredRestaurant && styles.heroPressed,
-      ]}
-    >
-      <Image
-        source={getRestaurantImageSource(featuredRestaurant)}
-        style={styles.heroImage}
-        resizeMode="cover"
-      />
-      <View style={styles.heroScrim} />
-      <View style={styles.heroLeftScrim} />
-      <View style={styles.heroCopy}>
-        <Text style={styles.heroEyebrow}>Restaurante destacado</Text>
-        <Text style={styles.heroTitle} numberOfLines={1}>
-          {featuredRestaurant?.name ?? `${restaurantCount} restaurantes disponibles`}
-        </Text>
-        <Text style={styles.heroSubtitle} numberOfLines={2}>
-          {featuredRestaurant?.description ||
-            featuredRestaurant?.location ||
-            "Explora opciones reales del campus"}
-        </Text>
-        <View style={styles.heroCta}>
-          <Text style={styles.heroCtaText}>Ver menú</Text>
+  useEffect(() => {
+    if (restaurants.length <= 1 || heroWidth <= 0) {
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setCurrentIndex((current) => {
+        const nextIndex =
+          current >= restaurants.length - 1 ? 0 : current + 1;
+
+        listRef.current?.scrollToIndex({
+          index: nextIndex,
+          animated: true,
+        });
+
+        return nextIndex;
+      });
+    }, 5000);
+
+    return () => clearInterval(timer);
+  }, [heroWidth, restaurants.length]);
+
+  if (restaurants.length === 0) {
+    return (
+      <View
+        style={[
+          styles.hero,
+          styles.heroEmpty,
+          { backgroundColor: theme.surfaceElevated },
+        ]}
+      >
+        <View style={styles.heroCopy}>
+          <Text style={styles.heroEyebrow}>Restaurante destacado</Text>
+          <Text style={styles.heroTitle}>Sin restaurantes disponibles</Text>
+          <Text style={styles.heroSubtitle}>
+            Actualiza la pantalla para consultar nuevamente.
+          </Text>
         </View>
       </View>
-    </Pressable>
+    );
+  }
+
+  return (
+    <View
+      style={styles.heroCarousel}
+      onLayout={(event) => {
+        const width = event.nativeEvent.layout.width;
+        if (width > 0 && width !== heroWidth) {
+          setHeroWidth(width);
+        }
+      }}
+    >
+      {heroWidth > 0 ? (
+        <FlatList
+          ref={listRef}
+          data={restaurants}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          keyExtractor={(item) => `hero-${item.id}`}
+          getItemLayout={(_, index) => ({
+            length: heroWidth,
+            offset: heroWidth * index,
+            index,
+          })}
+          onMomentumScrollEnd={(event) => {
+            const nextIndex = Math.round(
+              event.nativeEvent.contentOffset.x / heroWidth
+            );
+
+            setCurrentIndex(
+              Math.max(0, Math.min(nextIndex, restaurants.length - 1))
+            );
+          }}
+          onScrollToIndexFailed={({ index }) => {
+            listRef.current?.scrollToOffset({
+              offset: index * heroWidth,
+              animated: true,
+            });
+          }}
+          renderItem={({ item }) => (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Ver restaurante ${item.name}`}
+              onPress={() => onOpenRestaurant(item)}
+              style={({ pressed }) => [
+                styles.hero,
+                { width: heroWidth, backgroundColor: theme.surfaceElevated },
+                pressed && styles.heroPressed,
+              ]}
+            >
+              {item.imageUrl ? (
+                <Image
+                  source={{ uri: item.imageUrl }}
+                  style={styles.heroImage}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View
+                  style={[
+                    styles.heroImage,
+                    { backgroundColor: theme.surfaceSecondary },
+                  ]}
+                />
+              )}
+
+              <View style={styles.heroScrim} />
+
+              <View style={styles.heroCopy}>
+                <Text style={styles.heroEyebrow}>
+                  Restaurante destacado
+                </Text>
+
+                <Text style={styles.heroTitle} numberOfLines={1}>
+                  {item.name}
+                </Text>
+
+                <Text style={styles.heroSubtitle} numberOfLines={2}>
+                  {item.description ||
+                    item.location ||
+                    "Explora opciones reales del campus"}
+                </Text>
+
+                <View style={styles.heroCta}>
+                  <Text style={styles.heroCtaText}>Ver menú</Text>
+                </View>
+              </View>
+            </Pressable>
+          )}
+        />
+      ) : null}
+
+      {restaurants.length > 1 ? (
+        <View style={styles.heroPagination}>
+          {restaurants.map((restaurant, index) => (
+            <View
+              key={`hero-dot-${restaurant.id}`}
+              style={[
+                styles.heroDot,
+                index === currentIndex && styles.heroDotActive,
+              ]}
+            />
+          ))}
+        </View>
+      ) : null}
+    </View>
   );
 }
 
@@ -680,11 +785,15 @@ function ActiveOrderCard({
         ]}
       >
         <View style={styles.activeOrderThumb}>
-          <Image
-            source={getRestaurantImageSource(restaurant)}
-            style={styles.activeOrderFallback}
-            resizeMode="cover"
-          />
+          {restaurant?.imageUrl ? (
+              <Image
+                source={{ uri: restaurant.imageUrl }}
+                style={styles.activeOrderFallback}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles.activeOrderFallback} />
+            )}
         </View>
         <View style={styles.activeOrderText}>
           <Text style={[styles.activeOrderStatus, { color: theme.primary }]} numberOfLines={1}>
@@ -863,11 +972,15 @@ function FeaturedRestaurantCard({
         ]}
       >
         <View style={styles.featuredMedia}>
-          <Image
-            source={getRestaurantImageSource(restaurant)}
-            style={styles.restaurantFallback}
-            resizeMode="cover"
-          />
+          {restaurant.imageUrl ? (
+              <Image
+                source={{ uri: restaurant.imageUrl }}
+                style={styles.restaurantFallback}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles.restaurantFallback} />
+            )}
           <FavoriteButton
             favorite={favorite}
             onPress={() => toggleRestaurant(restaurant)}
@@ -924,11 +1037,15 @@ function HomeDishCard({
       ]}
     >
       <View style={styles.dishMedia}>
-        <Image
-          source={getDishImageSource(item.dish, item.restaurant)}
-          style={styles.fullImage}
-          resizeMode="cover"
-        />
+        {item.dish.imageUrl ? (
+          <Image
+            source={{ uri: item.dish.imageUrl }}
+            style={styles.fullImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={styles.fullImage} />
+        )}
         <FavoriteButton
           favorite={favorite}
           onPress={() => toggleDish(item.restaurant, item.dish)}
@@ -986,11 +1103,7 @@ function CompactRestaurantRow({
             resizeMode="cover"
           />
         ) : (
-          <Image
-            source={getRestaurantImageSource(restaurant)}
-            style={styles.rowFallback}
-            resizeMode="cover"
-          />
+          <View style={styles.rowFallback} />
         )}
       </View>
       <View style={styles.compactText}>
@@ -1174,16 +1287,9 @@ const styles = StyleSheet.create({
   },
   heroScrim: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(36, 22, 12, 0.34)",
+    backgroundColor: "rgba(25, 25, 25, 0.42)",
   },
-  heroLeftScrim: {
-    position: "absolute",
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: "68%",
-    backgroundColor: "rgba(22, 14, 8, 0.48)",
-  },
+  
   heroCopy: {
     flex: 1,
     justifyContent: "flex-end",
@@ -1495,5 +1601,36 @@ const styles = StyleSheet.create({
   },
   disabled: {
     opacity: 0.6,
+  },
+  heroCarousel: {
+    width: "100%",
+    position: "relative",
+    overflow: "hidden",
+    borderRadius: 18,
+  },
+
+  heroEmpty: {
+    justifyContent: "flex-end",
+  },
+
+  heroPagination: {
+    position: "absolute",
+    right: spacing.md,
+    bottom: spacing.sm,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+
+  heroDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
+  },
+
+  heroDotActive: {
+    width: 16,
+    backgroundColor: "#FFFFFF",
   },
 });

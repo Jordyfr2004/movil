@@ -1,10 +1,10 @@
 import React from "react";
-import { Pressable, StyleSheet, Switch, Text, View } from "react-native";
+import { Pressable, StyleSheet, Switch, Text, View,  Image } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { Card } from "../Card";
 import { StudentStatusPill } from "../StudentStatusPill";
-import { StudentVisualPlaceholder } from "../StudentVisualPlaceholder";
+
 import { Dish } from "../../services/dishService";
 import { spacing } from "../../constants/spacing";
 import { typography } from "../../theme";
@@ -86,13 +86,15 @@ export function ManagerDishCard({
   return (
     <Card style={styles.card}>
       <View style={styles.contentRow}>
-        <StudentVisualPlaceholder
-          iconName="food-variant"
-          label={`Plato ${dish.name}`}
-          size="sm"
-          style={styles.visual}
-          variant="dish"
-        />
+        <View style={styles.visual}>
+        {dish.imageUrl ? (
+          <Image
+            source={{ uri: dish.imageUrl }}
+            style={styles.visualImage}
+            resizeMode="cover"
+          />
+        ) : null}
+      </View>
 
         <View style={styles.content}>
           <View style={styles.titleRow}>
@@ -193,6 +195,12 @@ const styles = StyleSheet.create({
     width: 56,
     height: 58,
     borderRadius: 16,
+    overflow: "hidden",
+    backgroundColor: managerPalette.primaryFaint,
+  },
+  visualImage: {
+    width: "100%",
+    height: "100%",
   },
   content: {
     flex: 1,

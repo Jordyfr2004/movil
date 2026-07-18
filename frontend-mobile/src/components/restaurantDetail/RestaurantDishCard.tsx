@@ -15,7 +15,7 @@ import type { Dish } from "../../services/dishService";
 import { designSystem, typography } from "../../theme";
 import { studentPalette } from "../../theme/studentPalette";
 import { StudentStatusPill } from "../StudentStatusPill";
-import { StudentVisualPlaceholder } from "../StudentVisualPlaceholder";
+
 
 type RestaurantDishCardProps = {
   dish: Dish;
@@ -74,13 +74,7 @@ export function RestaurantDishCard({
             resizeMode="cover"
           />
         ) : (
-          <StudentVisualPlaceholder
-            iconName="food-variant"
-            label={`Plato ${dish.name}`}
-            size="sm"
-            style={styles.image}
-            variant="dish"
-          />
+          <View style={styles.image} />
         )}
 
         <View style={styles.content}>

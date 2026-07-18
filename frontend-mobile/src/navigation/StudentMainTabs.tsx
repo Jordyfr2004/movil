@@ -39,7 +39,7 @@ import { HomeContent } from "../screens/HomeScreen";
 import { ExploreScreen } from "../screens/ExploreScreen";
 import { designSystem, typography } from "../theme";
 import { Restaurant } from "../types/models";
-import { getDishImageSource } from "../utils/foodImages";
+
 import { ROUTES } from "./routes";
 import { StudentStackParamList } from "./types";
 
@@ -487,11 +487,15 @@ function FavoritesTab({
                     { backgroundColor: theme.surfaceSecondary },
                   ]}
                 >
-                  <Image
-                    source={getDishImageSource(item.dish, item.restaurant)}
-                    style={styles.resultImage}
-                    resizeMode="cover"
-                  />
+                  {item.dish.imageUrl ? (
+                    <Image
+                      source={{ uri: item.dish.imageUrl }}
+                      style={styles.resultImage}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View style={styles.resultImage} />
+                  )}
                 </View>
                 <View style={styles.resultText}>
                   <Text

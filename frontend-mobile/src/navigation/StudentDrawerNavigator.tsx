@@ -38,7 +38,13 @@ type StudentDrawerContentProps = DrawerContentComponentProps & {
 
 type StudentDrawerTargetRoute =
   | typeof ROUTES.Profile
-  | typeof ROUTES.MyReservations;
+  | typeof ROUTES.MyReservations
+  | typeof ROUTES.Notifications
+  | typeof ROUTES.Appearance
+  | typeof ROUTES.OnboardingReview
+  | typeof ROUTES.Help
+  | typeof ROUTES.LocalPending;
+
 
 function StudentDrawerContent({
   profile,
@@ -48,6 +54,9 @@ function StudentDrawerContent({
   const { navigation } = props;
   const insets = useSafeAreaInsets();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [accountExpanded, setAccountExpanded] = useState(false);
+  const [preferencesExpanded, setPreferencesExpanded] = useState(false);
+  const [supportExpanded, setSupportExpanded] = useState(false);
 
   const displayName = useMemo(() => {
     const name = profile?.fullName?.trim();
@@ -173,6 +182,7 @@ function StudentDrawerContent({
           label="Inicio"
           onPress={() => navigation.dispatch(DrawerActions.closeDrawer())}
         />
+
         <View style={styles.itemDivider} />
 
         <DrawerMenuItem
@@ -180,6 +190,7 @@ function StudentDrawerContent({
           label="Mis reservas"
           onPress={() => handleGoTo(ROUTES.MyReservations)}
         />
+
         <View style={styles.itemDivider} />
 
         <DrawerMenuItem
@@ -187,6 +198,93 @@ function StudentDrawerContent({
           label="Mi perfil"
           onPress={() => handleGoTo(ROUTES.Profile)}
         />
+
+        <View style={styles.sectionDivider} />
+
+        <DrawerExpandableHeader
+          iconName="account-circle-outline"
+          label="Cuenta"
+          expanded={accountExpanded}
+          onPress={() => setAccountExpanded((current) => !current)}
+        />
+
+        {accountExpanded ? (
+          <View style={styles.expandedSection}>
+            <DrawerNestedItem
+              iconName="heart-outline"
+              label="Favoritos"
+              onPress={() => {
+                navigation.dispatch(DrawerActions.closeDrawer());
+
+                navigation.navigate("StudentStack", {
+                  screen: ROUTES.Home,
+                });
+              }}
+            />
+
+            <DrawerNestedItem
+              iconName="bell-outline"
+              label="Notificaciones"
+              onPress={() => handleGoTo(ROUTES.Notifications)}
+            />
+          </View>
+        ) : null}
+
+        <View style={styles.sectionDivider} />
+
+        <DrawerExpandableHeader
+          iconName="tune-variant"
+          label="Preferencias"
+          expanded={preferencesExpanded}
+          onPress={() => setPreferencesExpanded((current) => !current)}
+        />
+
+        {preferencesExpanded ? (
+          <View style={styles.expandedSection}>
+            <DrawerNestedItem
+              iconName="theme-light-dark"
+              label="Apariencia"
+              onPress={() => handleGoTo(ROUTES.Appearance)}
+            />
+
+            <DrawerNestedItem
+              iconName="book-open-page-variant-outline"
+              label="Onboarding"
+              onPress={() => handleGoTo(ROUTES.OnboardingReview)}
+            />
+          </View>
+        ) : null}
+
+        <View style={styles.sectionDivider} />
+
+        <DrawerExpandableHeader
+          iconName="lifebuoy"
+          label="Soporte"
+          expanded={supportExpanded}
+          onPress={() => setSupportExpanded((current) => !current)}
+        />
+
+        {supportExpanded ? (
+          <View style={styles.expandedSection}>
+            <DrawerNestedItem
+              iconName="help-circle-outline"
+              label="Ayuda"
+              onPress={() => handleGoTo(ROUTES.Help)}
+            />
+
+            <DrawerNestedItem
+              iconName="star-outline"
+              label="Calificaciones pendientes"
+              onPress={() => handleGoTo(ROUTES.LocalPending)}
+            />
+
+            <DrawerNestedItem
+              iconName="alert-circle-outline"
+              label="Reportes pendientes"
+              onPress={() => handleGoTo(ROUTES.LocalPending)}
+            />
+          </View>
+        ) : null}
       </View>
 
       <View style={styles.grow} />
@@ -236,6 +334,8 @@ function StudentDrawerContent({
   );
 }
 
+
+
 function DrawerMenuItem({
   iconName,
   label,
@@ -266,6 +366,85 @@ function DrawerMenuItem({
       <MaterialCommunityIcons
         name="chevron-right"
         size={21}
+        color={studentPalette.textMuted}
+      />
+    </Pressable>
+  );
+}
+
+function DrawerExpandableHeader({
+  expanded,
+  iconName,
+  label,
+  onPress,
+}: {
+  expanded: boolean;
+  iconName: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${expanded ? "Cerrar" : "Abrir"} sección ${label}`}
+      accessibilityState={{ expanded }}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.expandableHeader,
+        pressed && styles.drawerItemPressed,
+      ]}
+    >
+      <View style={styles.expandableIcon}>
+        <MaterialCommunityIcons
+          name={iconName}
+          size={20}
+          color={studentPalette.primary}
+        />
+      </View>
+
+      <Text style={styles.expandableText}>{label}</Text>
+
+      <MaterialCommunityIcons
+        name={expanded ? "chevron-up" : "chevron-down"}
+        size={22}
+        color={studentPalette.textMuted}
+      />
+    </Pressable>
+  );
+}
+
+function DrawerNestedItem({
+  iconName,
+  label,
+  onPress,
+}: {
+  iconName: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.nestedItem,
+        pressed && styles.drawerItemPressed,
+      ]}
+    >
+      <View style={styles.nestedItemIcon}>
+        <MaterialCommunityIcons
+          name={iconName}
+          size={18}
+          color={studentPalette.primary}
+        />
+      </View>
+
+      <Text style={styles.nestedItemText}>{label}</Text>
+
+      <MaterialCommunityIcons
+        name="chevron-right"
+        size={19}
         color={studentPalette.textMuted}
       />
     </Pressable>
@@ -403,14 +582,9 @@ const styles = StyleSheet.create({
   menuCard: {
     marginTop: spacing.lg,
     borderRadius: 20,
-    backgroundColor: studentPalette.card,
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
     borderWidth: 1,
-    borderColor: studentPalette.border,
-    shadowColor: studentPalette.shadow,
-    shadowOpacity: 1,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 2,
+    borderColor: "rgba(214, 167, 126, 0.28)",
     overflow: "hidden",
   },
   drawerItem: {
@@ -420,9 +594,10 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
+    backgroundColor: "transparent",
   },
   drawerItemPressed: {
-    backgroundColor: studentPalette.primaryFaint,
+    backgroundColor:"rgba(247, 101, 2, 0.08)"
   },
   drawerItemIcon: {
     width: 34,
@@ -442,7 +617,7 @@ const styles = StyleSheet.create({
   itemDivider: {
     height: 1,
     marginLeft: 58,
-    backgroundColor: studentPalette.border,
+    backgroundColor: "rgba(179, 126, 84, 0.20)",
   },
   grow: {
     flex: 1,
@@ -496,5 +671,70 @@ const styles = StyleSheet.create({
   },
   itemDisabled: {
     opacity: 0.7,
+  },
+  sectionDivider: {
+    height: 1,
+    marginVertical: spacing.xs,
+    backgroundColor: "rgba(179, 126, 84, 0.28)",
+  },
+
+  expandableHeader: {
+    minHeight: 58,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    backgroundColor: "rgba(247, 101, 2, 0.035)",
+  },
+
+  expandableIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: studentPalette.primaryPale,
+  },
+
+  expandableText: {
+    flex: 1,
+    fontSize: typography.sizes.md,
+    color: studentPalette.textPrimary,
+    fontWeight: typography.weights.bold,
+    lineHeight: typography.lineHeights.md,
+  },
+
+  expandedSection: {
+    paddingBottom: spacing.xs,
+    backgroundColor: "rgba(255, 255, 255, 0.06)",
+  },
+
+  nestedItem: {
+    minHeight: 50,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingVertical: spacing.xs,
+    paddingLeft: spacing.xl,
+    paddingRight: spacing.md,
+    backgroundColor: "transparent",
+  },
+
+  nestedItemIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(247, 101, 2, 0.08)",
+  },
+
+  nestedItemText: {
+    flex: 1,
+    fontSize: typography.sizes.sm,
+    color: studentPalette.textPrimary,
+    fontWeight: typography.weights.semiBold,
+    lineHeight: typography.lineHeights.sm,
   },
 });

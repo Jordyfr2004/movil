@@ -1,4 +1,4 @@
-import {BadRequestException,ForbiddenException,Injectable,NotFoundException,} from '@nestjs/common';
+import {BadRequestException,ForbiddenException,Injectable,NotFoundException,Logger} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import Stripe from 'stripe';
@@ -20,6 +20,8 @@ import { NotificationsService } from '../notifications/notifications.service';
 @Injectable()
 export class ReservationsService {
   private readonly stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+
+    private readonly logger = new Logger(ReservationsService.name);
 
   constructor(
     @InjectRepository(Reservation)
@@ -508,17 +510,27 @@ export class ReservationsService {
         },
       );
 
-    await this.notificationsService.notifyReservationDelivered(
-      result.user_id,
-      {
-        reservation_id: result.reservation_id,
-        status: result.status,
-        delivery_status: result.delivery_status,
-        delivered_at: result.delivered_at,
-        message: 'Tu reserva fue entregada correctamente',
-      },
-    );
-    
+    try {
+      await this.notificationsService.notifyReservationDelivered(
+        result.user_id,
+        {
+          reservation_id: result.reservation_id,
+          status: result.status,
+          delivery_status: result.delivery_status,
+          delivered_at: result.delivered_at,
+          message:
+            'Tu reserva fue entregada correctamente',
+        },
+      );
+    } catch (error: unknown) {
+      this.logger.error(
+        `La reserva ${result.reservation_id} fue entregada, pero falló la notificación`,
+        error instanceof Error
+          ? error.stack
+          : String(error),
+      );
+    }
+
     return {
       message: 'Reserva entregada correctamente',
       data: result,

@@ -45,7 +45,7 @@ export class ReservationsController {
 
   @Post(':id/pickup-qr')
   generatePickupQr(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Req() req: any,
   ) {
     return this.reservationsService.generatePickupQr(
@@ -79,7 +79,7 @@ export class ReservationsController {
   }
 
   @Patch(':id/cancel')
-  cancel(@Param('id') id: string, @Req() req: any) {
+  cancel(@Param('id', ParseUUIDPipe) id: string, @Req() req: any) {
     return this.reservationsService.cancel(id, req.user.user_id);
   }
 }

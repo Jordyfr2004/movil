@@ -1,7 +1,5 @@
 import React from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-
 import { spacing } from "../constants/spacing";
 import { Dish } from "../services/dishService";
 import { designSystem, typography } from "../theme";
@@ -30,16 +28,13 @@ export function FoodCard({ dish, onPress }: FoodCardProps) {
     >
       <View style={styles.media}>
         {dish.imageUrl ? (
-          <Image source={{ uri: dish.imageUrl }} style={styles.image} />
+          <Image
+            source={{ uri: dish.imageUrl }}
+            style={styles.image}
+            resizeMode="cover"
+          />
         ) : (
-          <View style={styles.placeholder}>
-            <View style={styles.placeholderGlow} />
-            <MaterialCommunityIcons
-              name="food-variant"
-              size={designSystem.iconSizes.xl}
-              color={designSystem.colors.primary}
-            />
-          </View>
+          <View style={styles.image} />
         )}
       </View>
 
@@ -87,22 +82,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: designSystem.colors.primaryFaint,
-  },
-  placeholder: {
-    flex: 1,
-    width: "100%",
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-  },
-  placeholderGlow: {
-    position: "absolute",
-    width: 120,
-    height: 120,
-    borderRadius: 999,
-    backgroundColor: designSystem.colors.primarySoft,
-    opacity: 0.46,
-    transform: [{ translateX: 48 }, { translateY: -20 }],
   },
   image: {
     width: "100%",

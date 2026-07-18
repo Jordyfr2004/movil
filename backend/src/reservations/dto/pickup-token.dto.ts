@@ -1,7 +1,8 @@
-import {IsNotEmpty,IsString,} from 'class-validator';
+import {IsHexadecimal,IsString,Length,} from 'class-validator';
 
 export class PickupTokenDto {
   @IsString()
-  @IsNotEmpty()
+  @Length(64, 64)
+  @IsHexadecimal()
   pickup_token!: string;
 }
