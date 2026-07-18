@@ -61,16 +61,16 @@ export class Reservation {
   @Column({ type: 'date'})
   reservation_date!: string;
 
-  @Column({ type: 'timestamptz' })
+  @Column({ type: 'timestamp' })
   expires_at!: Date;
 
-  @Column({ type: 'timestamptz', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   paid_at!: Date | null;
 
-  @Column({ type: 'timestamptz', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   confirmed_at!: Date | null;
 
-  @Column({ type: 'timestamptz', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   delivered_at!: Date | null;
 
   @Column({ type: 'uuid', nullable: true })
@@ -79,7 +79,7 @@ export class Reservation {
   @Column({type: 'varchar',length: 64,nullable: true,unique: true,})
   pickup_token_hash!: string | null;
 
-  @Column({ type: 'timestamptz', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   pickup_token_expires_at!: Date | null;
 
   @ManyToOne(() => User, {
@@ -90,9 +90,9 @@ export class Reservation {
   delivered_by_user!: User | null;
 
 
-  @CreateDateColumn({ type: 'timestamptz' })
+  @CreateDateColumn({ type:'timestamp' })
   created_at!: Date;
 
-  @UpdateDateColumn({ type: 'timestamptz' })
+  @UpdateDateColumn({ type: 'timestamp' })
   updated_at!: Date;
 }

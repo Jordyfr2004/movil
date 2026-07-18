@@ -48,12 +48,12 @@ export class Notification {
   is_read!: boolean;
 
   @CreateDateColumn({
-    type: 'timestamptz',
+    type: 'timestamp',
   })
   created_at!: Date;
 
   @Column({
-    type: 'timestamptz',
+    type: 'timestamp',
     nullable: true,
   })
   read_at!: Date | null;
