@@ -1,12 +1,17 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException,Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { NotificationsGateway } from './notifications.gateway';
 import {Notification,NotificationType } from './entities/notification.entity';
 import { PushDeviceToken } from './entities/push-device-token.entity';
+import { FirebaseService } from '../firebase/firebase.service';
+
 
 @Injectable()
 export class NotificationsService {
+    private readonly logger = new Logger(NotificationsService.name);
+
+    
     constructor(
 
         @InjectRepository(Notification)
@@ -17,7 +22,77 @@ export class NotificationsService {
 
         private readonly notificationsGateway: NotificationsGateway,
 
+        private readonly firebaseService: FirebaseService,
+
     ) {}
+
+    private async sendPushToUser(
+        userId: string,
+        title: string,
+        body: string,
+        data: Record<string, string> = {},
+        ): Promise<void> {
+        const devices = await this.pushDeviceTokenRepo.find({
+            where: {
+            user_id: userId,
+            is_active: true,
+            },
+            order: {
+            last_seen_at: 'DESC',
+            },
+        });
+
+        if (devices.length === 0) {
+            return;
+        }
+
+        try {
+            const result = await this.firebaseService.sendToDevices(
+            devices.map((device) => device.token),
+            title,
+            body,
+            data,
+            );
+
+            if (!result) {
+            return;
+            }
+
+            const invalidTokenIds = result.responses
+            .map((response, index) => {
+                const code = response.error?.code;
+
+                const isInvalidToken =
+                code === 'messaging/invalid-registration-token' ||
+                code === 'messaging/registration-token-not-registered';
+
+                if (response.success || !isInvalidToken) {
+                return null;
+                }
+
+                return devices[index].id;
+            })
+            .filter((id): id is string => id !== null);
+
+            if (invalidTokenIds.length === 0) {
+            return;
+            }
+
+            await this.pushDeviceTokenRepo.update(
+            {
+                id: In(invalidTokenIds),
+            },
+            {
+                is_active: false,
+            },
+            );
+        } catch (error: unknown) {
+            this.logger.error(
+            'Error al enviar la notificación push',
+            error instanceof Error ? error.stack : undefined,
+            );
+        }
+    }
 
     async registerDeviceToken(
     userId: string,
@@ -150,6 +225,18 @@ export class NotificationsService {
         delivered_at: payload.delivered_at,
         is_read: savedNotification.is_read,
         created_at: savedNotification.created_at,
+        },
+    );
+
+    await this.sendPushToUser(
+        userId,
+        savedNotification.title,
+        savedNotification.message,
+        {
+            type: NotificationType.RESERVATION_DELIVERED,
+            reservation_id: payload.reservation_id,
+            status: payload.status,
+            delivery_status: payload.delivery_status,
         },
     );
 

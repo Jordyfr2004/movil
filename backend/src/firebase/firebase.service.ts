@@ -9,8 +9,10 @@ import {
   initializeApp,
 } from 'firebase-admin/app';
 import {
+  BatchResponse,
   getMessaging,
   Messaging,
+  Message,
 } from 'firebase-admin/messaging';
 
 @Injectable()
@@ -70,5 +72,34 @@ export class FirebaseService
         },
       },
     });
+  }
+
+  async sendToDevices(
+    tokens: string[],
+    title: string,
+    body: string,
+    data: Record<string, string> = {},
+  ): Promise<BatchResponse | null> {
+    if (tokens.length === 0) {
+      return null;
+    }
+
+    const messages: Message[] = tokens.map((token) => ({
+      token,
+      notification: {
+        title,
+        body,
+      },
+      data,
+      android: {
+        priority: 'high',
+        notification: {
+          channelId: 'comedor_updates',
+          sound: 'default',
+        },
+      },
+    }));
+
+    return this.messaging.sendEach(messages);
   }
 }
