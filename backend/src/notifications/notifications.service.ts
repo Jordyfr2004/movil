@@ -57,6 +57,17 @@ export class NotificationsService {
             if (!result) {
             return;
             }
+            this.logger.log(
+                `[FCM] Usuario=${userId} enviados=${result.successCount} fallidos=${result.failureCount}`,
+            );
+            result.responses.forEach((response, index)=> {
+                if (!response.success) {
+                    this.logger.error(
+                        `[FCM] Token=${devices[index].id} código=${response.error?.code ?? 'sin-código'} mensaje=${response.error?.message ?? 'sin-mensaje'}`,
+                    );
+                }
+            })
+            
 
             const invalidTokenIds = result.responses
             .map((response, index) => {
