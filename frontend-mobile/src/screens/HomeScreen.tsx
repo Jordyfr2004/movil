@@ -549,7 +549,7 @@ function HomeHeader({
           iconName="bell-outline"
           label="Notificaciones"
           onPress={onOpenNotifications}
-          showDot={unreadNotifications > 0}
+          badgeCount={unreadNotifications}
         />
       </View>
     </View>
@@ -560,24 +560,34 @@ function IconButton({
   iconName,
   label,
   onPress,
-  showDot = false,
+  badgeCount = 0,
 }: {
   iconName: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
   label: string;
   onPress?: () => void;
-  showDot?: boolean;
+  badgeCount?: number;
 }) {
   const theme = useThemeColors();
+
+  const visibleBadgeCount =
+    badgeCount > 99 ? "99+" : String(badgeCount);
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={
+        badgeCount > 0
+          ? `${label}, ${badgeCount} sin leer`
+          : label
+      }
       onPress={onPress}
       disabled={!onPress}
       style={({ pressed }) => [
         styles.headerIconButton,
-        { backgroundColor: theme.primaryFaint, borderColor: theme.primarySoft },
+        {
+          backgroundColor: theme.primaryFaint,
+          borderColor: theme.primarySoft,
+        },
         pressed && onPress && styles.pressed,
         !onPress && styles.disabled,
       ]}
@@ -587,10 +597,25 @@ function IconButton({
         size={24}
         color={theme.primary}
       />
-      {showDot ? <View style={[styles.notificationDot, { backgroundColor: theme.primary }]} /> : null}
+
+      {badgeCount > 0 ? (
+        <View
+          style={[
+            styles.notificationBadge,
+            {
+              backgroundColor: theme.primary,
+            },
+          ]}
+        >
+          <Text style={styles.notificationBadgeText}>
+            {visibleBadgeCount}
+          </Text>
+        </View>
+      ) : null}
     </Pressable>
   );
 }
+
 
 function HomeHero({
   restaurants,
@@ -1262,14 +1287,27 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     ...designSystem.shadows.low,
   },
-  notificationDot: {
+  notificationBadge: {
     position: "absolute",
-    top: 9,
-    right: 10,
-    width: 7,
-    height: 7,
+    top: -4,
+    right: -4,
+    minWidth: 19,
+    height: 19,
+    paddingHorizontal: 5,
     borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: designSystem.colors.background,
   },
+
+  notificationBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    lineHeight: 12,
+    fontWeight: typography.weights.bold,
+  },
+  
   hero: {
     position: "relative",
     height: 176,
@@ -1289,7 +1327,6 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(25, 25, 25, 0.42)",
   },
-  
   heroCopy: {
     flex: 1,
     justifyContent: "flex-end",

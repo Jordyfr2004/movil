@@ -127,6 +127,10 @@ export function useReservations(accessToken: string | null) {
   }, [accessToken]);
 
   useEffect(() => {
+    void reload();
+  }, [reload]);
+
+  useEffect(() => {
     if (recoveryTick <= 0) return;
     void reload();
   }, [recoveryTick, reload]);

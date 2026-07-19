@@ -13,6 +13,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { PaymentsModule } from './payments/payments.module';
 import { StorageModule } from './storage/storage.module';
 import { SuperAdminModule } from './super-admin/super-admin.module';
+import { FirebaseModule } from './firebase/firebase.module';
 
 
 @Module({
@@ -44,6 +45,7 @@ import { SuperAdminModule } from './super-admin/super-admin.module';
     PaymentsModule,
     StorageModule,
     SuperAdminModule,
+    FirebaseModule,
   ],
   controllers: [AppController],
   providers: [AppService],

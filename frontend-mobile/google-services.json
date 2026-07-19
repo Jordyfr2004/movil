@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "514078762751",
+    "project_id": "comedor-universitario-85c6f",
+    "storage_bucket": "comedor-universitario-85c6f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:514078762751:android:47806e08b18675f57b8eca",
+        "android_client_info": {
+          "package_name": "com.anonymous.comedoruleam"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB9U9Cz9uVcErbCtybPXcfXCTMNdSF85Ls"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

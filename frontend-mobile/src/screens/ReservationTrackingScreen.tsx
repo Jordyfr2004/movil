@@ -16,7 +16,7 @@ import { AppButton, Screen, StatusBadge } from "../components";
 import { spacing } from "../constants/spacing";
 import { useAuth } from "../context/AuthContext";
 import { useLocalFeedback } from "../context/LocalFeedbackContext";
-import { useLocalNotifications } from "../context/LocalNotificationsContext";
+
 import { useNetworkStatus } from "../context/NetworkContext";
 import { ROUTES } from "../navigation/routes";
 import { StudentStackParamList } from "../navigation/types";
@@ -107,7 +107,6 @@ export function ReservationTrackingScreen({ navigation, route }: Props) {
   const [qrError, setQrError] = useState<string | null>(null);
   const { accessToken } = useAuth();
   const { hasRatingForReservation } = useLocalFeedback();
-  const { addNotification } = useLocalNotifications();
   const { isOnline } = useNetworkStatus();
   const [manualRefreshing, setManualRefreshing] = useState(false);
   const expiryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -246,12 +245,6 @@ export function ReservationTrackingScreen({ navigation, route }: Props) {
       }));
       setQrState("used");
       setQr(null);
-      addNotification({
-        kind: "delivered",
-        title: "Reserva entregada",
-        message: payload.message ?? "Tu reserva fue entregada correctamente.",
-        reservationId: reservation.id,
-      });
       void triggerFeedback("success");
       Alert.alert("Reserva entregada", "Tu reserva fue entregada correctamente.");
     };
@@ -262,7 +255,7 @@ export function ReservationTrackingScreen({ navigation, route }: Props) {
       socket.off("reservation_delivered", handleDelivered);
       releaseNotificationsSocket(accessToken);
     };
-  }, [accessToken, addNotification, reservation.id]);
+  }, [accessToken, reservation.id]);
 
   useEffect(() => {
     return () => {
@@ -464,9 +457,21 @@ export function ReservationTrackingScreen({ navigation, route }: Props) {
           )}
 
           <AppButton
-            label={qrState === "expired" ? "Generar nuevo QR" : "Generar QR"}
+            label={
+              qrState === "available"
+                ? "QR generado"
+                : qrState === "expired"
+                  ? "Generar nuevo QR"
+                  : qrState === "generating"
+                    ? "Generando QR..."
+                    : "Generar QR"
+            }
             onPress={handleGenerateQr}
-            disabled={!canGenerateQr || qrState === "generating"}
+            disabled={
+              !canGenerateQr ||
+              qrState === "generating" ||
+              qrState === "available"
+            }
             style={styles.qrButton}
           />
         </View>

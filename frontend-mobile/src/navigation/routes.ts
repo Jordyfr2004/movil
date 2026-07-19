@@ -28,18 +28,11 @@ export const ROUTES = {
   Profile: "Profile",
   Register: "Register",
 
-  SuperAdminRestaurants:
-  "SuperAdminRestaurants",
-
-  SuperAdminUsers:
-    "SuperAdminUsers",
-
-  SuperAdminAssignManager:
-    "SuperAdminAssignManager",
-
-  SuperAdminUserRole:
-    "SuperAdminUserRole",
-
-  SuperAdminUserStatus:
-    "SuperAdminUserStatus",
+  SuperAdminTabs: "SuperAdminTabs",
+  SuperAdminRestaurants: "SuperAdminRestaurants",
+  SuperAdminUsers: "SuperAdminUsers",
+  SuperAdminUserDetail: "SuperAdminUserDetail",
+  SuperAdminAssignManager: "SuperAdminAssignManager",
+  SuperAdminUserRole: "SuperAdminUserRole",
+  SuperAdminUserStatus: "SuperAdminUserStatus",
 } as const;

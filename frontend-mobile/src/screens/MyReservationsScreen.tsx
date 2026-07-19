@@ -21,7 +21,7 @@ import { spacing } from "../constants/spacing";
 import { STRIPE_PUBLISHABLE_KEY } from "../constants/stripe";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
-import { useLocalNotifications } from "../context/LocalNotificationsContext";
+
 import { useNetworkStatus } from "../context/NetworkContext";
 import {
   ReservationListItem,
@@ -155,11 +155,10 @@ function readErrorMessage(error: unknown, fallback: string): string {
 export function MyReservationsScreen({
   bottomInset = 0,
 }: Partial<Props> & { bottomInset?: number }) {
-  const navigation =
-    useNavigation<NativeStackNavigationProp<StudentStackParamList>>();
+  const navigation = useNavigation<NativeStackNavigationProp<StudentStackParamList>>();
   const { accessToken } = useAuth();
   const { addDish } = useCart();
-  const { addNotification } = useLocalNotifications();
+  
   const { isOnline } = useNetworkStatus();
   const { reservations, loading, error, reload } = useReservations(accessToken);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -171,31 +170,43 @@ export function MyReservationsScreen({
 
   useFocusEffect(
     useCallback(() => {
-      reload();
-    }, [reload])
+      if (!accessToken) {
+        return undefined;
+      }
+
+      const socket =
+        acquireNotificationsSocket(
+          accessToken
+        );
+
+      const handleDelivered = () => {
+        void triggerFeedback(
+          "success"
+        );
+
+        void reload();
+      };
+
+      socket.on(
+        "reservation_delivered",
+        handleDelivered
+      );
+
+      return () => {
+        socket.off(
+          "reservation_delivered",
+          handleDelivered
+        );
+
+        releaseNotificationsSocket(
+          accessToken
+        );
+      };
+    }, [
+      accessToken,
+      reload,
+    ])
   );
-
-  React.useEffect(() => {
-    if (!accessToken) return;
-
-    const socket = acquireNotificationsSocket(accessToken);
-    const handleDelivered = (payload?: { reservation_id?: string; message?: string }) => {
-      addNotification({
-        kind: "delivered",
-        title: "Reserva entregada",
-        message: payload?.message ?? "Tu reserva fue entregada correctamente.",
-        reservationId: payload?.reservation_id,
-      });
-      void triggerFeedback("success");
-      void reload();
-    };
-
-    socket.on("reservation_delivered", handleDelivered);
-    return () => {
-      socket.off("reservation_delivered", handleDelivered);
-      releaseNotificationsSocket(accessToken);
-    };
-  }, [accessToken, addNotification, reload]);
 
   const activeCount = useMemo(() => {
     return reservations.filter(

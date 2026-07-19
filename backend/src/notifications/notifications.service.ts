@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { NotificationsGateway } from './notifications.gateway';
 import {Notification,NotificationType } from './entities/notification.entity';
-
+import { PushDeviceToken } from './entities/push-device-token.entity';
 
 @Injectable()
 export class NotificationsService {
@@ -12,9 +12,71 @@ export class NotificationsService {
         @InjectRepository(Notification)
         private readonly notificationRepo: Repository<Notification>,
 
+        @InjectRepository(PushDeviceToken)
+        private readonly pushDeviceTokenRepo: Repository<PushDeviceToken>,
+
         private readonly notificationsGateway: NotificationsGateway,
 
     ) {}
+
+    async registerDeviceToken(
+    userId: string,
+    rawToken: string,
+    ) {
+        const token = rawToken.trim();
+
+        let deviceToken =
+            await this.pushDeviceTokenRepo.findOne({
+            where: {
+                token,
+            },
+            });
+
+        if (deviceToken) {
+            deviceToken.user_id =
+            userId;
+
+            deviceToken.platform =
+            'android';
+
+            deviceToken.is_active =
+            true;
+
+            deviceToken.last_seen_at =
+            new Date();
+        } else {
+            deviceToken =
+            this.pushDeviceTokenRepo.create({
+                user_id: userId,
+                token,
+                platform: 'android',
+                is_active: true,
+                last_seen_at:
+                new Date(),
+            });
+        }
+
+        const savedToken =
+            await this.pushDeviceTokenRepo.save(
+            deviceToken,
+            );
+
+        return {
+            message:
+            'Dispositivo registrado para notificaciones push',
+
+            data: {
+            id: savedToken.id,
+            platform:
+                savedToken.platform,
+            is_active:
+                savedToken.is_active,
+            last_seen_at:
+                savedToken.last_seen_at,
+            },
+        };
+    }
+
 
     notifyMenuAvailable( restaurant_id: string) {
         this.notificationsGateway.notifyMenuAvailable({

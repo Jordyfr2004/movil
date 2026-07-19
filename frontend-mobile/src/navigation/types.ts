@@ -4,6 +4,8 @@ import { Dish } from "../services/dishService";
 import { Reservation, Restaurant } from "../types/models";
 import { ROUTES } from "./routes";
 
+
+
 export type RootStackParamList = {
   [ROUTES.Welcome]: undefined;
   [ROUTES.StudentAccess]: undefined;
@@ -45,6 +47,13 @@ export type RootStackParamList = {
 
   [ROUTES.SuperAdminUsers]:
     undefined;
+
+  [ROUTES.SuperAdminTabs]:
+    undefined;
+
+  [ROUTES.SuperAdminUserDetail]: {
+    userId: string;
+  };
 
   [ROUTES.SuperAdminAssignManager]:
     undefined;
@@ -90,4 +99,12 @@ export type AdminStackParamList = Pick<
 
 export type AdminDrawerParamList = {
   AdminStack: NavigatorScreenParams<AdminStackParamList>;
+};
+
+export type SuperAdminStackParamList = {
+  [ROUTES.SuperAdminTabs]: undefined;
+
+  [ROUTES.SuperAdminUserDetail]: {
+    userId: string;
+  };
 };

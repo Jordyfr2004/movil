@@ -1,15 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Alert, FlatList, StyleSheet, Text, View } from "react-native";
-import {
-  BarcodeScanningResult,
-  CameraView,
-  useCameraPermissions,
-} from "expo-camera";
+import {BarcodeScanningResult,CameraView,useCameraPermissions,} from "expo-camera";
 
 import { AppButton, Screen } from "../components";
 import { spacing } from "../constants/spacing";
 import { useAuth } from "../context/AuthContext";
 import { useNetworkStatus } from "../context/NetworkContext";
+import { useNavigation } from "@react-navigation/native";
+
 import {
   confirmPickupDelivery,
   ManagerReservation,
@@ -38,6 +36,9 @@ function formatMoney(value: number) {
 }
 
 export function ManagerQrScannerScreen() {
+  const navigation = useNavigation();
+  const scanLockRef = useRef(false);
+
   const [permission, requestPermission] = useCameraPermissions();
   const { accessToken } = useAuth();
   const [scannedToken, setScannedToken] = useState<string | null>(null);
@@ -48,14 +49,24 @@ export function ManagerQrScannerScreen() {
   const { isOnline } = useNetworkStatus();
 
   const handleBarcodeScanned = async (result: BarcodeScanningResult) => {
-    if (isVerifying || reservation) return;
+    if ( scanLockRef.current || isVerifying || reservation  ){
+      return;
+    }
     const token = result.data?.trim();
-    if (!token || !accessToken) return;
+
+    if (!token || !accessToken) {
+      return;
+    }
     if (!isOnline) {
-      setError("Necesitas conexión a internet para validar el QR.");
+      setError(
+        "Necesitas conexión a internet para validar el QR."
+      );
+
       void triggerFeedback("error");
       return;
     }
+
+    scanLockRef.current = true;
 
     try {
       setIsVerifying(true);
@@ -97,9 +108,25 @@ export function ManagerQrScannerScreen() {
                 accessToken,
                 scannedToken
               );
-              setReservation(delivered);
+
+              setReservation((current) => {
+                if (!current) {
+                  return delivered;
+                }
+
+                return {
+                  ...current,
+                  status: delivered.status,
+                  deliveryStatus: delivered.deliveryStatus,
+                  deliveredAt: delivered.deliveredAt,
+                };
+              });
               void triggerFeedback("success");
-              Alert.alert("Entrega confirmada", "Reserva entregada correctamente.");
+              setTimeout(() => {
+                if (navigation.canGoBack()) {
+                  navigation.goBack();
+                }
+              }, 800);
             } catch (confirmError: unknown) {
               void triggerFeedback("error");
               Alert.alert("No se pudo confirmar", friendlyQrError(confirmError));
@@ -137,12 +164,9 @@ export function ManagerQrScannerScreen() {
   return (
     <Screen style={styles.container}>
       <View style={styles.scannerShell}>
-      <View style={styles.headerCard}>
-        <Text style={[styles.title, styles.scannerTitle]}>Escanear QR</Text>
-        <Text style={[styles.description, styles.scannerDescription]}>
-          Apunta la cámara al código del estudiante.
-        </Text>
-      </View>
+      <Text style={styles.scannerDescription}>
+        Escanea el QR de la reserva.
+      </Text>
 
       {!reservation ? (
         <View style={styles.cameraBox}>
@@ -150,7 +174,11 @@ export function ManagerQrScannerScreen() {
             style={styles.camera}
             facing="back"
             barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
-            onBarcodeScanned={handleBarcodeScanned}
+            onBarcodeScanned={
+              isVerifying || Boolean(error)
+                ? undefined
+                : handleBarcodeScanned
+            }
           />
           <View pointerEvents="none" style={styles.scanOverlay}>
             <View style={styles.scanFrame}>
@@ -191,20 +219,23 @@ export function ManagerQrScannerScreen() {
             disabled={isConfirming || reservation.status === "completed"}
             style={styles.confirmButton}
           />
-          <AppButton
-            label="Escanear otro"
-            variant="secondary"
-            onPress={() => {
-              setReservation(null);
-              setScannedToken(null);
-              setError(null);
-            }}
-          />
         </View>
       )}
 
       {isVerifying ? <Text style={styles.feedback}>Validando QR...</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error && !reservation ? (
+        <AppButton
+          label="Intentar nuevamente"
+          variant="secondary"
+          onPress={() => {
+            scanLockRef.current = false;
+            setScannedToken(null);
+            setError(null);
+          }}
+          style={styles.retryButton}
+        />
+      ) : null}
       </View>
     </Screen>
   );
@@ -352,7 +383,18 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: spacing.xs,
   },
-  itemName: { color: designSystem.colors.textPrimary, fontSize: typography.sizes.sm },
-  itemQty: { color: designSystem.colors.textMuted, fontSize: typography.sizes.sm },
-  confirmButton: { marginTop: spacing.sm },
+  itemName: { 
+    color: designSystem.colors.textPrimary, 
+    fontSize: typography.sizes.sm 
+  },
+  itemQty: { 
+    color: designSystem.colors.textMuted, 
+    fontSize: typography.sizes.sm 
+  },
+  confirmButton: { 
+    marginTop: spacing.sm 
+  },
+  retryButton: {
+  marginTop: spacing.sm,
+},
 });

@@ -4,14 +4,9 @@
   useRef,
   useState,
 } from "react";
-import {
-  StyleSheet,
-} from "react-native";
+import { StyleSheet } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
-import { ENABLE_WS_DEBUG } from "../constants/api";
-import { spacing } from "../constants/spacing";
-import { useAuth } from "../context/AuthContext";
 import {
   AppButton,
   DebugToast,
@@ -19,24 +14,25 @@ import {
   LoadingState,
   Screen,
 } from "../components";
+import { NotificationsRealtimeBridge } from "../components/NotificationsRealtimeBridge";
+import { PushNotificationsBridge } from "../components/PushNotificationsBridge";
+import { ENABLE_WS_DEBUG } from "../constants/api";
+import { spacing } from "../constants/spacing";
+import { useAuth } from "../context/AuthContext";
+import { useReduceMotion } from "../hooks/useReduceMotion";
 import { useSocketDebug } from "../hooks/useSocketDebug";
+import { useThemeColors } from "../hooks/useThemeColors";
 
-import { StudentAccessScreen } from "../screens/StudentAccessScreen";
-import { WelcomeScreen } from "../screens/WelcomeScreen";
-import { LoginScreen } from "../screens/LoginScreen";
-import { CreateRestaurantScreen } from "../screens/CreateRestaurantScreen";
-import { ManagerProfileScreen } from "../screens/ManagerProfileScreen";
 import { AddDishScreen } from "../screens/AddDishScreen";
-import { RestaurantDetailScreen } from "../screens/RestaurantDetailScreen";
+import { CreateRestaurantScreen } from "../screens/CreateRestaurantScreen";
+import { LoginScreen } from "../screens/LoginScreen";
+import { ManagerProfileScreen } from "../screens/ManagerProfileScreen";
 import { MyReservationsScreen } from "../screens/MyReservationsScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
-import { SuperAdminScreen } from "../screens/SuperAdminScreen";
-import { SuperAdminRestaurantsScreen } from "../screens/SuperAdminRestaurantsScreen";
-import { SuperAdminUsersScreen } from "../screens/SuperAdminUsersScreen";
-import { SuperAdminAssignManagerScreen } from "../screens/SuperAdminAssignManagerScreen";
-import { SuperAdminUserRoleScreen } from "../screens/SuperAdminUserRoleScreen";
-import { SuperAdminUserStatusScreen } from "../screens/SuperAdminUserStatusScreen";
 import RegisterScreen from "../screens/RegisterScreen";
+import { RestaurantDetailScreen } from "../screens/RestaurantDetailScreen";
+import { StudentAccessScreen } from "../screens/StudentAccessScreen";
+import { WelcomeScreen } from "../screens/WelcomeScreen";
 
 import {
   getUserProfile,
@@ -47,23 +43,23 @@ import {
   UserProfile,
 } from "../services/userService";
 
-import {
-  colors,
-  typography,
-} from "../theme";
-import { useReduceMotion } from "../hooks/useReduceMotion";
-import { useThemeColors } from "../hooks/useThemeColors";
-import { ROUTES } from "./routes";
+import { typography } from "../theme";
 import { AdminDrawerNavigator } from "./AdminDrawerNavigator";
+import { ROUTES } from "./routes";
 import { StudentDrawerNavigator } from "./StudentDrawerNavigator";
+import { SuperAdminStackNavigator } from "./SuperAdminStackNavigator";
 import { RootStackParamList } from "./types";
 
 const Stack =
   createNativeStackNavigator<RootStackParamList>();
 
-const isSocketDebugEnabled = ENABLE_WS_DEBUG;
+const isSocketDebugEnabled =
+  ENABLE_WS_DEBUG;
 
-type UnknownRecord = Record<string, unknown>;
+type UnknownRecord = Record<
+  string,
+  unknown
+>;
 
 type ProfileLoadErrorKind =
   | "timeout"
@@ -79,7 +75,7 @@ type ProfileLoadError = {
 };
 
 function isRecord(
-  value: unknown,
+  value: unknown
 ): value is UnknownRecord {
   return (
     typeof value === "object" &&
@@ -88,25 +84,29 @@ function isRecord(
 }
 
 function readStatus(
-  error: unknown,
+  error: unknown
 ): number | undefined {
   if (!isRecord(error)) {
     return undefined;
   }
 
-  return typeof error.status === "number"
+  return typeof error.status ===
+    "number"
     ? error.status
     : undefined;
 }
 
 function isExpiredSessionStatus(
-  status: number | undefined,
+  status: number | undefined
 ) {
-  return status === 401 || status === 403;
+  return (
+    status === 401 ||
+    status === 403
+  );
 }
 
 function readMessage(
-  error: unknown,
+  error: unknown
 ): string {
   if (!isRecord(error)) {
     return error instanceof Error &&
@@ -116,7 +116,8 @@ function readMessage(
   }
 
   if (
-    typeof error.message === "string" &&
+    typeof error.message ===
+      "string" &&
     error.message.trim()
   ) {
     return error.message.trim();
@@ -127,7 +128,7 @@ function readMessage(
 
 function logSessionDebug(
   message: string,
-  details?: UnknownRecord,
+  details?: UnknownRecord
 ) {
   if (!__DEV__) {
     return;
@@ -136,27 +137,38 @@ function logSessionDebug(
   if (details) {
     console.log(
       `[session] ${message}`,
-      details,
+      details
     );
+
     return;
   }
 
-  console.log(`[session] ${message}`);
+  console.log(
+    `[session] ${message}`
+  );
 }
 
 function classifyProfileLoadError(
-  error: unknown,
+  error: unknown
 ): ProfileLoadError {
-  const status = readStatus(error);
-  const message = readMessage(error);
+  const status =
+    readStatus(error);
+
+  const message =
+    readMessage(error);
+
   const normalizedMessage =
     message.toLowerCase();
 
-  if (isExpiredSessionStatus(status)) {
+  if (
+    isExpiredSessionStatus(
+      status
+    )
+  ) {
     return {
       kind: "expired",
       message:
-        "Tu sesiÃ³n expirÃ³. Vuelve a iniciar sesiÃ³n.",
+        "Tu sesión expiró. Vuelve a iniciar sesión.",
     };
   }
 
@@ -175,26 +187,32 @@ function classifyProfileLoadError(
     return {
       kind: "server",
       message:
-        `El servidor no respondiÃ³ correctamente. ${message}`,
-    };
-  }
-
-  if (
-    normalizedMessage.includes("tard") ||
-    normalizedMessage.includes("timeout")
-  ) {
-    return {
-      kind: "timeout",
-      message:
-        `La carga de tu perfil tardÃ³ demasiado. ${message}`,
+        `El servidor no respondió correctamente. ${message}`,
     };
   }
 
   if (
     normalizedMessage.includes(
-      "no se pudo conectar",
+      "tard"
     ) ||
-    normalizedMessage.includes("network")
+    normalizedMessage.includes(
+      "timeout"
+    )
+  ) {
+    return {
+      kind: "timeout",
+      message:
+        `La carga de tu perfil tardó demasiado. ${message}`,
+    };
+  }
+
+  if (
+    normalizedMessage.includes(
+      "no se pudo conectar"
+    ) ||
+    normalizedMessage.includes(
+      "network"
+    )
   ) {
     return {
       kind: "network",
@@ -210,7 +228,7 @@ function classifyProfileLoadError(
 }
 
 function isTransientProfileError(
-  error: ProfileLoadError,
+  error: ProfileLoadError
 ) {
   return (
     error.kind === "timeout" ||
@@ -223,7 +241,7 @@ function doesProfileBelongToUser(
   user: {
     user_id: string;
     email: string;
-  } | null,
+  } | null
 ) {
   if (!user) {
     return true;
@@ -247,11 +265,13 @@ function doesProfileBelongToUser(
   return (
     (
       !profileId ||
-      profileId === user.user_id
+      profileId ===
+        user.user_id
     ) &&
     (
       !profileEmail ||
-      profileEmail === userEmail
+      profileEmail ===
+        userEmail
     )
   );
 }
@@ -261,7 +281,7 @@ async function getLocalProfileFallback(
     user_id: string;
     email: string;
     role?: UserProfile["role"];
-  } | null,
+  } | null
 ): Promise<{
   profile: UserProfile;
   source:
@@ -275,12 +295,13 @@ async function getLocalProfileFallback(
     storedProfile &&
     doesProfileBelongToUser(
       storedProfile,
-      user,
+      user
     )
   ) {
     return {
       profile: storedProfile,
-      source: "stored-profile",
+      source:
+        "stored-profile",
     };
   }
 
@@ -304,11 +325,17 @@ function InitialLoadingScreen({
   message: string;
 }) {
   return (
-    <Screen style={styles.loadingScreen}>
+    <Screen
+      style={
+        styles.loadingScreen
+      }
+    >
       <LoadingState
         message={message}
         size="large"
-        style={styles.loadingState}
+        style={
+          styles.loadingState
+        }
       />
     </Screen>
   );
@@ -326,33 +353,47 @@ function ProfileErrorScreen({
   onLogout: () => void;
 }) {
   return (
-    <Screen style={styles.loadingScreen}>
+    <Screen
+      style={
+        styles.loadingScreen
+      }
+    >
       <ErrorMessage
         title="No pudimos preparar tu perfil"
         message={error.message}
         onRetry={onRetry}
         retryLabel="Reintentar"
-        style={styles.profileErrorCard}
+        style={
+          styles.profileErrorCard
+        }
       />
 
       <AppButton
         label={
           isSigningOut
-            ? "Cerrando sesiÃ³nâ€¦"
-            : "Cerrar sesiÃ³n"
+            ? "Cerrando sesión…"
+            : "Cerrar sesión"
         }
         onPress={onLogout}
         variant="secondary"
-        disabled={isSigningOut}
-        style={styles.profileErrorAction}
+        disabled={
+          isSigningOut
+        }
+        style={
+          styles.profileErrorAction
+        }
       />
     </Screen>
   );
 }
 
 export function AppNavigator() {
-  const theme = useThemeColors();
-  const reduceMotion = useReduceMotion();
+  const theme =
+    useThemeColors();
+
+  const reduceMotion =
+    useReduceMotion();
+
   const {
     isAuthenticated,
     isLoading,
@@ -365,7 +406,10 @@ export function AppNavigator() {
   const [
     profile,
     setProfile,
-  ] = useState<UserProfile | null>(null);
+  ] =
+    useState<UserProfile | null>(
+      null
+    );
 
   const [
     isProfileLoading,
@@ -375,9 +419,10 @@ export function AppNavigator() {
   const [
     profileError,
     setProfileError,
-  ] = useState<ProfileLoadError | null>(
-    null,
-  );
+  ] =
+    useState<ProfileLoadError | null>(
+      null
+    );
 
   const [
     profileRequestKey,
@@ -397,7 +442,8 @@ export function AppNavigator() {
     message?: string;
   } | null>(null);
 
-  const isMountedRef = useRef(true);
+  const isMountedRef =
+    useRef(true);
 
   const debugToastTimerRef =
     useRef<ReturnType<
@@ -405,18 +451,25 @@ export function AppNavigator() {
     > | null>(null);
 
   const resolvedProfileKeyRef =
-    useRef<string | null>(null);
+    useRef<string | null>(
+      null
+    );
 
   const pendingProfileKeyRef =
-    useRef<string | null>(null);
+    useRef<string | null>(
+      null
+    );
 
   const profileKey =
-    isAuthenticated && accessToken
+    isAuthenticated &&
+    accessToken
       ? `session:${user?.user_id ?? ""}`
       : null;
 
   const currentProfileKeyRef =
-    useRef<string | null>(profileKey);
+    useRef<string | null>(
+      profileKey
+    );
 
   currentProfileKeyRef.current =
     profileKey;
@@ -432,24 +485,28 @@ export function AppNavigator() {
       : null;
 
   const sessionProfile =
-    useMemo<UserProfile | null>(() => {
-      if (!user) {
-        return null;
-      }
+    useMemo<UserProfile | null>(
+      () => {
+        if (!user) {
+          return null;
+        }
 
-      return {
-        id: user.user_id,
-        email: user.email,
-        role: user.role,
-      };
-    }, [
-      user?.email,
-      user?.role,
-      user?.user_id,
-    ]);
+        return {
+          id: user.user_id,
+          email: user.email,
+          role: user.role,
+        };
+      },
+      [
+        user?.email,
+        user?.role,
+        user?.user_id,
+      ]
+    );
 
   const effectiveProfile =
-    currentProfile ?? sessionProfile;
+    currentProfile ??
+    sessionProfile;
 
   const effectiveRole =
     currentProfile?.role ??
@@ -457,20 +514,30 @@ export function AppNavigator() {
     null;
 
   const canNavigateWithoutFullProfile =
-    effectiveRole === "student" ||
-    effectiveRole === "super_admin";
+    effectiveRole ===
+      "student" ||
+    effectiveRole ===
+      "super_admin";
 
-  const resetProfileResolution = () => {
-    resolvedProfileKeyRef.current = null;
-    pendingProfileKeyRef.current = null;
-  };
+  const resetProfileResolution =
+    () => {
+      resolvedProfileKeyRef.current =
+        null;
 
-  const resetProfileState = () => {
-    setProfile(null);
-    setProfileError(null);
-    setIsProfileLoading(false);
-    resetProfileResolution();
-  };
+      pendingProfileKeyRef.current =
+        null;
+    };
+
+  const resetProfileState =
+    () => {
+      setProfile(null);
+      setProfileError(null);
+      setIsProfileLoading(
+        false
+      );
+
+      resetProfileResolution();
+    };
 
   const handleLogout = () => {
     if (isSigningOut) {
@@ -481,46 +548,58 @@ export function AppNavigator() {
     resetProfileState();
 
     void logout()
-      .catch(() => undefined)
+      .catch(
+        () => undefined
+      )
       .finally(() => {
-        if (!isMountedRef.current) {
+        if (
+          !isMountedRef.current
+        ) {
           return;
         }
 
         resetProfileState();
-        setIsSigningOut(false);
+        setIsSigningOut(
+          false
+        );
       });
   };
 
-  const retryProfileLoad = () => {
-    if (
-      !profileKey ||
-      isProfileLoading
-    ) {
-      return;
-    }
+  const retryProfileLoad =
+    () => {
+      if (
+        !profileKey ||
+        isProfileLoading
+      ) {
+        return;
+      }
 
-    logSessionDebug(
-      "Reintentando carga de perfil",
-      {
-        hasUserId:
-          Boolean(user?.user_id),
-      },
-    );
+      logSessionDebug(
+        "Reintentando carga de perfil",
+        {
+          hasUserId:
+            Boolean(
+              user?.user_id
+            ),
+        }
+      );
 
-    setProfileError(null);
-    resetProfileResolution();
+      setProfileError(null);
+      resetProfileResolution();
 
-    setProfileRequestKey(
-      (value) => value + 1,
-    );
-  };
+      setProfileRequestKey(
+        (value) =>
+          value + 1
+      );
+    };
 
   const showDebugToast = (
     title: string,
-    message?: string,
+    message?: string
   ) => {
-    if (!isSocketDebugEnabled) {
+    if (
+      !isSocketDebugEnabled
+    ) {
       return;
     }
 
@@ -533,283 +612,335 @@ export function AppNavigator() {
       debugToastTimerRef.current
     ) {
       clearTimeout(
-        debugToastTimerRef.current,
+        debugToastTimerRef.current
       );
     }
 
     debugToastTimerRef.current =
       setTimeout(() => {
         setDebugToast(null);
+
         debugToastTimerRef.current =
           null;
       }, 120_000);
   };
 
-  useSocketDebug(accessToken, {
-    onMenuAvailable: (payload) => {
-      showDebugToast(
-        "Evento socket: menu_available",
-        payload?.message ||
-          "LlegÃ³ un evento desde el servidor.",
-      );
-    },
-    onError: (message) => {
-      showDebugToast(
-        "Socket error",
-        message,
-      );
-    },
-  });
+  useSocketDebug(
+    accessToken,
+    {
+      onMenuAvailable: (
+        payload
+      ) => {
+        showDebugToast(
+          "Evento socket: menu_available",
+          payload?.message ||
+            "Llegó un evento desde el servidor."
+        );
+      },
+
+      onError: (
+        message
+      ) => {
+        showDebugToast(
+          "Socket error",
+          message
+        );
+      },
+    }
+  );
 
   useEffect(() => {
     return () => {
-      isMountedRef.current = false;
+      isMountedRef.current =
+        false;
 
       if (
         debugToastTimerRef.current
       ) {
         clearTimeout(
-          debugToastTimerRef.current,
+          debugToastTimerRef.current
         );
       }
     };
   }, []);
 
   useEffect(() => {
-    const loadProfile = async () => {
-      if (isLoading) {
-        setProfileError(null);
-        setIsProfileLoading(false);
-        return;
-      }
-
-      if (
-        !isAuthenticated ||
-        !accessToken ||
-        !profileKey
-      ) {
-        resetProfileState();
-        return;
-      }
-
-      if (
-        resolvedProfileKeyRef.current ===
-        profileKey
-      ) {
-        setIsProfileLoading(false);
-        return;
-      }
-
-      if (
-        pendingProfileKeyRef.current ===
-        profileKey
-      ) {
-        setIsProfileLoading(true);
-        return;
-      }
-
-      try {
-        pendingProfileKeyRef.current =
-          profileKey;
-
-        setProfileError(null);
-        setIsProfileLoading(true);
-
-        logSessionDebug(
-          "Preparando perfil autenticado",
-          {
-            endpoint: user?.user_id
-              ? "/users/me; fallback /users/:id si 404"
-              : "/users/me",
-            hasAccessToken:
-              Boolean(accessToken),
-            hasStoredUser:
-              Boolean(user),
-            hasUserId:
-              Boolean(user?.user_id),
-          },
-        );
-
-        const data =
-          await getProfileBestEffort(
-            accessToken,
-            user?.user_id,
-          );
-
-        if (
-          isMountedRef.current &&
-          currentProfileKeyRef.current ===
-            profileKey
-        ) {
-          resolvedProfileKeyRef.current =
-            profileKey;
-
-          setProfile(data);
+    const loadProfile =
+      async () => {
+        if (isLoading) {
           setProfileError(null);
 
-          void saveUserProfile(
-            data,
-          ).catch(
-            (
-              storageError: unknown,
-            ) => {
-              logSessionDebug(
-                "No se pudo guardar el perfil local",
-                {
-                  message:
-                    readMessage(
-                      storageError,
-                    ),
-                },
-              );
-            },
+          setIsProfileLoading(
+            false
           );
-        }
-      } catch (error: unknown) {
-        const status =
-          readStatus(error);
-
-        if (
-          isExpiredSessionStatus(
-            status,
-          ) &&
-          isMountedRef.current &&
-          currentProfileKeyRef.current ===
-            profileKey
-        ) {
-          logSessionDebug(
-            "Perfil rechazÃ³ la sesiÃ³n actual",
-            {
-              status,
-              hasUserId:
-                Boolean(
-                  user?.user_id,
-                ),
-            },
-          );
-
 
           return;
         }
 
         if (
-          isMountedRef.current &&
-          currentProfileKeyRef.current ===
-            profileKey
+          !isAuthenticated ||
+          !accessToken ||
+          !profileKey
         ) {
-          const nextError =
-            classifyProfileLoadError(
-              error,
-            );
-
-          logSessionDebug(
-            "La carga del perfil fallÃ³",
-            {
-              status:
-                status ?? -1,
-              kind:
-                nextError.kind,
-              hasAccessToken:
-                Boolean(
-                  accessToken,
-                ),
-              hasStoredUser:
-                Boolean(user),
-              hasUserId:
-                Boolean(
-                  user?.user_id,
-                ),
-            },
-          );
-
-          if (
-            isTransientProfileError(
-              nextError,
-            )
-          ) {
-            try {
-              const fallback =
-                await getLocalProfileFallback(
-                  user,
-                );
-
-              if (
-                fallback &&
-                isMountedRef.current &&
-                currentProfileKeyRef.current ===
-                  profileKey
-              ) {
-                resolvedProfileKeyRef.current =
-                  profileKey;
-
-                setProfile(
-                  fallback.profile,
-                );
-
-                setProfileError(
-                  null,
-                );
-
-                logSessionDebug(
-                  "Usando perfil local temporal",
-                  {
-                    source:
-                      fallback.source,
-                    hasRole:
-                      Boolean(
-                        fallback
-                          .profile
-                          .role,
-                      ),
-                    hasRestaurantId:
-                      Boolean(
-                        fallback
-                          .profile
-                          .restaurantId,
-                      ),
-                  },
-                );
-
-                return;
-              }
-            } catch (
-              fallbackError: unknown
-            ) {
-              logSessionDebug(
-                "No se pudo leer perfil local temporal",
-                {
-                  message:
-                    readMessage(
-                      fallbackError,
-                    ),
-                },
-              );
-            }
-          }
-
-          setProfile(null);
-          setProfileError(
-            nextError,
-          );
+          resetProfileState();
+          return;
         }
-      } finally {
+
+        if (
+          resolvedProfileKeyRef.current ===
+          profileKey
+        ) {
+          setIsProfileLoading(
+            false
+          );
+
+          return;
+        }
+
         if (
           pendingProfileKeyRef.current ===
           profileKey
         ) {
-          pendingProfileKeyRef.current =
-            null;
+          setIsProfileLoading(
+            true
+          );
+
+          return;
         }
 
-        if (
-          isMountedRef.current &&
-          currentProfileKeyRef.current ===
-            profileKey
+        try {
+          pendingProfileKeyRef.current =
+            profileKey;
+
+          setProfileError(null);
+
+          setIsProfileLoading(
+            true
+          );
+
+          logSessionDebug(
+            "Preparando perfil autenticado",
+            {
+              endpoint:
+                user?.user_id
+                  ? "/users/me; fallback /users/:id si 404"
+                  : "/users/me",
+
+              hasAccessToken:
+                Boolean(
+                  accessToken
+                ),
+
+              hasStoredUser:
+                Boolean(user),
+
+              hasUserId:
+                Boolean(
+                  user?.user_id
+                ),
+            }
+          );
+
+          const data =
+            await getProfileBestEffort(
+              accessToken,
+              user?.user_id
+            );
+
+          if (
+            isMountedRef.current &&
+            currentProfileKeyRef.current ===
+              profileKey
+          ) {
+            resolvedProfileKeyRef.current =
+              profileKey;
+
+            setProfile(data);
+            setProfileError(
+              null
+            );
+
+            void saveUserProfile(
+              data
+            ).catch(
+              (
+                storageError:
+                  unknown
+              ) => {
+                logSessionDebug(
+                  "No se pudo guardar el perfil local",
+                  {
+                    message:
+                      readMessage(
+                        storageError
+                      ),
+                  }
+                );
+              }
+            );
+          }
+        } catch (
+          error: unknown
         ) {
-          setIsProfileLoading(false);
+          const status =
+            readStatus(error);
+
+          if (
+            isExpiredSessionStatus(
+              status
+            ) &&
+            isMountedRef.current &&
+            currentProfileKeyRef.current ===
+              profileKey
+          ) {
+            logSessionDebug(
+              "El perfil rechazó la sesión actual",
+              {
+                status,
+                hasUserId:
+                  Boolean(
+                    user?.user_id
+                  ),
+              }
+            );
+
+            await logoutLocal()
+              .catch(
+                () =>
+                  undefined
+              );
+
+            return;
+          }
+
+          if (
+            isMountedRef.current &&
+            currentProfileKeyRef.current ===
+              profileKey
+          ) {
+            const nextError =
+              classifyProfileLoadError(
+                error
+              );
+
+            logSessionDebug(
+              "La carga del perfil falló",
+              {
+                status:
+                  status ?? -1,
+
+                kind:
+                  nextError.kind,
+
+                hasAccessToken:
+                  Boolean(
+                    accessToken
+                  ),
+
+                hasStoredUser:
+                  Boolean(user),
+
+                hasUserId:
+                  Boolean(
+                    user?.user_id
+                  ),
+              }
+            );
+
+            if (
+              isTransientProfileError(
+                nextError
+              )
+            ) {
+              try {
+                const fallback =
+                  await getLocalProfileFallback(
+                    user
+                  );
+
+                if (
+                  fallback &&
+                  isMountedRef.current &&
+                  currentProfileKeyRef.current ===
+                    profileKey
+                ) {
+                  resolvedProfileKeyRef.current =
+                    profileKey;
+
+                  setProfile(
+                    fallback.profile
+                  );
+
+                  setProfileError(
+                    null
+                  );
+
+                  logSessionDebug(
+                    "Usando perfil local temporal",
+                    {
+                      source:
+                        fallback.source,
+
+                      hasRole:
+                        Boolean(
+                          fallback
+                            .profile
+                            .role
+                        ),
+
+                      hasRestaurantId:
+                        Boolean(
+                          fallback
+                            .profile
+                            .restaurantId
+                        ),
+                    }
+                  );
+
+                  return;
+                }
+              } catch (
+                fallbackError:
+                  unknown
+              ) {
+                logSessionDebug(
+                  "No se pudo leer el perfil local temporal",
+                  {
+                    message:
+                      readMessage(
+                        fallbackError
+                      ),
+                  }
+                );
+              }
+            }
+
+            setProfile(null);
+
+            setProfileError(
+              nextError
+            );
+          }
+        } finally {
+          if (
+            pendingProfileKeyRef.current ===
+            profileKey
+          ) {
+            pendingProfileKeyRef.current =
+              null;
+          }
+
+          if (
+            isMountedRef.current &&
+            currentProfileKeyRef.current ===
+              profileKey
+          ) {
+            setIsProfileLoading(
+              false
+            );
+          }
         }
-      }
-    };
+      };
 
     void loadProfile();
   }, [
@@ -826,12 +957,15 @@ export function AppNavigator() {
 
   const shouldCreateRestaurant =
     useMemo(() => {
-      if (!isAuthenticated) {
+      if (
+        !isAuthenticated
+      ) {
         return false;
       }
 
       if (
-        effectiveRole !== "admin"
+        effectiveRole !==
+        "admin"
       ) {
         return false;
       }
@@ -839,14 +973,17 @@ export function AppNavigator() {
       return !currentProfile
         ?.restaurantId;
     }, [
-      currentProfile?.restaurantId,
+      currentProfile
+        ?.restaurantId,
       effectiveRole,
       isAuthenticated,
     ]);
 
   const initialRouteName =
     useMemo(() => {
-      if (!isAuthenticated) {
+      if (
+        !isAuthenticated
+      ) {
         return ROUTES.Welcome;
       }
 
@@ -864,7 +1001,8 @@ export function AppNavigator() {
       }
 
       if (
-        effectiveRole === "admin"
+        effectiveRole ===
+        "admin"
       ) {
         return ROUTES.ManagerProfile;
       }
@@ -879,7 +1017,7 @@ export function AppNavigator() {
   if (isLoading) {
     return (
       <InitialLoadingScreen
-        message="Cargando sesiÃ³nâ€¦"
+        message="Cargando sesión…"
       />
     );
   }
@@ -927,144 +1065,82 @@ export function AppNavigator() {
     );
   }
 
-  const commonStackScreenOptions = {
-    animation:
-      reduceMotion
-        ? "none"
-        : "slide_from_right",
-    animationDuration:
-      reduceMotion
-        ? 0
-        : 180,
-    contentStyle: {
-      backgroundColor:
-        theme.background,
-    },
-    headerStyle: {
-      backgroundColor:
-        theme.background,
-    },
-    headerTintColor:
-      theme.textPrimary,
-    headerTitleStyle: {
-      color:
+  const commonStackScreenOptions =
+    {
+      animation:
+        reduceMotion
+          ? "none"
+          : "slide_from_right",
+
+      animationDuration:
+        reduceMotion
+          ? 0
+          : 180,
+
+      contentStyle: {
+        backgroundColor:
+          theme.background,
+      },
+
+      headerStyle: {
+        backgroundColor:
+          theme.background,
+      },
+
+      headerTintColor:
         theme.textPrimary,
-      fontWeight:
-        typography.weights.semiBold,
-      fontSize:
-        typography.sizes.md,
-    },
-    headerShadowVisible: false,
-  } as const;
+
+      headerTitleStyle: {
+        color:
+          theme.textPrimary,
+
+        fontWeight:
+          typography.weights
+            .semiBold,
+
+        fontSize:
+          typography.sizes.md,
+      },
+
+      headerShadowVisible:
+        false,
+    } as const;
 
   const isSuperAdmin =
     isAuthenticated &&
-    effectiveRole === "super_admin";
+    effectiveRole ===
+      "super_admin";
 
   const isAdmin =
     isAuthenticated &&
-    effectiveRole === "admin";
+    effectiveRole ===
+      "admin";
 
   const isStudent =
     isAuthenticated &&
-    effectiveRole === "student";
+    effectiveRole ===
+      "student";
 
   return (
     <>
+      {isStudent ||
+      isAdmin ? (
+        <>
+          <PushNotificationsBridge />
+          <NotificationsRealtimeBridge />
+        </>
+      ) : null}
+
       {isSuperAdmin ? (
-        <Stack.Navigator
-          key="super-admin-stack"
-          initialRouteName={
-            ROUTES.SuperAdmin
-          }
-          screenOptions={
-            commonStackScreenOptions
-          }
-        >
-          <Stack.Screen
-            name={ROUTES.SuperAdmin}
-            component={SuperAdminScreen}
-            options={{
-              title:
-                "Superadministrador",
-              headerBackVisible:
-                false,
-              gestureEnabled:
-                false,
-            }}
-          />
-
-          <Stack.Screen
-            name={
-              ROUTES.SuperAdminRestaurants
-            }
-            component={
-              SuperAdminRestaurantsScreen
-            }
-            options={{
-              title: "Restaurantes",
-            }}
-          />
-
-          <Stack.Screen
-            name={
-              ROUTES.SuperAdminUsers
-            }
-            component={
-              SuperAdminUsersScreen
-            }
-            options={{
-              title: "Usuarios",
-            }}
-          />
-
-          <Stack.Screen
-            name={
-              ROUTES.SuperAdminAssignManager
-            }
-            component={
-              SuperAdminAssignManagerScreen
-            }
-            options={{
-              title: "Asignar manager",
-            }}
-          />
-
-          <Stack.Screen
-            name={
-              ROUTES.SuperAdminUserRole
-            }
-            component={
-              SuperAdminUserRoleScreen
-            }
-            options={{
-              title: "Cambiar rol",
-            }}
-          />
-
-          <Stack.Screen
-            name={
-              ROUTES.SuperAdminUserStatus
-            }
-            component={
-              SuperAdminUserStatusScreen
-            }
-            options={{
-              title:
-                "Estado de usuarios",
-            }}
-          />
-        </Stack.Navigator>
+        <SuperAdminStackNavigator />
       ) : isStudent ? (
         <StudentDrawerNavigator
           profile={
             effectiveProfile
           }
         />
-      ) : (
-        isAdmin &&
-        !shouldCreateRestaurant
-      ) ? (
+      ) : isAdmin &&
+        !shouldCreateRestaurant ? (
         <AdminDrawerNavigator
           profile={
             currentProfile
@@ -1085,12 +1161,15 @@ export function AppNavigator() {
           }
         >
           <Stack.Screen
-            name={ROUTES.Welcome}
+            name={
+              ROUTES.Welcome
+            }
             component={
               WelcomeScreen
             }
             options={{
-              headerShown: false,
+              headerShown:
+                false,
             }}
           />
 
@@ -1108,13 +1187,15 @@ export function AppNavigator() {
           />
 
           <Stack.Screen
-            name={ROUTES.Login}
+            name={
+              ROUTES.Login
+            }
             component={
               LoginScreen
             }
             options={{
               title:
-                "Iniciar sesiÃ³n",
+                "Iniciar sesión",
             }}
           />
 
@@ -1141,8 +1222,10 @@ export function AppNavigator() {
             options={{
               title:
                 "Crear restaurante",
+
               headerBackVisible:
                 false,
+
               gestureEnabled:
                 false,
             }}
@@ -1158,21 +1241,25 @@ export function AppNavigator() {
             options={{
               title:
                 "Mi perfil",
+
               headerBackVisible:
                 false,
+
               gestureEnabled:
                 false,
             }}
           />
 
           <Stack.Screen
-            name={ROUTES.AddDish}
+            name={
+              ROUTES.AddDish
+            }
             component={
               AddDishScreen
             }
             options={{
               title:
-                "AÃ±adir plato",
+                "Añadir plato",
             }}
           />
 
@@ -1203,12 +1290,15 @@ export function AppNavigator() {
           />
 
           <Stack.Screen
-            name={ROUTES.Profile}
+            name={
+              ROUTES.Profile
+            }
             component={
               ProfileScreen
             }
             options={{
-              title: "Perfil",
+              title:
+                "Perfil",
             }}
           />
         </Stack.Navigator>
@@ -1217,7 +1307,9 @@ export function AppNavigator() {
       {isSocketDebugEnabled ? (
         <DebugToast
           visible={
-            Boolean(debugToast)
+            Boolean(
+              debugToast
+            )
           }
           title={
             debugToast?.title ??
@@ -1227,7 +1319,9 @@ export function AppNavigator() {
             debugToast?.message
           }
           onClose={() =>
-            setDebugToast(null)
+            setDebugToast(
+              null
+            )
           }
         />
       ) : null}
@@ -1235,25 +1329,36 @@ export function AppNavigator() {
   );
 }
 
-const styles = StyleSheet.create({
-  loadingScreen: {
-    justifyContent: "center",
-    paddingBottom: spacing.xxl,
-  },
-  loadingState: {
-    width: "100%",
-    maxWidth: 420,
-    alignSelf: "center",
-  },
-  profileErrorCard: {
-    width: "100%",
-    maxWidth: 420,
-    alignSelf: "center",
-  },
-  profileErrorAction: {
-    width: "100%",
-    maxWidth: 420,
-    alignSelf: "center",
-    marginTop: spacing.md,
-  },
-});
+const styles =
+  StyleSheet.create({
+    loadingScreen: {
+      justifyContent:
+        "center",
+
+      paddingBottom:
+        spacing.xxl,
+    },
+
+    loadingState: {
+      width: "100%",
+      maxWidth: 420,
+      alignSelf:
+        "center",
+    },
+
+    profileErrorCard: {
+      width: "100%",
+      maxWidth: 420,
+      alignSelf:
+        "center",
+    },
+
+    profileErrorAction: {
+      width: "100%",
+      maxWidth: 420,
+      alignSelf:
+        "center",
+      marginTop:
+        spacing.md,
+    },
+  });

@@ -303,10 +303,31 @@ export async function generatePickupQr(
   const payload = unwrapData(result);
   const source = isRecord(payload) ? payload : {};
 
+  const pickupToken =
+    typeof source.pickup_token === "string"
+      ? source.pickup_token
+      : "";
+
+  const expiresAt =
+    typeof source.expires_at === "string"
+      ? source.expires_at
+      : "";
+
+  const isValidToken =
+    /^[a-f0-9]{64}$/i.test(pickupToken);
+
+  const isValidExpiration =
+    !Number.isNaN(Date.parse(expiresAt));
+
+  if (!isValidToken || !isValidExpiration) {
+    throw new Error(
+      "Respuesta inválida al generar el QR"
+    );
+  }
+
   return {
-    pickupToken:
-      typeof source.pickup_token === "string" ? source.pickup_token : "",
-    expiresAt: typeof source.expires_at === "string" ? source.expires_at : "",
+    pickupToken,
+    expiresAt,
   };
 }
 
