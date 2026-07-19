@@ -30,7 +30,9 @@
         "backgroundColor": "#FAF9F7"
       },
       "permissions": [
-        "CAMERA"
+        "CAMERA",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -55,6 +57,11 @@
         }
       ],
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "3c2f34d4-470f-47b7-bc27-f8cee3411655"
+      }
+    }
   }
 }
