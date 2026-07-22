@@ -436,12 +436,13 @@ function FavoritesTab({
             </View>
           </View>
           <EmptyState
-            title="Sin favoritos todavÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­a"
+            title="Sin favoritos todavía"
             message={
               favoriteTab === "restaurants"
-                ? "Cuando guardes restaurantes aparecerÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡n aquÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­."
-                : "Cuando guardes platos aparecerÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡n aquÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­."
+                ? "Cuando guardes restaurantes aparecerán aquí."
+                : "Cuando guardes platos aparecerán aquí."
             }
+            iconName="heart-outline"
             actionLabel="Explorar restaurantes"
             onActionPress={onExplore}
           />
