@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState,useEffect, } from "react";
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import {
@@ -39,8 +39,9 @@ import {
 import { getRestaurants } from "../services/restaurantService";
 import { typography } from "../theme";
 import { studentPalette } from "../theme/studentPalette";
-import { triggerFeedback } from "../utils/haptics";
+
 import type { ReservationStatus } from "../types/models";
+
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -180,10 +181,6 @@ export function MyReservationsScreen({
         );
 
       const handleDelivered = () => {
-        void triggerFeedback(
-          "success"
-        );
-
         void reload();
       };
 
@@ -207,6 +204,29 @@ export function MyReservationsScreen({
       reload,
     ])
   );
+  useEffect(() => {
+    if (!accessToken || !isOnline) {
+      return;
+    }
+
+    const hasPendingReservations = reservations.some(
+      (reservation) => reservation.status === "pending_payment"
+    );
+
+    if (!hasPendingReservations) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      void reload();
+    }, 30000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [accessToken, isOnline, reservations, reload]);
+
+
 
   const activeCount = useMemo(() => {
     return reservations.filter(

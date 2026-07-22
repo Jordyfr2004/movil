@@ -25,10 +25,12 @@ export type Reservation = {
   id: string;
   status: ReservationStatus;
   createdAt: string;
+  expiresAt?: string | null;
   items: ReservationItem[];
   totalAmount?: number;
   deliveredAt?: string | null;
   deliveryStatus?: string;
+  
 };
 
 export type ReservationItem = {

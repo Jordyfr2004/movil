@@ -1,26 +1,23 @@
 import React, { useState } from "react";
 import { Alert, FlatList, StyleSheet, Text, View } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useStripe } from "@stripe/stripe-react-native";
+
 
 import { AppButton, Card, EmptyState, Screen, StatusBadge } from "../components";
 import { spacing } from "../constants/spacing";
-import { STRIPE_PUBLISHABLE_KEY } from "../constants/stripe";
+
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
-import { useLocalNotifications } from "../context/LocalNotificationsContext";
+
 import { useNetworkStatus } from "../context/NetworkContext";
 import { ROUTES } from "../navigation/routes";
 import { StudentStackParamList } from "../navigation/types";
-import { createPaymentIntent } from "../services/paymentService";
-import {
-  createReservation,
-  getMyReservationById,
-} from "../services/reservationService";
+
+import {createReservation,} from "../services/reservationService";
 import { isSessionExpiryInProgress } from "../services/sessionExpiryService";
 import { designSystem, typography } from "../theme";
 import { studentPalette } from "../theme/studentPalette";
-import { Reservation } from "../types/models";
+
 import { triggerFeedback } from "../utils/haptics";
 
 type Props = NativeStackScreenProps<StudentStackParamList, typeof ROUTES.Checkout>;
@@ -29,9 +26,6 @@ function formatMoney(value: number) {
   return `$${value.toFixed(2)}`;
 }
 
-function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 function friendlyError(error: unknown) {
   const message = error instanceof Error ? error.message.toLowerCase() : "";
@@ -45,7 +39,7 @@ function friendlyError(error: unknown) {
   }
 
   if (message.includes("dispon")) {
-    return "Uno o más platos ya no están disponibles.";
+    return "No se pudo crear la reserva. Tu carrito se conserva.";
   }
 
   return "No se pudo completar el checkout. Tu carrito se conserva.";
@@ -79,40 +73,9 @@ function isSessionError(error: unknown) {
 export function CheckoutScreen({ navigation }: Props) {
   const { accessToken } = useAuth();
   const { clearCart, items, restaurant, subtotal, total } = useCart();
-  const { addNotification } = useLocalNotifications();
   const { isOnline } = useNetworkStatus();
-  const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const [submitting, setSubmitting] = useState(false);
-  const [confirmationMessage, setConfirmationMessage] = useState<string | null>(
-    null
-  );
 
-  const waitForReservationAfterPayment = async (
-    reservationId: string
-  ): Promise<Reservation | null> => {
-    if (!accessToken) return null;
-
-    for (let attempt = 0; attempt <= 3; attempt += 1) {
-      if (attempt > 0) {
-        await delay(900);
-      }
-
-      const nextReservation = await getMyReservationById(
-        accessToken,
-        reservationId
-      );
-
-      if (!nextReservation) {
-        continue;
-      }
-
-      if (nextReservation.status !== "pending_payment" || attempt === 3) {
-        return nextReservation;
-      }
-    }
-
-    return null;
-  };
 
   const handleCheckout = async () => {
     if (submitting) return;
@@ -121,7 +84,7 @@ export function CheckoutScreen({ navigation }: Props) {
       void triggerFeedback("error");
       Alert.alert(
         "Sin conexión",
-        "Necesitas conexión a internet para crear y pagar una reserva."
+        "Necesitas conexión a internet para crear una reserva."
       );
       return;
     }
@@ -132,81 +95,38 @@ export function CheckoutScreen({ navigation }: Props) {
       return;
     }
 
-    if (!STRIPE_PUBLISHABLE_KEY) {
-      void triggerFeedback("error");
-      Alert.alert(
-        "Falta configurar Stripe",
-        "No se encontró la llave pública de Stripe."
-      );
-      return;
-    }
-
     try {
       setSubmitting(true);
-      setConfirmationMessage(null);
 
-      const reservation = await createReservation(accessToken, {
+      await createReservation(accessToken, {
         items: items.map((item) => ({
           dish_id: item.dishId,
           quantity: item.quantity,
         })),
       });
 
-      const intent = await createPaymentIntent(accessToken, reservation.id);
-
-      if (!intent.clientSecret) {
-        throw new Error("No pudimos preparar el pago.");
-      }
-
-      const init = await initPaymentSheet({
-        merchantDisplayName: "Comedor ULEAM",
-        paymentIntentClientSecret: intent.clientSecret,
-      });
-
-      if (init.error) {
-        throw new Error(init.error.message);
-      }
-
-      const presented = await presentPaymentSheet();
-
-      if (presented.error) {
-        throw new Error(presented.error.message);
-      }
-
-      setConfirmationMessage("Confirmando pago...");
-      const confirmedReservation = await waitForReservationAfterPayment(
-        reservation.id
-      );
-      const nextReservation = confirmedReservation ?? reservation;
-
-      if (nextReservation.status === "pending_payment") {
-        addNotification({
-          kind: "pending_payment",
-          title: "Pago pendiente de confirmación",
-          message: "El servidor aún no confirma el pago de tu reserva.",
-          reservationId: nextReservation.id,
-        });
-        Alert.alert(
-          "Pago en confirmación",
-          "Stripe completó el pago, pero el servidor aún no confirmó la reserva. Puedes actualizar el estado desde el seguimiento."
-        );
-      }
-
       clearCart();
       void triggerFeedback("success");
-      navigation.replace(ROUTES.ReservationTracking, {
-        reservation: nextReservation,
-      });
+
+      Alert.alert(
+        "Reserva creada",
+        "Tu reserva fue creada correctamente. Tienes 30 minutos para pagarla antes de que expire.",
+        [
+          {
+            text: "Aceptar",
+            onPress: () => navigation.replace(ROUTES.MyReservations),
+          },
+        ]
+      );
     } catch (error: unknown) {
       if (isSessionError(error) || isSessionExpiryInProgress()) {
         return;
       }
 
       void triggerFeedback("error");
-      Alert.alert("Checkout incompleto", friendlyError(error));
+      Alert.alert("No se pudo crear la reserva", friendlyError(error));
     } finally {
       setSubmitting(false);
-      setConfirmationMessage(null);
     }
   };
 
@@ -229,7 +149,7 @@ export function CheckoutScreen({ navigation }: Props) {
       <View style={styles.header}>
         <View style={styles.stepPill}>
           <Text style={styles.stepText}>Paso final</Text>
-          <StatusBadge label="Pago seguro" tone="info" />
+          <StatusBadge label="Pendiente de pago" tone="info" />
         </View>
         <Text style={styles.title}>Resumen final</Text>
         <Text style={styles.subtitle}>{restaurant.name}</Text>
@@ -262,8 +182,10 @@ export function CheckoutScreen({ navigation }: Props) {
       <View style={styles.summary}>
         <Text style={styles.sectionTitle}>Confirmación</Text>
         <View style={styles.paymentHint}>
-          <Text style={styles.paymentHintTitle}>Método de pago</Text>
-          <Text style={styles.paymentHintText}>Se abrirá la hoja segura de Stripe.</Text>
+          <Text style={styles.paymentHintTitle}>Reserva pendiente de pago</Text>
+          <Text style={styles.paymentHintText}>
+            Después de crearla tendrás 30 minutos para pagarla desde Mis reservas.
+          </Text>
         </View>
         <View style={styles.summaryRow}>
           <Text style={styles.summaryLabel}>Subtotal</Text>
@@ -274,10 +196,7 @@ export function CheckoutScreen({ navigation }: Props) {
           <Text style={styles.totalValue}>{formatMoney(total)}</Text>
         </View>
         <AppButton
-          label={
-            confirmationMessage ??
-            (submitting ? "Procesando..." : "Crear reserva y pagar")
-          }
+          label={submitting ? "Creando reserva..." : "Crear reserva"}
           onPress={handleCheckout}
           disabled={submitting || !isOnline}
         />

@@ -18,6 +18,7 @@ import {
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { DrawerActions } from "@react-navigation/native";
 
 import {
   CartFloatingBar,

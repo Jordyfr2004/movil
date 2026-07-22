@@ -3,6 +3,8 @@ import type { Socket } from "socket.io-client";
 import { useAuth } from "../context/AuthContext";
 import { useLocalNotifications } from "../context/LocalNotificationsContext";
 import {acquireNotificationsSocket,releaseNotificationsSocket,} from "../services/notificationsSocket";
+import { triggerFeedback } from "../utils/haptics";
+
 
 type ReservationDeliveredPayload = {
   notification_id?: string;
@@ -65,6 +67,9 @@ export function NotificationsRealtimeBridge() {
       if (!isActive) {
         return;
       }
+      
+      void triggerFeedback("delivered");
+
 
       const notificationId =
         payload.notification_id?.trim() ||

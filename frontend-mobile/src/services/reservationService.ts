@@ -23,6 +23,8 @@ type ReservationApi = {
   created_at?: string;
   createdAt?: string;
   reservation_date?: string;
+  expires_at?: string | null;
+  expiresAt?: string | null;
   total_amount?: string | number;
   delivered_at?: string | null;
   delivery_status?: string;
@@ -177,6 +179,12 @@ function normalizeReservation(payload: unknown): Reservation {
     createdAt: String(
       source.created_at ?? source.createdAt ?? source.reservation_date ?? ""
     ),
+    expiresAt:
+      typeof source.expires_at === "string"
+        ? source.expires_at
+        : typeof source.expiresAt === "string"
+          ? source.expiresAt
+          : null,
     items: items.map(normalizeReservationItem),
     totalAmount: normalizeNumber(source.total_amount ?? source.totalAmount),
     deliveredAt:

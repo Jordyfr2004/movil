@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
@@ -19,6 +19,7 @@ type ReservationCardItem = {
   restaurantName: string;
   status: ReservationStatus;
   title: string;
+  expiresAt?: string | null;
 };
 
 type MyReservationCardProps = {
@@ -34,6 +35,42 @@ type MyReservationCardProps = {
   onReorder?: () => void;
 };
 
+function getRemainingTime(
+  expiresAt: string | null | undefined,
+  nowMs: number
+) {
+  if (!expiresAt) {
+    return null;
+  }
+
+  const expirationMs = new Date(expiresAt).getTime();
+
+  if (Number.isNaN(expirationMs)) {
+    return null;
+  }
+
+  const differenceMs = expirationMs - nowMs;
+
+  if (differenceMs <= 0) {
+    return {
+      expired: true,
+      label: "Tiempo agotado",
+    };
+  }
+
+  const totalSeconds = Math.ceil(differenceMs / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  return {
+    expired: false,
+    label: `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(
+      2,
+      "0"
+    )}`,
+  };
+}
+
 export function MyReservationCard({
   isCancelling,
   isPaymentInProgress,
@@ -47,7 +84,32 @@ export function MyReservationCard({
   onReorder,
 }: MyReservationCardProps) {
   const badge = getReservationStatusBadge(reservation.status);
-  const shouldShowActions = reservation.status === "pending_payment";
+
+  const [nowMs, setNowMs] = useState(Date.now());
+
+  useEffect(() => {
+    if (
+      reservation.status !== "pending_payment" ||
+      !reservation.expiresAt
+    ) {
+      return undefined;
+    }
+
+    const interval = setInterval(() => {
+      setNowMs(Date.now());
+    }, 1000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [reservation.status, reservation.expiresAt]);
+
+  const remainingTime =
+    reservation.status === "pending_payment"
+      ? getRemainingTime(reservation.expiresAt, nowMs)
+      : null;
+
+  const shouldShowActions = reservation.status === "pending_payment" && !remainingTime?.expired;
   const statusStyle = getStatusStyle(reservation.status);
 
   return (
@@ -94,6 +156,30 @@ export function MyReservationCard({
             <Text style={styles.cardDate} numberOfLines={1}>
               {formatReservationDate(reservation.reservationDate)}
             </Text>
+            {remainingTime ? (
+              <View style={styles.expirationRow}>
+                <MaterialCommunityIcons
+                  name="timer-outline"
+                  size={15}
+                  color={
+                    remainingTime.expired
+                      ? studentPalette.danger
+                      : studentPalette.warning
+                  }
+                />
+
+                <Text
+                  style={[
+                    styles.expirationText,
+                    remainingTime.expired && styles.expirationTextExpired,
+                  ]}
+                >
+                  {remainingTime.expired
+                    ? "Tiempo para pagar agotado"
+                    : `Tiempo para pagar: ${remainingTime.label}`}
+                </Text>
+              </View>
+            ) : null}
           </View>
         </View>
       </View>
@@ -298,6 +384,21 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.xs,
     color: studentPalette.textMuted,
     lineHeight: typography.lineHeights.xs,
+  },
+  expirationRow: {
+    marginTop: spacing.xs,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  expirationText: {
+    flex: 1,
+    color: studentPalette.warning,
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.bold,
+  },
+  expirationTextExpired: {
+    color: studentPalette.danger,
   },
   reorderButton: {
     marginTop: spacing.sm,

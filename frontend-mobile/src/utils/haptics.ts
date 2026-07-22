@@ -1,17 +1,27 @@
 import { AccessibilityInfo, Platform, Vibration } from "react-native";
 
-type FeedbackKind = "selection" | "success" | "warning" | "error";
+type FeedbackKind =
+  | "selection"
+  | "success"
+  | "warning"
+  | "error"
+  | "delivered";
 
 const PATTERNS: Record<FeedbackKind, number | number[]> = {
   selection: 12,
   success: Platform.OS === "android" ? [0, 18, 24, 18] : 22,
   warning: 36,
   error: Platform.OS === "android" ? [0, 30, 28, 42] : 55,
+  delivered: Platform.OS === "android" ? [0, 180, 100, 250] : 350,
 };
 
-export async function triggerFeedback(kind: FeedbackKind = "selection") {
+export async function triggerFeedback(
+  kind: FeedbackKind = "selection"
+) {
   try {
-    const reduceMotion = await AccessibilityInfo.isReduceMotionEnabled();
+    const reduceMotion =
+      await AccessibilityInfo.isReduceMotionEnabled();
+
     if (reduceMotion) {
       return;
     }

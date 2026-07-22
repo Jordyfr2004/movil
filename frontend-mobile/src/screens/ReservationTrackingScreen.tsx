@@ -188,28 +188,52 @@ export function ReservationTrackingScreen({ navigation, route }: Props) {
   }, [applyReservationRefresh, fetchLatestReservation, reservation.id]);
 
   const refreshReservationManually = useCallback(async () => {
-    if (manualRefreshInFlightRef.current) return;
+    if (manualRefreshInFlightRef.current) {
+      return;
+    }
+
+    if (!isOnline) {
+      void triggerFeedback("warning");
+
+      Alert.alert(
+        "Sin conexión",
+        "Necesitas conexión a internet para actualizar la reserva."
+      );
+
+      return;
+    }
 
     manualRefreshInFlightRef.current = true;
     setManualRefreshing(true);
 
     try {
       const nextReservation = await fetchLatestReservation();
-      if (!isMountedRef.current) return;
+
+      if (!isMountedRef.current) {
+        return;
+      }
+
       applyReservationRefresh(nextReservation);
+      void triggerFeedback("success");
     } catch {
-      if (!isMountedRef.current) return;
+      if (!isMountedRef.current) {
+        return;
+      }
+
+      void triggerFeedback("error");
+
       Alert.alert(
         "No se pudo actualizar",
         "No pudimos consultar el estado de la reserva. Inténtalo nuevamente."
       );
     } finally {
       manualRefreshInFlightRef.current = false;
+
       if (isMountedRef.current) {
         setManualRefreshing(false);
       }
     }
-  }, [applyReservationRefresh, fetchLatestReservation]);
+  }, [applyReservationRefresh, fetchLatestReservation, isOnline]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -234,8 +258,12 @@ export function ReservationTrackingScreen({ navigation, route }: Props) {
       ClientEvents
     >;
 
-    const handleDelivered = (payload: ReservationDeliveredPayload) => {
-      if (payload.reservation_id !== reservation.id) return;
+    const handleDelivered = (
+      payload: ReservationDeliveredPayload
+    ) => {
+      if (payload.reservation_id !== reservation.id) {
+        return;
+      }
 
       setReservation((current) => ({
         ...current,
@@ -243,12 +271,15 @@ export function ReservationTrackingScreen({ navigation, route }: Props) {
         deliveredAt: payload.delivered_at,
         deliveryStatus: payload.delivery_status,
       }));
+
       setQrState("used");
       setQr(null);
-      void triggerFeedback("success");
-      Alert.alert("Reserva entregada", "Tu reserva fue entregada correctamente.");
-    };
 
+      Alert.alert(
+        "Reserva entregada",
+        "Tu reserva fue entregada correctamente."
+      );
+    };
     socket.on("reservation_delivered", handleDelivered);
 
     return () => {
@@ -266,11 +297,20 @@ export function ReservationTrackingScreen({ navigation, route }: Props) {
   }, []);
 
   const scheduleExpiry = (expiresAt: string) => {
-    if (expiryTimerRef.current) clearTimeout(expiryTimerRef.current);
-    const delay = Math.max(0, new Date(expiresAt).getTime() - Date.now());
+    if (expiryTimerRef.current) {
+      clearTimeout(expiryTimerRef.current);
+    }
+
+    const delay = Math.max(
+      0,
+      new Date(expiresAt).getTime() - Date.now()
+    );
+
     expiryTimerRef.current = setTimeout(() => {
       setQrState("expired");
       setQr(null);
+
+      void triggerFeedback("warning");
     }, delay);
   };
 
@@ -278,17 +318,33 @@ export function ReservationTrackingScreen({ navigation, route }: Props) {
     if (!accessToken) {
       setQrError("Tu sesión expiró. Vuelve a iniciar sesión.");
       setQrState("error");
+
+      void triggerFeedback("error");
+
       return;
     }
 
     if (!isOnline) {
-      setQrError("Necesitas conexión a internet para generar el QR.");
+      setQrError(
+        "Necesitas conexión a internet para generar el QR."
+      );
+
       setQrState("error");
+
+      void triggerFeedback("warning");
+
       return;
     }
 
     if (!canGenerateQr) {
-      setQrState(reservation.status === "completed" ? "used" : "not_available");
+      setQrState(
+        reservation.status === "completed"
+          ? "used"
+          : "not_available"
+      );
+
+      void triggerFeedback("warning");
+
       return;
     }
 
