@@ -1,6 +1,7 @@
-import React, { useCallback, useMemo, useState,useEffect, } from "react";
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Alert, Animated, Easing, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import {
   NativeStackNavigationProp,
   NativeStackScreenProps,
@@ -12,21 +13,21 @@ import {
   MyReservationsFeedback,
   MyReservationsHeader,
 } from "../components/myReservations";
+import { EmptyState } from "../components";
 import { Screen } from "../components/Screen";
-import {
-  StudentStatusPill,
-  StudentStatusTone,
-} from "../components/StudentStatusPill";
+import { StudentStatusTone } from "../components/StudentStatusPill";
 import { spacing } from "../constants/spacing";
 import { STRIPE_PUBLISHABLE_KEY } from "../constants/stripe";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
+import { useLocalFeedback } from "../context/LocalFeedbackContext";
 
 import { useNetworkStatus } from "../context/NetworkContext";
 import {
   ReservationListItem,
   useReservations,
 } from "../hooks/useReservations";
+import { useReduceMotion } from "../hooks/useReduceMotion";
 import { ROUTES } from "../navigation/routes";
 import { StudentStackParamList } from "../navigation/types";
 import { createPaymentIntent } from "../services/paymentService";
@@ -53,7 +54,6 @@ type Props = NativeStackScreenProps<
 type ReservationSectionConfig = {
   key: string;
   title: string;
-  subtitle: string;
   statuses: ReservationStatus[];
   tone: StudentStatusTone;
 };
@@ -62,7 +62,6 @@ type ReservationListRow =
   | {
       type: "section";
       key: string;
-      count: number;
       section: ReservationSectionConfig;
     }
   | {
@@ -77,38 +76,54 @@ const ORDER_TABS: Array<{
   key: OrderTabKey;
   label: string;
   statuses: ReservationStatus[];
+  iconName: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
+  tone: StudentStatusTone;
 }> = [
-  { key: "active", label: "Activos", statuses: ["pending_payment", "confirmed"] },
-  { key: "completed", label: "Completados", statuses: ["completed"] },
-  { key: "cancelled", label: "Cancelados", statuses: ["cancelled", "expired"] },
+  {
+    key: "active",
+    label: "Activos",
+    statuses: ["pending_payment", "confirmed"],
+    iconName: "clock-check-outline",
+    tone: "success",
+  },
+  {
+    key: "completed",
+    label: "Completados",
+    statuses: ["completed"],
+    iconName: "check-circle-outline",
+    tone: "info",
+  },
+  {
+    key: "cancelled",
+    label: "Cancelados",
+    statuses: ["cancelled", "expired"],
+    iconName: "close-circle-outline",
+    tone: "danger",
+  },
 ];
 
 const RESERVATION_SECTIONS: ReservationSectionConfig[] = [
   {
     key: "today",
     title: "Hoy",
-    subtitle: "Movimientos de hoy",
     statuses: ["pending_payment", "confirmed", "completed", "cancelled", "expired"],
     tone: "info",
   },
   {
     key: "week",
     title: "Esta semana",
-    subtitle: "Reservas recientes",
     statuses: ["pending_payment", "confirmed", "completed", "cancelled", "expired"],
     tone: "success",
   },
   {
     key: "month",
     title: "Este mes",
-    subtitle: "Historial del mes",
     statuses: ["pending_payment", "confirmed", "completed", "cancelled", "expired"],
     tone: "warning",
   },
   {
     key: "older",
     title: "Anteriores",
-    subtitle: "Reservas pasadas",
     statuses: ["pending_payment", "confirmed", "completed", "cancelled", "expired"],
     tone: "info",
   },
@@ -153,12 +168,38 @@ function readErrorMessage(error: unknown, fallback: string): string {
     : fallback;
 }
 
+function getEmptyContent(tab: OrderTabKey) {
+  if (tab === "completed") {
+    return {
+      title: "Aún no tienes pedidos completados",
+      message: "Cuando completes una reserva, aparecerá aquí.",
+      iconName: "check-circle-outline" as const,
+    };
+  }
+
+  if (tab === "cancelled") {
+    return {
+      title: "No tienes reservas canceladas",
+      message: "Tus reservas canceladas o expiradas aparecerán aquí.",
+      iconName: "close-circle-outline" as const,
+    };
+  }
+
+  return {
+    title: "No tienes reservas activas",
+    message: "Explora el menú y reserva tus platos favoritos.",
+    iconName: "calendar-clock-outline" as const,
+  };
+}
+
 export function MyReservationsScreen({
   bottomInset = 0,
 }: Partial<Props> & { bottomInset?: number }) {
   const navigation = useNavigation<NativeStackNavigationProp<StudentStackParamList>>();
   const { accessToken } = useAuth();
   const { addDish } = useCart();
+  const { hasRatingForReservation } = useLocalFeedback();
+  const reduceMotion = useReduceMotion();
   
   const { isOnline } = useNetworkStatus();
   const { reservations, loading, error, reload } = useReservations(accessToken);
@@ -167,7 +208,41 @@ export function MyReservationsScreen({
     null
   );
   const [selectedTab, setSelectedTab] = useState<OrderTabKey>("active");
+  const [tabsWidth, setTabsWidth] = useState(0);
+  const [reorderingReservationId, setReorderingReservationId] = useState<string | null>(null);
+  const selectedTabIndex = ORDER_TABS.findIndex((tab) => tab.key === selectedTab);
+  const tabIndicator = useRef(new Animated.Value(Math.max(selectedTabIndex, 0))).current;
+  const listOpacity = useRef(new Animated.Value(1)).current;
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
+
+  useEffect(() => {
+    if (reduceMotion) {
+      tabIndicator.setValue(Math.max(selectedTabIndex, 0));
+      return;
+    }
+
+    Animated.timing(tabIndicator, {
+      toValue: Math.max(selectedTabIndex, 0),
+      duration: 210,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [reduceMotion, selectedTabIndex, tabIndicator]);
+
+  useEffect(() => {
+    if (reduceMotion || loading) {
+      listOpacity.setValue(1);
+      return;
+    }
+
+    listOpacity.setValue(0.96);
+    Animated.timing(listOpacity, {
+      toValue: 1,
+      duration: 160,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [listOpacity, loading, reduceMotion, selectedTab]);
 
   useFocusEffect(
     useCallback(() => {
@@ -228,13 +303,20 @@ export function MyReservationsScreen({
 
 
 
-  const activeCount = useMemo(() => {
-    return reservations.filter(
-      (reservation) =>
-        reservation.status === "confirmed" ||
-        reservation.status === "pending_payment"
-    ).length;
+  const tabCounts = useMemo(() => {
+    return ORDER_TABS.reduce<Record<OrderTabKey, number>>(
+      (accumulator, tab) => {
+        accumulator[tab.key] = reservations.filter((reservation) =>
+          tab.statuses.includes(reservation.status)
+        ).length;
+        return accumulator;
+      },
+      { active: 0, completed: 0, cancelled: 0 }
+    );
   }, [reservations]);
+
+  const selectedTabConfig =
+    ORDER_TABS.find((tab) => tab.key === selectedTab) ?? ORDER_TABS[0];
 
   const reservationRows = useMemo<ReservationListRow[]>(() => {
     const selectedStatuses =
@@ -256,7 +338,6 @@ export function MyReservationsScreen({
         {
           type: "section",
           key: `section-${section.key}`,
-          count: items.length,
           section,
         },
         ...items.map((reservation) => ({
@@ -368,6 +449,10 @@ export function MyReservationsScreen({
   };
 
   const handleReorder = async (reservation: ReservationListItem) => {
+    if (reorderingReservationId) {
+      return;
+    }
+
     const restaurantId = reservation.items[0]?.restaurantId;
     if (!restaurantId) {
       Alert.alert("No disponible", "No se pudo identificar el restaurante.");
@@ -375,6 +460,7 @@ export function MyReservationsScreen({
     }
 
     try {
+      setReorderingReservationId(reservation.id);
       const [restaurants, dishes] = await Promise.all([
         getRestaurants(),
         getPublicDishesByRestaurant(restaurantId),
@@ -429,22 +515,19 @@ export function MyReservationsScreen({
         "No se pudo repetir",
         "No pudimos verificar disponibilidad y precios actuales."
       );
+    } finally {
+      setReorderingReservationId(null);
     }
   };
 
   const renderContent = () => {
-    if (loading) {
+    if (loading && reservations.length === 0) {
       return (
-        <MyReservationsFeedback
-          error={null}
-          loading
-          onRetry={reload}
-          style={styles.feedbackState}
-        />
+        <ReservationsSkeleton />
       );
     }
 
-    if (error) {
+    if (error && reservations.length === 0) {
       return (
         <MyReservationsFeedback
           error={error}
@@ -456,77 +539,110 @@ export function MyReservationsScreen({
     }
 
     if (reservations.length === 0 || reservationRows.length === 0) {
+      const empty = getEmptyContent(selectedTab);
+
       return (
-        <MyReservationsFeedback
-          error={null}
-          loading={false}
-          onRetry={reload}
+        <EmptyState
+          title={empty.title}
+          message={empty.message}
+          iconName={empty.iconName}
           style={styles.feedbackState}
         />
       );
     }
 
     return (
-      <FlatList
-        style={styles.list}
-        data={reservationRows}
-        keyExtractor={(item) => item.key}
-        contentContainerStyle={[
-          styles.listContent,
-          { paddingBottom: bottomInset + spacing.xxl },
-        ]}
-        showsVerticalScrollIndicator={false}
-        renderItem={({ item }) =>
-          item.type === "section" ? (
+      <Animated.View style={[styles.list, { opacity: listOpacity }]}>
+        <FlatList
+          data={reservationRows}
+          keyExtractor={(item) => item.key}
+          contentContainerStyle={[
+            styles.listContent,
+            selectedTab === "cancelled" && styles.listContentCompact,
+            { paddingBottom: bottomInset + spacing.xxl },
+          ]}
+          showsVerticalScrollIndicator={false}
+          renderItem={({ item }) =>
+            item.type === "section" ? (
             <ReservationSectionHeader
-              count={item.count}
               section={item.section}
+              tone={selectedTabConfig.tone}
             />
-          ) : (
-            <MyReservationCard
-              isCancelling={isCancelling}
-              isPaymentInProgress={Boolean(payingReservationId)}
-              isPaying={payingReservationId === item.reservation.id}
-              reservation={item.reservation}
-              onCancel={confirmCancel}
-              onPay={handlePay}
-              onPress={() =>
-                navigation?.navigate?.(ROUTES.ReservationTracking, {
-                  reservation: item.reservation,
-                })
-              }
-              onRate={
-                item.reservation.status === "completed"
-                  ? () =>
-                      navigation.navigate(ROUTES.Rating, {
-                        reservation: item.reservation,
-                      })
-                  : undefined
-              }
-              onReport={() =>
-                navigation.navigate(ROUTES.ProblemReport, {
-                  reservationId: item.reservation.id,
-                })
-              }
-              onReorder={() => handleReorder(item.reservation)}
-            />
-          )
-        }
-      />
+            ) : (
+              <MyReservationCard
+                isCancelling={isCancelling}
+                isPaymentInProgress={Boolean(payingReservationId)}
+                isPaying={payingReservationId === item.reservation.id}
+                isRated={hasRatingForReservation(item.reservation.id)}
+                isReordering={reorderingReservationId === item.reservation.id}
+                reservation={item.reservation}
+                onCancel={confirmCancel}
+                onPay={handlePay}
+                onPress={() =>
+                  navigation?.navigate?.(ROUTES.ReservationTracking, {
+                    reservation: item.reservation,
+                  })
+                }
+                onRate={
+                  item.reservation.status === "completed"
+                    ? () =>
+                        navigation.navigate(ROUTES.Rating, {
+                          reservation: item.reservation,
+                        })
+                    : undefined
+                }
+                onReport={() =>
+                  navigation.navigate(ROUTES.ProblemReport, {
+                    reservationId: item.reservation.id,
+                  })
+                }
+                onReorder={() => handleReorder(item.reservation)}
+              />
+            )
+          }
+        />
+      </Animated.View>
     );
   };
 
   return (
     <Screen style={styles.container}>
       <MyReservationsHeader
-        activeCount={activeCount}
         hasError={Boolean(error)}
         loading={loading}
       />
 
-      <View style={styles.tabs}>
+      <View
+        style={styles.tabs}
+        onLayout={(event) => setTabsWidth(event.nativeEvent.layout.width)}
+      >
+        {tabsWidth > 0 ? (
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.tabsIndicator,
+              getTabIndicatorStyle(selectedTab),
+              {
+                width: (tabsWidth - 4) / ORDER_TABS.length,
+                transform: [
+                  {
+                    translateX: tabIndicator.interpolate({
+                      inputRange: [0, 1, 2],
+                      outputRange: [
+                        0,
+                        (tabsWidth - 4) / ORDER_TABS.length,
+                        ((tabsWidth - 4) / ORDER_TABS.length) * 2,
+                      ],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          />
+        ) : null}
         {ORDER_TABS.map((tab) => {
           const active = selectedTab === tab.key;
+          const tabStyle = getTabStyle(tab.key);
 
           return (
             <Pressable
@@ -534,13 +650,40 @@ export function MyReservationsScreen({
               accessibilityRole="tab"
               accessibilityState={{ selected: active }}
               accessibilityLabel={tab.label}
+              hitSlop={4}
               onPress={() => setSelectedTab(tab.key)}
               style={styles.tab}
             >
-              <Text style={[styles.tabText, active && styles.tabTextActive]}>
-                {tab.label}
-              </Text>
-              <View style={[styles.tabIndicator, active && styles.tabIndicatorActive]} />
+              <View style={styles.tabLabelRow}>
+                <MaterialCommunityIcons
+                  name={tab.iconName}
+                  size={14}
+                  color={active ? tabStyle.color : studentPalette.textSecondary}
+                />
+                <Text
+                  style={[
+                    styles.tabText,
+                    active && { color: tabStyle.color },
+                  ]}
+                >
+                  {tab.label}
+                </Text>
+                <View
+                  style={[
+                    styles.tabCount,
+                    active && { borderColor: tabStyle.color },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.tabCountText,
+                      active && { color: tabStyle.color },
+                    ]}
+                  >
+                    {tabCounts[tab.key]}
+                  </Text>
+                </View>
+              </View>
             </Pressable>
           );
         })}
@@ -552,13 +695,13 @@ export function MyReservationsScreen({
 }
 
 function ReservationSectionHeader({
-  count,
   section,
+  tone,
 }: {
-  count: number;
   section: ReservationSectionConfig;
+  tone: StudentStatusTone;
 }) {
-  const sectionStyle = getSectionStyle(section.tone);
+  const sectionStyle = getSectionStyle(tone);
 
   return (
     <View style={styles.statusSection}>
@@ -567,9 +710,25 @@ function ReservationSectionHeader({
         <Text style={[styles.statusSectionTitle, sectionStyle.title]}>
           {section.title}
         </Text>
-        <Text style={styles.statusSectionSubtitle}>{section.subtitle}</Text>
       </View>
-      <StudentStatusPill label={String(count)} tone={section.tone} />
+    </View>
+  );
+}
+
+function ReservationsSkeleton() {
+  return (
+    <View style={styles.skeletonStack}>
+      {[0, 1].map((item) => (
+        <View key={`reservation-skeleton-${item}`} style={styles.skeletonCard}>
+          <View style={styles.skeletonImage} />
+          <View style={styles.skeletonBody}>
+            <View style={styles.skeletonLineLarge} />
+            <View style={styles.skeletonLine} />
+            <View style={styles.skeletonLineShort} />
+          </View>
+          <View style={styles.skeletonPill} />
+        </View>
+      ))}
     </View>
   );
 }
@@ -589,15 +748,35 @@ function getSectionStyle(tone: StudentStatusTone) {
     case "danger":
       return {
         accent: styles.accentDanger,
-        title: styles.titleMuted,
+        title: styles.titleDanger,
       };
     case "info":
     default:
       return {
         accent: styles.accentInfo,
-        title: styles.titleMuted,
+        title: styles.titleInfo,
       };
   }
+}
+
+function getTabStyle(tab: OrderTabKey) {
+  if (tab === "completed") {
+    return { color: studentPalette.info };
+  }
+  if (tab === "cancelled") {
+    return { color: studentPalette.danger };
+  }
+  return { color: studentPalette.success };
+}
+
+function getTabIndicatorStyle(tab: OrderTabKey) {
+  if (tab === "completed") {
+    return styles.tabsIndicatorCompleted;
+  }
+  if (tab === "cancelled") {
+    return styles.tabsIndicatorCancelled;
+  }
+  return styles.tabIndicatorActive;
 }
 
 const styles = StyleSheet.create({
@@ -606,53 +785,92 @@ const styles = StyleSheet.create({
     backgroundColor: studentPalette.background,
   },
   listContent: {
-    gap: spacing.sm,
+    gap: 7,
+  },
+  listContentCompact: {
+    gap: 7,
   },
   list: {
     flex: 1,
     backgroundColor: "transparent",
   },
   tabs: {
+    position: "relative",
     flexDirection: "row",
-    alignItems: "flex-end",
-    marginTop: spacing.sm,
-    marginBottom: spacing.xs,
-    paddingHorizontal: spacing.xs,
+    alignItems: "center",
+    minHeight: 44,
+    marginTop: 2,
+    marginBottom: 7,
+    padding: 2,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: studentPalette.border,
+    backgroundColor: studentPalette.cardMuted,
+    overflow: "hidden",
   },
   tab: {
     flex: 1,
-    minHeight: 42,
+    minHeight: 40,
     alignItems: "center",
-    justifyContent: "flex-end",
-    gap: spacing.xs,
+    justifyContent: "center",
+    borderRadius: 12,
+  },
+  tabLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
   },
   tabText: {
     color: studentPalette.textSecondary,
-    fontSize: typography.sizes.sm,
+    fontSize: 11,
+    lineHeight: 15,
     fontWeight: typography.weights.semiBold,
   },
-  tabTextActive: {
-    color: studentPalette.primary,
+  tabCount: {
+    minWidth: 17,
+    height: 17,
+    paddingHorizontal: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: studentPalette.border,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: studentPalette.card,
+  },
+  tabCountText: {
+    color: studentPalette.textMuted,
+    fontSize: 9.5,
+    lineHeight: 12,
     fontWeight: typography.weights.bold,
   },
-  tabIndicator: {
-    width: "72%",
-    height: 3,
-    borderRadius: 999,
-    backgroundColor: "transparent",
+  tabsIndicator: {
+    position: "absolute",
+    top: 2,
+    bottom: 2,
+    left: 2,
+    borderRadius: 12,
+    opacity: 0.2,
   },
   tabIndicatorActive: {
-    backgroundColor: studentPalette.primary,
+    backgroundColor: studentPalette.successSoft,
+  },
+  tabsIndicatorCompleted: {
+    backgroundColor: studentPalette.infoSoft,
+  },
+  tabsIndicatorCancelled: {
+    backgroundColor: studentPalette.dangerSoft,
   },
   statusSection: {
-    marginTop: spacing.lg,
+    marginTop: 1,
+    marginBottom: 0,
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
+    gap: 7,
   },
   statusAccent: {
-    width: 3,
-    height: 28,
+    width: 2,
+    height: 22,
     borderRadius: 999,
   },
   accentWarning: {
@@ -672,10 +890,10 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   statusSectionTitle: {
-    fontSize: typography.sizes.md,
+    fontSize: 20,
     fontWeight: typography.weights.bold,
     color: studentPalette.textPrimary,
-    lineHeight: typography.lineHeights.md,
+    lineHeight: 24,
   },
   titleWarning: {
     color: studentPalette.warning,
@@ -683,13 +901,11 @@ const styles = StyleSheet.create({
   titleSuccess: {
     color: studentPalette.success,
   },
-  titleMuted: {
-    color: studentPalette.textSecondary,
+  titleInfo: {
+    color: studentPalette.info,
   },
-  statusSectionSubtitle: {
-    fontSize: typography.sizes.xs,
-    color: studentPalette.textMuted,
-    lineHeight: typography.lineHeights.xs,
+  titleDanger: {
+    color: studentPalette.danger,
   },
   feedbackState: {
     marginTop: spacing.sm,
@@ -701,5 +917,60 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 5 },
     elevation: 1,
+  },
+  skeletonStack: {
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  skeletonCard: {
+    minHeight: 118,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    padding: 10,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: studentPalette.border,
+    backgroundColor: studentPalette.cardElevated,
+    shadowColor: studentPalette.shadow,
+    shadowOpacity: 0.8,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 1,
+  },
+  skeletonImage: {
+    width: 76,
+    height: 70,
+    borderRadius: 14,
+    backgroundColor: studentPalette.cardMuted,
+  },
+  skeletonBody: {
+    flex: 1,
+    gap: spacing.xs,
+    paddingTop: 4,
+  },
+  skeletonLineLarge: {
+    width: "80%",
+    height: 16,
+    borderRadius: 999,
+    backgroundColor: studentPalette.cardMuted,
+  },
+  skeletonLine: {
+    width: "62%",
+    height: 12,
+    borderRadius: 999,
+    backgroundColor: studentPalette.cardMuted,
+  },
+  skeletonLineShort: {
+    width: "46%",
+    height: 12,
+    borderRadius: 999,
+    backgroundColor: studentPalette.cardMuted,
+  },
+  skeletonPill: {
+    width: 82,
+    height: 24,
+    borderRadius: 999,
+    backgroundColor: studentPalette.cardMuted,
   },
 });

@@ -1,31 +1,39 @@
-import React, { useEffect, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { Animated, ImageSourcePropType, Pressable, StyleSheet, Text, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import { spacing } from "../../constants/spacing";
-import type { ReservationStatus } from "../../types/models";
-import { typography } from "../../theme";
+import { useReduceMotion } from "../../hooks/useReduceMotion";
+import { designSystem, typography } from "../../theme";
 import { studentPalette } from "../../theme/studentPalette";
-import { formatReservationDate } from "../../utils/date";
-import { Card } from "../Card";
-import { StudentStatusPill } from "../StudentStatusPill";
-import { StudentVisualPlaceholder } from "../StudentVisualPlaceholder";
-import { MyReservationActions } from "./MyReservationActions";
+import type { ReservationStatus } from "../../types/models";
+import { getDishImageSource, getRestaurantImageSource } from "../../utils/foodImages";
+import { triggerFeedback } from "../../utils/haptics";
 import { getReservationStatusBadge } from "./getReservationStatusBadge";
 
 type ReservationCardItem = {
   id: string;
+  dishImageUrl?: string | null;
   reservationDate: string;
+  restaurantImageUrl?: string | null;
   restaurantName: string;
   status: ReservationStatus;
   title: string;
   expiresAt?: string | null;
+  items?: Array<{
+    dishId: string;
+    dishImageUrl?: string | null;
+    dishName: string;
+    restaurantId: string;
+    quantity?: number;
+  }>;
 };
 
 type MyReservationCardProps = {
   isCancelling: boolean;
   isPaymentInProgress: boolean;
   isPaying: boolean;
+  isRated?: boolean;
+  isReordering?: boolean;
   reservation: ReservationCardItem;
   onCancel: (reservationId: string) => void;
   onPay: (reservationId: string) => void;
@@ -35,27 +43,38 @@ type MyReservationCardProps = {
   onReorder?: () => void;
 };
 
-function getRemainingTime(
-  expiresAt: string | null | undefined,
-  nowMs: number
-) {
-  if (!expiresAt) {
-    return null;
-  }
+const LOWERCASE_WORDS = new Set([
+  "a",
+  "al",
+  "con",
+  "de",
+  "del",
+  "el",
+  "en",
+  "la",
+  "las",
+  "los",
+  "y",
+  "arroz",
+  "camaron",
+  "camarón",
+  "carne",
+  "cerdo",
+  "fideo",
+  "pollo",
+  "principal",
+  "sopa",
+]);
+
+function getRemainingTime(expiresAt: string | null | undefined, nowMs: number) {
+  if (!expiresAt) return null;
 
   const expirationMs = new Date(expiresAt).getTime();
-
-  if (Number.isNaN(expirationMs)) {
-    return null;
-  }
+  if (Number.isNaN(expirationMs)) return null;
 
   const differenceMs = expirationMs - nowMs;
-
   if (differenceMs <= 0) {
-    return {
-      expired: true,
-      label: "Tiempo agotado",
-    };
+    return { expired: true, label: "Tiempo agotado" };
   }
 
   const totalSeconds = Math.ceil(differenceMs / 1000);
@@ -64,17 +83,251 @@ function getRemainingTime(
 
   return {
     expired: false,
-    label: `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(
-      2,
-      "0"
-    )}`,
+    label: `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`,
   };
+}
+
+function formatNaturalName(value?: string | null) {
+  const raw = value?.trim();
+  if (!raw) return "";
+
+  return raw
+    .split(/\s+/)
+    .map((part, index) => {
+      if (/^[A-ZÁÉÍÓÚÜÑ0-9]{2,}$/.test(part) && part.length <= 4) {
+        return part;
+      }
+
+      const lower = part.toLocaleLowerCase("es-EC");
+      if (index > 0 && LOWERCASE_WORDS.has(lower)) return lower;
+
+      return `${lower.charAt(0).toLocaleUpperCase("es-EC")}${lower.slice(1)}`;
+    })
+    .join(" ");
+}
+
+function formatReservationDateTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  const datePart = date
+    .toLocaleDateString("es-EC", {
+      day: "2-digit",
+      month: "short",
+      timeZone: "America/Guayaquil",
+    })
+    .replace(".", "");
+  const timePart = date.toLocaleTimeString("es-EC", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "America/Guayaquil",
+  });
+
+  return `${datePart} · ${timePart}`;
+}
+
+function getReservationTitle(reservation: ReservationCardItem) {
+  const firstItem = reservation.items?.[0];
+  const baseTitle = firstItem?.dishName || reservation.title || "Reserva";
+  const extraCount = Math.max((reservation.items?.length ?? 0) - 1, 0);
+
+  if (extraCount > 0) {
+    return `${formatNaturalName(baseTitle)} +${extraCount} ${
+      extraCount === 1 ? "producto" : "productos"
+    }`;
+  }
+
+  return formatNaturalName(baseTitle);
+}
+
+function getStatusTone(status: ReservationStatus) {
+  if (status === "completed") return "completed";
+  if (status === "cancelled" || status === "expired") return "cancelled";
+  if (status === "pending_payment") return "pending";
+  return "active";
+}
+
+function getToneStyles(status: ReservationStatus) {
+  switch (getStatusTone(status)) {
+    case "completed":
+      return {
+        line: styles.lineCompleted,
+        badge: styles.badgeCompleted,
+        badgeText: styles.badgeTextCompleted,
+        primaryIcon: "repeat" as const,
+      };
+    case "cancelled":
+      return {
+        line: styles.lineCancelled,
+        badge: styles.badgeCancelled,
+        badgeText: styles.badgeTextCancelled,
+        primaryIcon: "repeat" as const,
+      };
+    case "pending":
+      return {
+        line: styles.linePending,
+        badge: styles.badgePending,
+        badgeText: styles.badgeTextPending,
+        primaryIcon: "credit-card-outline" as const,
+      };
+    case "active":
+    default:
+      return {
+        line: styles.lineActive,
+        badge: styles.badgeActive,
+        badgeText: styles.badgeTextActive,
+        primaryIcon: "map-marker-path" as const,
+      };
+  }
+}
+
+function ReservationImage({
+  compact = false,
+  reservation,
+}: {
+  compact?: boolean;
+  reservation: ReservationCardItem;
+}) {
+  const reduceMotion = useReduceMotion();
+  const firstItem = reservation.items?.[0];
+  const opacity = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
+  const dishName = firstItem?.dishName?.trim() || reservation.title?.trim();
+  const dishId = firstItem?.dishId ? String(firstItem.dishId) : "";
+  const hasDishIdentity = Boolean(dishId || dishName);
+  const source: ImageSourcePropType = firstItem?.dishImageUrl
+    ? getDishImageSource({
+        id: dishId || reservation.id,
+        imageUrl: firstItem.dishImageUrl,
+        name: dishName,
+      })
+    : hasDishIdentity
+      ? getDishImageSource({
+          id: dishId || reservation.id,
+          name: dishName,
+        })
+      : reservation.restaurantImageUrl
+        ? getRestaurantImageSource({
+            id: firstItem?.restaurantId ?? reservation.restaurantName,
+            name: reservation.restaurantName,
+            imageUrl: reservation.restaurantImageUrl,
+          })
+        : getRestaurantImageSource({
+            id: firstItem?.restaurantId ?? reservation.restaurantName,
+            name: reservation.restaurantName,
+          });
+
+  const handleLoad = () => {
+    if (reduceMotion) {
+      opacity.setValue(1);
+      return;
+    }
+
+    Animated.timing(opacity, {
+      toValue: 1,
+      duration: designSystem.animation.fast,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  return (
+    <View style={[styles.imageFrame, compact && styles.imageFrameCompact]}>
+      <Animated.Image
+        source={source}
+        resizeMode="cover"
+        onLoad={handleLoad}
+        style={[styles.image, { opacity }]}
+      />
+    </View>
+  );
+}
+
+function ReservationAction({
+  compact = false,
+  danger = false,
+  disabled,
+  fullWidth = false,
+  iconName,
+  label,
+  onPress,
+  primary = false,
+  quietPrimary = false,
+  tertiary = false,
+}: {
+  compact?: boolean;
+  danger?: boolean;
+  disabled?: boolean;
+  fullWidth?: boolean;
+  iconName: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
+  label: string;
+  onPress?: () => void;
+  primary?: boolean;
+  quietPrimary?: boolean;
+  tertiary?: boolean;
+}) {
+  const pressLockRef = useRef(false);
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      disabled={disabled || !onPress}
+      onPress={() => {
+        if (pressLockRef.current) return;
+
+        pressLockRef.current = true;
+        setTimeout(() => {
+          pressLockRef.current = false;
+        }, 650);
+        void triggerFeedback("selection");
+        onPress?.();
+      }}
+      style={({ pressed }) => [
+        styles.actionButton,
+        compact && styles.actionButtonCompact,
+        primary ? styles.primaryAction : styles.secondaryAction,
+        quietPrimary && styles.quietPrimaryAction,
+        tertiary && styles.tertiaryAction,
+        danger && !primary && styles.dangerAction,
+        fullWidth && styles.fullWidthAction,
+        pressed && !disabled && styles.actionPressed,
+        disabled && styles.actionDisabled,
+      ]}
+    >
+      <MaterialCommunityIcons
+        name={iconName}
+        size={compact || tertiary ? 13 : 15}
+        color={
+          primary
+            ? quietPrimary
+              ? studentPalette.primary
+              : "#FFFFFF"
+            : danger
+              ? studentPalette.danger
+              : studentPalette.primary
+        }
+      />
+      <Text
+        style={[
+          styles.actionText,
+          compact && styles.actionTextCompact,
+          primary ? styles.primaryActionText : styles.secondaryActionText,
+          quietPrimary && styles.quietPrimaryActionText,
+          danger && !primary && styles.dangerActionText,
+        ]}
+        numberOfLines={1}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
 }
 
 export function MyReservationCard({
   isCancelling,
   isPaymentInProgress,
   isPaying,
+  isRated = false,
+  isReordering = false,
   reservation,
   onCancel,
   onPay,
@@ -84,14 +337,11 @@ export function MyReservationCard({
   onReorder,
 }: MyReservationCardProps) {
   const badge = getReservationStatusBadge(reservation.status);
-
+  const tone = getToneStyles(reservation.status);
   const [nowMs, setNowMs] = useState(Date.now());
 
   useEffect(() => {
-    if (
-      reservation.status !== "pending_payment" ||
-      !reservation.expiresAt
-    ) {
+    if (reservation.status !== "pending_payment" || !reservation.expiresAt) {
       return undefined;
     }
 
@@ -99,344 +349,476 @@ export function MyReservationCard({
       setNowMs(Date.now());
     }, 1000);
 
-    return () => {
-      clearInterval(interval);
-    };
+    return () => clearInterval(interval);
   }, [reservation.status, reservation.expiresAt]);
 
   const remainingTime =
     reservation.status === "pending_payment"
       ? getRemainingTime(reservation.expiresAt, nowMs)
       : null;
-
-  const shouldShowActions = reservation.status === "pending_payment" && !remainingTime?.expired;
-  const statusStyle = getStatusStyle(reservation.status);
+  const canPay = reservation.status === "pending_payment" && !remainingTime?.expired;
+  const isActive =
+    reservation.status === "confirmed" || reservation.status === "pending_payment";
+  const isCompleted = reservation.status === "completed";
+  const isCancelled =
+    reservation.status === "cancelled" || reservation.status === "expired";
 
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`Ver reserva ${reservation.title}`}
       onPress={onPress}
-      style={({ pressed }) => pressed && styles.pressed}
+      style={({ pressed }) => [styles.pressable, pressed && styles.pressed]}
     >
-    <Card style={[styles.card, statusStyle.card]}>
-      <View style={[styles.stateMark, statusStyle.mark]} pointerEvents="none" />
+      <View style={[styles.card, isCancelled && styles.cardCancelledCompact]}>
+        <View style={[styles.stateLine, isCancelled && styles.stateLineCompact, tone.line]} />
 
-      <View style={styles.mainRow}>
-        <StudentVisualPlaceholder
-          iconName={statusStyle.iconName}
-          label={`Reserva ${reservation.title}`}
-          size="sm"
-          style={styles.visual}
-          variant={reservation.status === "pending_payment" ? "reservation" : "dish"}
-        />
+        <View style={styles.mainRow}>
+          <ReservationImage reservation={reservation} compact={isCancelled} />
 
-        <View style={styles.content}>
-          <View style={styles.titleRow}>
-            <Text style={styles.cardTitle} numberOfLines={2}>
-              {reservation.title}
-            </Text>
-            <StudentStatusPill
-              label={badge.label}
-              style={styles.statusPill}
-              tone={badge.tone}
-            />
-          </View>
-
-          <Text style={styles.restaurantName} numberOfLines={1}>
-            {reservation.restaurantName}
-          </Text>
-
-          <View style={styles.metaRow}>
-            <MaterialCommunityIcons
-              name="calendar-blank-outline"
-              size={15}
-              color={studentPalette.textMuted}
-            />
-            <Text style={styles.cardDate} numberOfLines={1}>
-              {formatReservationDate(reservation.reservationDate)}
-            </Text>
-            {remainingTime ? (
-              <View style={styles.expirationRow}>
+          <View style={styles.content}>
+            <View style={styles.titleRow}>
+              <Text
+                style={[styles.cardTitle, isCancelled && styles.cardTitleCompact]}
+                numberOfLines={isCancelled ? 1 : 2}
+              >
+                {getReservationTitle(reservation)}
+              </Text>
+              <View style={[styles.statusBadge, isCancelled && styles.statusBadgeCompact, tone.badge]}>
                 <MaterialCommunityIcons
-                  name="timer-outline"
-                  size={15}
-                  color={
-                    remainingTime.expired
-                      ? studentPalette.danger
-                      : studentPalette.warning
+                  name={
+                    reservation.status === "completed"
+                      ? "check-circle"
+                      : isCancelled
+                        ? "close-circle"
+                        : reservation.status === "pending_payment"
+                          ? "clock-outline"
+                          : "check-circle"
                   }
+                  size={isCancelled ? 11 : 12}
+                  color={tone.badgeText.color}
                 />
-
-                <Text
-                  style={[
-                    styles.expirationText,
-                    remainingTime.expired && styles.expirationTextExpired,
-                  ]}
-                >
-                  {remainingTime.expired
-                    ? "Tiempo para pagar agotado"
-                    : `Tiempo para pagar: ${remainingTime.label}`}
+                <Text style={[styles.statusBadgeText, tone.badgeText]} numberOfLines={1}>
+                  {badge.label}
                 </Text>
               </View>
-            ) : null}
+            </View>
+
+            <View style={styles.metaLine}>
+              <MaterialCommunityIcons
+                name="silverware-fork-knife"
+                size={12}
+                color={studentPalette.textMuted}
+              />
+              <Text style={styles.restaurantName} numberOfLines={1}>
+                {formatNaturalName(reservation.restaurantName)}
+              </Text>
+            </View>
+
+            <View style={styles.metaLine}>
+              <MaterialCommunityIcons
+                name="calendar-blank-outline"
+                size={12}
+                color={studentPalette.textMuted}
+              />
+              <Text style={styles.cardDate} numberOfLines={1}>
+                {formatReservationDateTime(reservation.reservationDate)}
+              </Text>
+            </View>
           </View>
         </View>
-      </View>
 
-      {shouldShowActions ? (
-        <MyReservationActions
-          isCancelling={isCancelling}
-          isPaying={isPaying}
-          isPaymentInProgress={isPaymentInProgress}
-          reservationTitle={reservation.title}
-          onCancel={() => onCancel(reservation.id)}
-          onPay={() => onPay(reservation.id)}
-        />
-      ) : null}
-
-      {onReorder ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Volver a pedir"
-          onPress={onReorder}
-          style={({ pressed }) => [
-            styles.reorderButton,
-            pressed && styles.reorderButtonPressed,
-          ]}
-        >
-          <MaterialCommunityIcons
-            name="repeat"
-            size={16}
-            color={studentPalette.primary}
-          />
-          <Text style={styles.reorderText}>Volver a pedir</Text>
-        </Pressable>
-      ) : null}
-
-      {(onRate || onReport) ? (
-        <View style={styles.quickActions}>
-          {onRate ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Calificar pedido"
-              onPress={onRate}
-              style={({ pressed }) => [
-                styles.quickActionButton,
-                pressed && styles.reorderButtonPressed,
+        {remainingTime ? (
+          <View style={styles.expirationRow}>
+            <MaterialCommunityIcons
+              name="timer-outline"
+              size={13}
+              color={remainingTime.expired ? studentPalette.danger : studentPalette.warning}
+            />
+            <Text
+              style={[
+                styles.expirationText,
+                remainingTime.expired && styles.expirationTextExpired,
               ]}
+              numberOfLines={1}
             >
-              <MaterialCommunityIcons
-                name="star-outline"
-                size={16}
-                color={studentPalette.primary}
+              {remainingTime.expired
+                ? "Tiempo para pagar agotado"
+                : `Tiempo para pagar: ${remainingTime.label}`}
+            </Text>
+          </View>
+        ) : null}
+
+        <View style={[styles.actions, isCancelled && styles.actionsCompact]}>
+          {canPay ? (
+            <>
+              <ReservationAction
+                disabled={isPaymentInProgress || isCancelling}
+                iconName="credit-card-outline"
+                label={isPaying ? "Procesando..." : "Pagar"}
+                onPress={() => onPay(reservation.id)}
+                primary
               />
-              <Text style={styles.reorderText}>Calificar pedido</Text>
-            </Pressable>
+              <ReservationAction
+                disabled={isCancelling || isPaying}
+                iconName="close-circle-outline"
+                label={isCancelling ? "Cancelando..." : "Cancelar"}
+                onPress={() => onCancel(reservation.id)}
+              />
+            </>
           ) : null}
 
-          {onReport ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Reportar problema"
-              onPress={onReport}
-              style={({ pressed }) => [
-                styles.quickActionButton,
-                pressed && styles.reorderButtonPressed,
-              ]}
-            >
-              <MaterialCommunityIcons
-                name="alert-circle-outline"
-                size={16}
-                color={studentPalette.primary}
+          {isActive && !canPay ? (
+            <>
+              <ReservationAction
+                iconName={tone.primaryIcon}
+                label="Ver seguimiento"
+                onPress={onPress}
+                fullWidth
+                primary
               />
-              <Text style={styles.reorderText}>Reportar problema</Text>
-            </Pressable>
+              <ReservationAction
+                iconName="alert-circle-outline"
+                label="Reportar problema"
+                onPress={onReport}
+                tertiary
+              />
+            </>
+          ) : null}
+
+          {isCompleted || isCancelled ? (
+            <>
+              {onReorder ? (
+                <ReservationAction
+                  compact={isCancelled}
+                  disabled={isReordering}
+                  iconName="repeat"
+                  label={isReordering ? "Agregando..." : "Volver a pedir"}
+                  onPress={onReorder}
+                  primary
+                  quietPrimary={isCancelled}
+                />
+              ) : null}
+              {isCompleted && isRated ? (
+                <View style={styles.ratedPill}>
+                  <MaterialCommunityIcons
+                    name="star-check"
+                    size={13}
+                    color={studentPalette.info}
+                  />
+                  <Text style={styles.ratedText}>Calificado</Text>
+                </View>
+              ) : isCompleted && onRate ? (
+                <ReservationAction
+                  iconName="star-outline"
+                  label="Calificar"
+                  onPress={onRate}
+                />
+              ) : null}
+              {onReport ? (
+                <ReservationAction
+                  compact={isCancelled}
+                  danger={isCancelled}
+                  iconName="alert-circle-outline"
+                  label="Reportar"
+                  onPress={onReport}
+                  tertiary={isCompleted}
+                />
+              ) : null}
+            </>
           ) : null}
         </View>
-      ) : null}
-    </Card>
+      </View>
     </Pressable>
   );
 }
 
-function getStatusStyle(status: ReservationStatus) {
-  switch (status) {
-    case "confirmed":
-      return {
-        card: styles.cardConfirmed,
-        mark: styles.markConfirmed,
-        iconName: "check-circle-outline" as const,
-      };
-    case "pending_payment":
-      return {
-        card: styles.cardPending,
-        mark: styles.markPending,
-        iconName: "clock-outline" as const,
-      };
-    case "completed":
-      return {
-        card: styles.cardCompleted,
-        mark: styles.markCompleted,
-        iconName: "calendar-check-outline" as const,
-      };
-    case "expired":
-    case "cancelled":
-    default:
-      return {
-        card: styles.cardCancelled,
-        mark: styles.markCancelled,
-        iconName: "close-circle-outline" as const,
-      };
-  }
-}
-
 const styles = StyleSheet.create({
-  card: {
-    position: "relative",
-    borderRadius: 20,
-    borderColor: studentPalette.border,
-    backgroundColor: studentPalette.cardElevated,
-    padding: spacing.sm,
-    shadowColor: studentPalette.shadow,
-    shadowOpacity: 1,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
-    overflow: "hidden",
+  pressable: {
+    borderRadius: 16,
   },
   pressed: {
-    transform: [{ scale: 0.99 }],
+    transform: [{ scale: 0.992 }],
   },
-  cardPending: {
-    borderColor: studentPalette.warningBorder,
+  card: {
+    position: "relative",
+    overflow: "hidden",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: studentPalette.border,
+    backgroundColor: studentPalette.cardElevated,
+    padding: 9,
+    ...designSystem.shadows.low,
   },
-  cardConfirmed: {
-    borderColor: "rgba(35, 148, 71, 0.24)",
+  cardCancelledCompact: {
+    padding: 8,
+    borderRadius: 15,
+    shadowOpacity: 0.55,
+    shadowRadius: 6,
+    elevation: 1,
   },
-  cardCancelled: {
-    borderColor: "rgba(214, 40, 40, 0.18)",
-  },
-  cardCompleted: {
-    borderColor: "rgba(70, 98, 122, 0.20)",
-  },
-  stateMark: {
+  stateLine: {
     position: "absolute",
-    top: 0,
-    bottom: 0,
+    top: 9,
+    bottom: 9,
     left: 0,
     width: 2,
+    borderTopRightRadius: 999,
+    borderBottomRightRadius: 999,
   },
-  markPending: {
-    backgroundColor: "rgba(217, 119, 6, 0.56)",
+  stateLineCompact: {
+    top: 8,
+    bottom: 8,
   },
-  markConfirmed: {
-    backgroundColor: "rgba(35, 148, 71, 0.42)",
+  lineActive: {
+    backgroundColor: studentPalette.success,
   },
-  markCancelled: {
-    backgroundColor: "rgba(214, 40, 40, 0.34)",
+  linePending: {
+    backgroundColor: studentPalette.warning,
   },
-  markCompleted: {
-    backgroundColor: "rgba(70, 98, 122, 0.34)",
+  lineCompleted: {
+    backgroundColor: studentPalette.info,
+  },
+  lineCancelled: {
+    backgroundColor: studentPalette.danger,
   },
   mainRow: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
+    alignItems: "flex-start",
+    gap: 9,
   },
-  visual: {
-    width: 50,
-    height: 50,
-    borderRadius: 14,
+  imageFrame: {
+    width: 74,
+    height: 70,
+    borderRadius: 13,
+    overflow: "hidden",
+    backgroundColor: studentPalette.cardMuted,
+  },
+  imageFrameCompact: {
+    width: 66,
+    height: 64,
+    borderRadius: 12,
+  },
+  image: {
+    width: "100%",
+    height: "100%",
   },
   content: {
     flex: 1,
     minWidth: 0,
-    gap: 2,
+    gap: 3,
   },
   titleRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: spacing.sm,
+    gap: 6,
   },
   cardTitle: {
     flex: 1,
-    fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.bold,
     color: studentPalette.textPrimary,
-    lineHeight: typography.lineHeights.sm,
+    fontSize: 15,
+    lineHeight: 18,
+    fontWeight: typography.weights.bold,
   },
-  statusPill: {
-    maxWidth: 132,
+  cardTitleCompact: {
+    fontSize: 14,
+    lineHeight: 17,
   },
-  restaurantName: {
-    fontSize: typography.sizes.xs,
-    color: studentPalette.textSecondary,
-    lineHeight: typography.lineHeights.xs,
-  },
-  metaRow: {
+  statusBadge: {
+    maxWidth: 112,
+    minHeight: 22,
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.xs,
+    gap: 3,
+    paddingHorizontal: 7,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  statusBadgeCompact: {
+    maxWidth: 98,
+    minHeight: 20,
+    paddingHorizontal: 6,
+  },
+  statusBadgeText: {
+    fontSize: 10.5,
+    lineHeight: 13,
+    fontWeight: typography.weights.semiBold,
+  },
+  badgeActive: {
+    backgroundColor: studentPalette.successSoft,
+    borderColor: studentPalette.successBorder,
+  },
+  badgePending: {
+    backgroundColor: studentPalette.warningSoft,
+    borderColor: studentPalette.warningBorder,
+  },
+  badgeCompleted: {
+    backgroundColor: studentPalette.infoSoft,
+    borderColor: studentPalette.infoBorder,
+  },
+  badgeCancelled: {
+    backgroundColor: studentPalette.dangerSoft,
+    borderColor: studentPalette.dangerBorder,
+  },
+  badgeTextActive: {
+    color: studentPalette.success,
+  },
+  badgeTextPending: {
+    color: studentPalette.warning,
+  },
+  badgeTextCompleted: {
+    color: studentPalette.info,
+  },
+  badgeTextCancelled: {
+    color: studentPalette.danger,
+  },
+  metaLine: {
+    minHeight: 15,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  restaurantName: {
+    flex: 1,
+    color: studentPalette.textSecondary,
+    fontSize: 11.5,
+    lineHeight: 14,
+    fontWeight: typography.weights.semiBold,
   },
   cardDate: {
     flex: 1,
-    fontSize: typography.sizes.xs,
     color: studentPalette.textMuted,
-    lineHeight: typography.lineHeights.xs,
+    fontSize: 11.5,
+    lineHeight: 14,
   },
   expirationRow: {
-    marginTop: spacing.xs,
+    minHeight: 22,
+    marginTop: 6,
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.xs,
+    gap: 5,
+    paddingLeft: 83,
   },
   expirationText: {
     flex: 1,
     color: studentPalette.warning,
-    fontSize: typography.sizes.xs,
-    fontWeight: typography.weights.bold,
+    fontSize: 11.5,
+    lineHeight: 14,
+    fontWeight: typography.weights.semiBold,
   },
   expirationTextExpired: {
     color: studentPalette.danger,
   },
-  reorderButton: {
-    marginTop: spacing.sm,
-    minHeight: 36,
+  actions: {
+    marginTop: 7,
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.xs,
-    borderRadius: 999,
-    backgroundColor: studentPalette.primaryFaint,
-    borderWidth: 1,
-    borderColor: studentPalette.primarySoft,
-  },
-  reorderButtonPressed: {
-    opacity: 0.82,
-  },
-  reorderText: {
-    color: studentPalette.primary,
-    fontSize: typography.roles.cardTitle.fontSize,
-    fontWeight: typography.roles.cardTitle.fontWeight,
-  },
-  quickActions: {
-    marginTop: spacing.sm,
-    flexDirection: "row",
-    gap: spacing.sm,
     flexWrap: "wrap",
+    gap: 7,
   },
-  quickActionButton: {
+  actionsCompact: {
+    marginTop: 6,
+    gap: 6,
+  },
+  actionButton: {
     flexGrow: 1,
+    flexBasis: 124,
+    minHeight: 40,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+    paddingHorizontal: 9,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  actionButtonCompact: {
+    flexBasis: 104,
+    minHeight: 38,
+    paddingHorizontal: 7,
+    borderRadius: 11,
+  },
+  fullWidthAction: {
+    flexBasis: "100%",
+    minHeight: 44,
+  },
+  primaryAction: {
+    backgroundColor: studentPalette.primary,
+    borderColor: studentPalette.primary,
+    shadowColor: studentPalette.primary,
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 1,
+  },
+  quietPrimaryAction: {
+    backgroundColor: studentPalette.primaryFaint,
+    borderColor: studentPalette.primarySoft,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  secondaryAction: {
+    backgroundColor: studentPalette.card,
+    borderColor: studentPalette.primarySoft,
+  },
+  tertiaryAction: {
+    flexGrow: 0,
+    flexBasis: "100%",
+    minHeight: 26,
+    backgroundColor: "transparent",
+    borderColor: "transparent",
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  dangerAction: {
+    borderColor: studentPalette.dangerBorder,
+    backgroundColor: "transparent",
+  },
+  actionPressed: {
+    opacity: 0.84,
+    transform: [{ scale: 0.99 }],
+  },
+  actionDisabled: {
+    opacity: 0.56,
+  },
+  actionText: {
+    fontSize: 12,
+    lineHeight: 15,
+    fontWeight: typography.weights.semiBold,
+  },
+  actionTextCompact: {
+    fontSize: 11.5,
+    lineHeight: 14,
+  },
+  primaryActionText: {
+    color: "#FFFFFF",
+  },
+  quietPrimaryActionText: {
+    color: studentPalette.primary,
+  },
+  secondaryActionText: {
+    color: studentPalette.primary,
+  },
+  dangerActionText: {
+    color: studentPalette.danger,
+  },
+  ratedPill: {
+    flexGrow: 1,
+    flexBasis: 120,
     minHeight: 36,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    borderRadius: 999,
-    backgroundColor: studentPalette.primaryFaint,
+    gap: 5,
+    paddingHorizontal: 9,
+    borderRadius: 12,
+    backgroundColor: studentPalette.infoSoft,
     borderWidth: 1,
-    borderColor: studentPalette.primarySoft,
+    borderColor: studentPalette.infoBorder,
+  },
+  ratedText: {
+    color: studentPalette.info,
+    fontSize: 12,
+    lineHeight: 15,
+    fontWeight: typography.weights.semiBold,
   },
 });

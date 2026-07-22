@@ -12,6 +12,16 @@ type ReservationItemApi = {
   dish_id: string;
   dish_name: string;
   dish_description?: string | null;
+  dish_image_url?: string | null;
+  dishImageUrl?: string | null;
+  image_url?: string | null;
+  imageUrl?: string | null;
+  dish?: {
+    id?: string | number;
+    name?: string;
+    image_url?: string | null;
+    imageUrl?: string | null;
+  } | null;
   restaurant_id: string;
   unit_price: string | number;
   quantity?: string | number;
@@ -154,15 +164,37 @@ function normalizeNumber(value: unknown): number {
 
 function normalizeReservationItem(item: unknown): ReservationItem {
   const source = isRecord(item) ? item : {};
+  const dish = isRecord(source.dish) ? source.dish : {};
 
   return {
     id: String(source.id ?? ""),
-    dishId: String(source.dish_id ?? source.dishId ?? ""),
-    dishName: typeof source.dish_name === "string" ? source.dish_name : "",
+    dishId: String(source.dish_id ?? source.dishId ?? dish.id ?? ""),
+    dishName:
+      typeof source.dish_name === "string"
+        ? source.dish_name
+        : typeof source.dishName === "string"
+          ? source.dishName
+          : typeof dish.name === "string"
+            ? dish.name
+            : "",
     dishDescription:
       typeof source.dish_description === "string"
         ? source.dish_description
         : null,
+    dishImageUrl:
+      typeof source.dish_image_url === "string"
+        ? source.dish_image_url
+        : typeof source.dishImageUrl === "string"
+          ? source.dishImageUrl
+          : typeof source.image_url === "string"
+            ? source.image_url
+            : typeof source.imageUrl === "string"
+              ? source.imageUrl
+              : typeof dish.image_url === "string"
+                ? dish.image_url
+                : typeof dish.imageUrl === "string"
+                  ? dish.imageUrl
+                  : null,
     restaurantId: String(source.restaurant_id ?? source.restaurantId ?? ""),
     unitPrice: normalizeNumber(source.unit_price ?? source.unitPrice),
     quantity: normalizeNumber(source.quantity ?? 1),

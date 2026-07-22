@@ -1,15 +1,19 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
-  Image,
+  Easing,
+  ImageSourcePropType,
+  ImageStyle,
   Keyboard,
   Modal,
   Pressable,
   ScrollView,
   StyleSheet,
+  StyleProp,
   Text,
   TextInput,
   View,
+  ViewStyle,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -23,6 +27,8 @@ import { useThemeColors } from "../hooks/useThemeColors";
 import { Dish, getPublicDishesByRestaurant } from "../services/dishService";
 import { designSystem, typography } from "../theme";
 import { Restaurant } from "../types/models";
+import { triggerFeedback } from "../utils/haptics";
+import { getDishImageSource, getRestaurantImageSource } from "../utils/foodImages";
 
 type ExploreScreenProps = {
   bottomInset: number;
@@ -52,10 +58,14 @@ type SearchSuggestion =
   | { key: string; type: "dish"; label: string; restaurant: Restaurant; dish: Dish }
   | { key: string; type: "term"; label: string };
 
-const TYPE_OPTIONS: Array<{ key: ResultType; label: string }> = [
-  { key: "all", label: "Todos" },
-  { key: "restaurants", label: "Restaurantes" },
-  { key: "dishes", label: "Platos" },
+const TYPE_OPTIONS: Array<{
+  key: ResultType;
+  label: string;
+  iconName: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
+}> = [
+  { key: "all", label: "Todos", iconName: "silverware-fork-knife" },
+  { key: "restaurants", label: "Restaurantes", iconName: "storefront-outline" },
+  { key: "dishes", label: "Platos", iconName: "food-outline" },
 ];
 
 const DEFAULT_ADVANCED_FILTERS: AdvancedFilters = {
@@ -102,15 +112,15 @@ function getBudgetLabel(filters: AdvancedFilters) {
 }
 
 function getSortLabel(sort: SortMode) {
-  if (sort === "priceAsc") return "Precio: menor a mayor";
-  if (sort === "priceDesc") return "Precio: mayor a menor";
+  if (sort === "priceAsc") return "Precio menor";
+  if (sort === "priceDesc") return "Precio mayor";
   if (sort === "nameAsc") return "Nombre A-Z";
   return "Relevancia";
 }
 
 function getResultsSummary(restaurantCount: number, dishCount: number) {
   if (restaurantCount > 0 && dishCount > 0) {
-    return `${restaurantCount} ${restaurantCount === 1 ? "restaurante" : "restaurantes"} y ${dishCount} ${dishCount === 1 ? "plato" : "platos"}`;
+    return `${restaurantCount} ${restaurantCount === 1 ? "restaurante" : "restaurantes"} · ${dishCount} ${dishCount === 1 ? "plato" : "platos"}`;
   }
   if (restaurantCount > 0) return `${restaurantCount} ${restaurantCount === 1 ? "restaurante" : "restaurantes"}`;
   if (dishCount > 0) return `${dishCount} ${dishCount === 1 ? "plato" : "platos"}`;
@@ -134,6 +144,61 @@ function getRestaurantSummary(restaurant: Restaurant, dishCount = 0) {
 
 function matchesQuery(value: string | undefined, query: string) {
   return Boolean(value?.toLowerCase().includes(query));
+}
+
+function normalizeDisplayWord(value?: string | null) {
+  const raw = value?.trim();
+  if (!raw) return "";
+
+  if (/^[A-ZÁÉÍÓÚÜÑ]{2,}$/.test(raw) && raw.length <= 4) {
+    return raw;
+  }
+
+  return raw
+    .toLocaleLowerCase("es-EC")
+    .replace(/(^|['’ -])([\p{L}])/gu, (_match, separator: string, letter: string) =>
+      `${separator}${letter.toLocaleUpperCase("es-EC")}`
+    );
+}
+
+function formatNaturalName(value?: string | null) {
+  const raw = value?.trim();
+  if (!raw) return "";
+
+  return raw
+    .split(/\s+/)
+    .map((part) => {
+      if (/\p{Ll}/u.test(part) && /\p{Lu}/u.test(part)) return part;
+      if (/^[A-ZÁÉÍÓÚÜÑ0-9&.-]{2,}$/.test(part) && /[A-ZÁÉÍÓÚÜÑ]/.test(part)) {
+        return part.length <= 4 ? part : normalizeDisplayWord(part);
+      }
+      return normalizeDisplayWord(part);
+    })
+    .join(" ");
+}
+
+function getRatingData(source: unknown) {
+  if (typeof source !== "object" || source === null) return null;
+  const record = source as Record<string, unknown>;
+  const rawRating =
+    record.average_rating ??
+    record.averageRating ??
+    record.rating;
+  const rawCount =
+    record.ratings_count ??
+    record.ratingsCount ??
+    record.reviews_count ??
+    record.reviewsCount;
+  const rating = typeof rawRating === "number" ? rawRating : Number(rawRating);
+  const count = typeof rawCount === "number" ? rawCount : Number(rawCount);
+
+  if (!Number.isFinite(rating) || rating <= 0) return null;
+  if (!Number.isFinite(count) || count <= 0) return null;
+
+  return {
+    rating: Math.min(5, Math.max(0, rating)),
+    count: Math.floor(count),
+  };
 }
 
 export function ExploreScreen({
@@ -251,6 +316,12 @@ export function ExploreScreen({
       next = [...next].sort((left, right) =>
         left.dish.name.localeCompare(right.dish.name)
       );
+    } else {
+      next = [...next].sort((left, right) => {
+        const imageRank = Number(Boolean(right.dish.imageUrl)) - Number(Boolean(left.dish.imageUrl));
+        if (imageRank !== 0) return imageRank;
+        return left.originalIndex - right.originalIndex;
+      });
     }
 
     return next;
@@ -395,22 +466,29 @@ export function ExploreScreen({
       >
         <ExploreHeader />
 
-        <ExploreSearchBar
-          advancedFilterCount={advancedFilterCount}
-          query={query}
-          suggestions={isSearchFocused ? suggestions : []}
-          onChangeQuery={setQuery}
-          onClear={() => setQuery("")}
-          onFocus={() => setIsSearchFocused(true)}
-          onOpenFilters={openFilters}
-          onSelectSuggestion={openSuggestion}
-        />
+        <EntranceGroup delay={35}>
+          <ExploreSearchBar
+            advancedFilterCount={advancedFilterCount}
+            query={query}
+            suggestions={isSearchFocused ? suggestions : []}
+            onChangeQuery={setQuery}
+            onClear={() => setQuery("")}
+            onFocus={() => setIsSearchFocused(true)}
+            onOpenFilters={openFilters}
+            onSelectSuggestion={openSuggestion}
+          />
+        </EntranceGroup>
 
-        <ExploreTypeSelector value={resultType} onChange={setResultType} />
+        <EntranceGroup delay={80}>
+          <ExploreTypeSelector value={resultType} onChange={setResultType} />
+        </EntranceGroup>
 
-        <ExploreQuickFilter
-          selected={openOnly}
-          onPress={() => setOpenOnly((current) => !current)}
+        <ExploreDiscoveryControls
+          openOnly={openOnly}
+          resultsLabel={resultsSummary}
+          sortLabel={getSortLabel(sort)}
+          onPressOpenOnly={() => setOpenOnly((current) => !current)}
+          onPressSort={() => setSortModalVisible(true)}
         />
 
         {hasAdvancedFilters(filters) ? (
@@ -420,12 +498,6 @@ export function ExploreScreen({
             onClearFilter={clearAdvancedFilter}
           />
         ) : null}
-
-        <ExploreResultsSummary
-          label={resultsSummary}
-          sortLabel={getSortLabel(sort)}
-          onPressSort={() => setSortModalVisible(true)}
-        />
 
         {isInitialLoading ? (
           <ExploreLoadingSkeleton />
@@ -456,21 +528,27 @@ export function ExploreScreen({
             {visibleRestaurants.length > 0 ? (
               <View style={styles.exploreSection}>
                 <ExploreSectionHeader title="Restaurantes" />
-                {visibleRestaurants.map((restaurant, index) => (
-                  <ExploreRestaurantRow
-                    key={`restaurant-${restaurant.id}`}
-                    index={index}
-                    restaurant={restaurant}
-                    dishCount={restaurantDishCounts.get(String(restaurant.id)) ?? 0}
-                    onPress={() => onOpenRestaurant(restaurant)}
-                  />
-                ))}
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.restaurantCarousel}
+                >
+                  {visibleRestaurants.map((restaurant, index) => (
+                    <ExploreRestaurantCard
+                      key={`restaurant-${restaurant.id}`}
+                      index={index}
+                      restaurant={restaurant}
+                      dishCount={restaurantDishCounts.get(String(restaurant.id)) ?? 0}
+                      onPress={() => onOpenRestaurant(restaurant)}
+                    />
+                  ))}
+                </ScrollView>
               </View>
             ) : null}
 
             {visibleDishes.length > 0 ? (
               <View style={styles.exploreSection}>
-                <ExploreSectionHeader title="Platos disponibles" />
+                <ExploreSectionHeader title="Platos para ti" />
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
@@ -517,17 +595,85 @@ export function ExploreScreen({
 
 function ExploreHeader() {
   const theme = useThemeColors();
+  const reduceMotion = useReduceMotion();
+  const opacity = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
+  const translateY = useRef(new Animated.Value(reduceMotion ? 0 : 8)).current;
+
+  useEffect(() => {
+    if (reduceMotion) {
+      opacity.setValue(1);
+      translateY.setValue(0);
+      return;
+    }
+
+    Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 260,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: 260,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [opacity, reduceMotion, translateY]);
 
   return (
-    <View style={styles.exploreHeader}>
-      <View style={[styles.headerAccent, { backgroundColor: theme.primary }]} />
+    <Animated.View style={[styles.exploreHeader, { opacity, transform: [{ translateY }] }]}>
       <Text style={[styles.exploreTitle, { color: theme.textPrimary }]}>
         Explorar
       </Text>
       <Text style={[styles.exploreSubtitle, { color: theme.textSecondary }]}>
-        Descubre restaurantes y platos
+        Encuentra sabores dentro del campus
       </Text>
-    </View>
+    </Animated.View>
+  );
+}
+
+function EntranceGroup({
+  children,
+  delay,
+}: {
+  children: React.ReactNode;
+  delay: number;
+}) {
+  const reduceMotion = useReduceMotion();
+  const opacity = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
+  const translateY = useRef(new Animated.Value(reduceMotion ? 0 : 7)).current;
+
+  useEffect(() => {
+    if (reduceMotion) {
+      opacity.setValue(1);
+      translateY.setValue(0);
+      return;
+    }
+
+    Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 230,
+        delay,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: 230,
+        delay,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [delay, opacity, reduceMotion, translateY]);
+
+  return (
+    <Animated.View style={{ opacity, transform: [{ translateY }] }}>
+      {children}
+    </Animated.View>
   );
 }
 
@@ -558,7 +704,7 @@ function ExploreSearchBar({
         <View
           style={[
             styles.searchBar,
-            { backgroundColor: theme.primaryFaint, borderColor: theme.primarySoft },
+            { backgroundColor: theme.surfaceElevated, borderColor: theme.primarySoft },
           ]}
         >
           <MaterialCommunityIcons name="magnify" size={20} color={theme.primary} />
@@ -567,7 +713,7 @@ function ExploreSearchBar({
             onChangeText={onChangeQuery}
             onFocus={onFocus}
             placeholder="Buscar platos o restaurantes"
-            placeholderTextColor={theme.textMuted}
+            placeholderTextColor={theme.textSecondary}
             accessibilityLabel="Buscar platos o restaurantes"
             style={[styles.searchInput, { color: theme.textPrimary }]}
           />
@@ -589,7 +735,7 @@ function ExploreSearchBar({
           style={({ pressed }) => [
             styles.searchFilterButton,
             {
-              backgroundColor: advancedFilterCount ? theme.primary : theme.primaryFaint,
+              backgroundColor: theme.primaryFaint,
               borderColor: theme.primarySoft,
             },
             pressed && styles.pressed,
@@ -598,11 +744,11 @@ function ExploreSearchBar({
           <MaterialCommunityIcons
             name="tune-variant"
             size={22}
-            color={advancedFilterCount ? theme.textInverted : theme.primary}
+            color={theme.primary}
           />
           {advancedFilterCount ? (
-            <View style={[styles.filterBadge, { backgroundColor: theme.textInverted }]}>
-              <Text style={[styles.filterBadgeText, { color: theme.primary }]}>
+            <View style={[styles.filterBadge, { backgroundColor: theme.primary }]}>
+              <Text style={[styles.filterBadgeText, { color: theme.textInverted }]}>
                 {advancedFilterCount}
               </Text>
             </View>
@@ -657,25 +803,15 @@ function SearchSuggestionRow({
     >
       <View style={[styles.suggestionThumb, { backgroundColor: theme.surfaceSecondary }]}>
         {suggestion.type === "restaurant" ? (
-          suggestion.restaurant.imageUrl ? (
-            <Image
-              source={{ uri: suggestion.restaurant.imageUrl }}
-              style={styles.resultImage}
-              resizeMode="cover"
-            />
-          ) : (
-            <View style={styles.resultImage} />
-          )
+          <FadeInImage
+            source={getRestaurantImageSource(suggestion.restaurant)}
+            style={styles.resultImage}
+          />
         ) : suggestion.type === "dish" ? (
-          suggestion.dish.imageUrl ? (
-            <Image
-              source={{ uri: suggestion.dish.imageUrl }}
-              style={styles.resultImage}
-              resizeMode="cover"
-            />
-          ) : (
-            <View style={styles.resultImage} />
-          )
+          <FadeInImage
+            source={getDishImageSource(suggestion.dish, suggestion.restaurant)}
+            style={styles.resultImage}
+          />
         ) : (
           <MaterialCommunityIcons
             name={iconName}
@@ -708,14 +844,54 @@ function ExploreTypeSelector({
   value: ResultType;
 }) {
   const theme = useThemeColors();
+  const reduceMotion = useReduceMotion();
+  const [selectorWidth, setSelectorWidth] = useState(0);
+  const activeIndex = TYPE_OPTIONS.findIndex((option) => option.key === value);
+  const indicatorProgress = useRef(new Animated.Value(Math.max(activeIndex, 0))).current;
+  const indicatorWidth = selectorWidth > 0 ? (selectorWidth - 6) / TYPE_OPTIONS.length : 0;
+
+  useEffect(() => {
+    if (reduceMotion) {
+      indicatorProgress.setValue(Math.max(activeIndex, 0));
+      return;
+    }
+
+    Animated.timing(indicatorProgress, {
+      toValue: Math.max(activeIndex, 0),
+      duration: 210,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [activeIndex, indicatorProgress, reduceMotion]);
 
   return (
     <View
       style={[
         styles.typeSelector,
-        { backgroundColor: theme.surfaceSecondary, borderColor: theme.border },
+        { backgroundColor: theme.primaryFaint, borderColor: theme.primarySoft },
       ]}
+      onLayout={(event) => setSelectorWidth(event.nativeEvent.layout.width)}
     >
+      {indicatorWidth > 0 ? (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.typeActiveIndicator,
+            {
+              width: indicatorWidth,
+              backgroundColor: "rgba(214, 112, 39, 0.9)",
+              transform: [
+                {
+                  translateX: indicatorProgress.interpolate({
+                    inputRange: [0, 1, 2],
+                    outputRange: [0, indicatorWidth, indicatorWidth * 2],
+                  }),
+                },
+              ],
+            },
+          ]}
+        />
+      ) : null}
       {TYPE_OPTIONS.map((option) => {
         const selected = value === option.key;
         return (
@@ -727,10 +903,14 @@ function ExploreTypeSelector({
             onPress={() => onChange(option.key)}
             style={({ pressed }) => [
               styles.typeOption,
-              selected && { backgroundColor: theme.primary },
               pressed && styles.pressed,
             ]}
           >
+            <MaterialCommunityIcons
+              name={option.iconName}
+              size={14}
+              color={selected ? theme.textInverted : theme.primary}
+            />
             <Text
               style={[
                 styles.typeOptionText,
@@ -742,6 +922,34 @@ function ExploreTypeSelector({
           </Pressable>
         );
       })}
+    </View>
+  );
+}
+
+function ExploreDiscoveryControls({
+  onPressOpenOnly,
+  onPressSort,
+  openOnly,
+  resultsLabel,
+  sortLabel,
+}: {
+  onPressOpenOnly: () => void;
+  onPressSort: () => void;
+  openOnly: boolean;
+  resultsLabel: string;
+  sortLabel: string;
+}) {
+  return (
+    <View style={styles.discoveryControls}>
+      <ExploreQuickFilter
+        selected={openOnly}
+        onPress={onPressOpenOnly}
+      />
+      <ExploreResultsSummary
+        label={resultsLabel}
+        sortLabel={sortLabel}
+        onPressSort={onPressSort}
+      />
     </View>
   );
 }
@@ -793,8 +1001,34 @@ function ExploreActiveFilters({
   onClearFilter: (key: keyof AdvancedFilters) => void;
 }) {
   const theme = useThemeColors();
+  const reduceMotion = useReduceMotion();
+  const opacity = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
+  const scale = useRef(new Animated.Value(reduceMotion ? 1 : 0.98)).current;
   const budgetLabel = getBudgetLabel(filters);
   const chips: Array<{ key: keyof AdvancedFilters; label: string }> = [];
+
+  useEffect(() => {
+    if (reduceMotion) {
+      opacity.setValue(1);
+      scale.setValue(1);
+      return;
+    }
+
+    Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 180,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(scale, {
+        toValue: 1,
+        duration: 180,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [opacity, reduceMotion, scale]);
 
   if (budgetLabel) {
     chips.push({ key: "budgetPreset", label: budgetLabel });
@@ -807,7 +1041,7 @@ function ExploreActiveFilters({
   if (chips.length === 0) return null;
 
   return (
-    <View style={styles.activeFiltersWrap}>
+    <Animated.View style={[styles.activeFiltersWrap, { opacity, transform: [{ scale }] }]}>
       {chips.map((chip) => (
         <Pressable
           key={chip.key}
@@ -836,7 +1070,7 @@ function ExploreActiveFilters({
           Limpiar
         </Text>
       </Pressable>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -865,8 +1099,8 @@ function ExploreResultsSummary({
           pressed && styles.pressed,
         ]}
       >
-        <Text style={[styles.sortButtonText, { color: theme.primary }]} numberOfLines={1}>
-          Ordenar: {sortLabel}
+        <Text style={[styles.sortButtonText, { color: theme.textSecondary }]} numberOfLines={1}>
+          {sortLabel}
         </Text>
         <MaterialCommunityIcons name="chevron-down" size={15} color={theme.primary} />
       </Pressable>
@@ -889,7 +1123,7 @@ function ExploreSortModal({
   const insets = useSafeAreaInsets();
 
   return (
-    <Modal animationType="fade" transparent visible={visible} onRequestClose={onClose}>
+    <Modal animationType="slide" transparent visible={visible} onRequestClose={onClose}>
       <View style={styles.sortModalBackdrop}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <View
@@ -969,7 +1203,7 @@ function ExploreFiltersModal({
   };
 
   return (
-    <Modal animationType="fade" transparent visible={visible} onRequestClose={onClose}>
+    <Modal animationType="slide" transparent visible={visible} onRequestClose={onClose}>
       <View style={styles.filterModalBackdrop}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <View
@@ -1184,27 +1418,32 @@ function ExploreLoadingSkeleton() {
   return (
     <View style={styles.feedbackStack}>
       <ExploreSectionHeader title="Restaurantes" />
-      {[0, 1, 2].map((item) => (
-        <View
-          key={`restaurant-skeleton-${item}`}
-          style={[
-            styles.restaurantRow,
-            { backgroundColor: theme.surfaceElevated, borderColor: theme.border },
-          ]}
-        >
-          <View style={[styles.restaurantRowImage, { backgroundColor: theme.surfaceSecondary }]} />
-          <View style={styles.skeletonTextStack}>
-            <View style={[styles.skeletonLineLarge, { backgroundColor: theme.surfaceSecondary }]} />
-            <View style={[styles.skeletonLine, { backgroundColor: theme.surfaceSecondary }]} />
-            <View style={[styles.skeletonLineShort, { backgroundColor: theme.surfaceSecondary }]} />
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.restaurantCarousel}
+      >
+        {[0, 1, 2].map((item) => (
+          <View
+            key={`restaurant-skeleton-${item}`}
+            style={[
+              styles.restaurantCard,
+              { backgroundColor: theme.surfaceElevated, borderColor: theme.border },
+            ]}
+          >
+            <View style={[styles.resultImage, { backgroundColor: theme.surfaceSecondary }]} />
+            <View style={styles.restaurantCardCopy}>
+              <View style={[styles.skeletonLineLarge, { backgroundColor: "rgba(255, 255, 255, 0.78)" }]} />
+              <View style={[styles.skeletonLine, { backgroundColor: "rgba(255, 255, 255, 0.6)" }]} />
+            </View>
           </View>
-        </View>
-      ))}
+        ))}
+      </ScrollView>
     </View>
   );
 }
 
-function ExploreRestaurantRow({
+function ExploreRestaurantCard({
   dishCount,
   index,
   onPress,
@@ -1219,12 +1458,14 @@ function ExploreRestaurantRow({
   const { isRestaurantFavorite, toggleRestaurant } = useFavorites();
   const favorite = isRestaurantFavorite(restaurant.id);
   const summary = getRestaurantSummary(restaurant, dishCount);
+  const ratingData = getRatingData(restaurant);
   const reduceMotion = useReduceMotion();
-  const opacity = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
-  const translateY = useRef(new Animated.Value(reduceMotion ? 0 : 10)).current;
+  const shouldAnimate = !reduceMotion && index < 5;
+  const opacity = useRef(new Animated.Value(shouldAnimate ? 0 : 1)).current;
+  const translateY = useRef(new Animated.Value(shouldAnimate ? 8 : 0)).current;
 
   useEffect(() => {
-    if (reduceMotion) {
+    if (!shouldAnimate) {
       opacity.setValue(1);
       translateY.setValue(0);
       return;
@@ -1234,17 +1475,17 @@ function ExploreRestaurantRow({
       Animated.timing(opacity, {
         toValue: 1,
         duration: designSystem.animation.normal,
-        delay: Math.min(index * 35, 160),
+        delay: Math.min(index * 35, 140),
         useNativeDriver: true,
       }),
       Animated.timing(translateY, {
         toValue: 0,
         duration: designSystem.animation.normal,
-        delay: Math.min(index * 35, 160),
+        delay: Math.min(index * 35, 140),
         useNativeDriver: true,
       }),
     ]).start();
-  }, [index, opacity, reduceMotion, translateY]);
+  }, [index, opacity, shouldAnimate, translateY]);
 
   return (
     <Animated.View style={{ opacity, transform: [{ translateY }] }}>
@@ -1253,75 +1494,41 @@ function ExploreRestaurantRow({
         accessibilityLabel={`Ver restaurante ${restaurant.name}`}
         onPress={onPress}
         style={({ pressed }) => [
-          styles.restaurantRow,
+          styles.restaurantCard,
           { backgroundColor: theme.surfaceElevated, borderColor: theme.border },
           pressed && styles.pressed,
         ]}
       >
-        <View style={[styles.restaurantRowImage, { backgroundColor: theme.surfaceSecondary }]}>
-          {restaurant.imageUrl ? (
-            <Image
-              source={{ uri: restaurant.imageUrl }}
-              style={styles.resultImage}
-              resizeMode="cover"
-            />
-          ) : (
-            <View style={styles.resultImage} />
-          )}
+        <FadeInImage
+          source={getRestaurantImageSource(restaurant)}
+          style={styles.restaurantCardImage}
+        />
+        <View pointerEvents="none" style={styles.restaurantGradientSoft} />
+        <View pointerEvents="none" style={styles.restaurantGradientDeep} />
+        <View style={styles.restaurantTopRow}>
+          <StatusPill active={restaurant.isActive} />
+          <FavoriteScaleButton
+            favorite={favorite}
+            onPress={() => toggleRestaurant(restaurant)}
+          />
         </View>
-        <View style={styles.resultText}>
+        <View style={styles.restaurantCardCopy}>
+          <OptionalRating data={ratingData} />
           <Text
-            style={[styles.resultName, { color: theme.textPrimary }]}
+            style={styles.restaurantCardTitle}
             numberOfLines={2}
-            ellipsizeMode="tail"
           >
-            {restaurant.name}
+            {formatNaturalName(restaurant.name)}
           </Text>
           {summary ? (
             <Text
-              style={[styles.resultDescription, { color: theme.textSecondary }]}
+              style={styles.restaurantCardMeta}
               numberOfLines={1}
-              ellipsizeMode="tail"
             >
-              {summary}
+              {formatNaturalName(summary)}
             </Text>
           ) : null}
-          <View style={styles.restaurantMetaRow}>
-            <View
-              style={[
-                styles.statusDot,
-                { backgroundColor: restaurant.isActive ? theme.success : theme.neutral },
-              ]}
-            />
-            <Text
-              style={[
-                styles.resultStatus,
-                { color: restaurant.isActive ? theme.success : theme.neutral },
-              ]}
-              numberOfLines={1}
-            >
-              {restaurant.isActive ? "Abierto" : "Cerrado"}
-            </Text>
-          </View>
         </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={favorite ? "Quitar favorito" : "Guardar favorito"}
-          onPress={(event) => {
-            event.stopPropagation();
-            toggleRestaurant(restaurant);
-          }}
-          style={[
-            styles.favoriteButton,
-            { backgroundColor: theme.surfaceSecondary, borderColor: theme.border },
-          ]}
-        >
-          <MaterialCommunityIcons
-            name={favorite ? "heart" : "heart-outline"}
-            size={20}
-            color={theme.primary}
-          />
-        </Pressable>
       </Pressable>
     </Animated.View>
   );
@@ -1338,14 +1545,16 @@ function ExploreDishCard({
 }) {
   const theme = useThemeColors();
   const reduceMotion = useReduceMotion();
-  const opacity = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
-  const translateY = useRef(new Animated.Value(reduceMotion ? 0 : 10)).current;
   const { dish, restaurant } = result;
   const { isDishFavorite, toggleDish } = useFavorites();
   const favorite = isDishFavorite(dish.id);
+  const ratingData = getRatingData(dish);
+  const shouldAnimate = !reduceMotion && index < 6;
+  const opacity = useRef(new Animated.Value(shouldAnimate ? 0 : 1)).current;
+  const translateY = useRef(new Animated.Value(shouldAnimate ? 8 : 0)).current;
 
   useEffect(() => {
-    if (reduceMotion) {
+    if (!shouldAnimate) {
       opacity.setValue(1);
       translateY.setValue(0);
       return;
@@ -1355,17 +1564,17 @@ function ExploreDishCard({
       Animated.timing(opacity, {
         toValue: 1,
         duration: designSystem.animation.normal,
-        delay: Math.min(index * 35, 160),
+        delay: Math.min(index * 35, 140),
         useNativeDriver: true,
       }),
       Animated.timing(translateY, {
         toValue: 0,
         duration: designSystem.animation.normal,
-        delay: Math.min(index * 35, 160),
+        delay: Math.min(index * 35, 140),
         useNativeDriver: true,
       }),
     ]).start();
-  }, [index, opacity, reduceMotion, translateY]);
+  }, [index, opacity, shouldAnimate, translateY]);
 
   return (
     <Animated.View style={{ opacity, transform: [{ translateY }] }}>
@@ -1380,48 +1589,32 @@ function ExploreDishCard({
         ]}
       >
         <View style={styles.exploreDishMedia}>
-          {dish.imageUrl ? (
-            <Image
-              source={{ uri: dish.imageUrl }}
-              style={styles.resultImage}
-              resizeMode="cover"
-            />
-          ) : (
-            <View style={styles.resultImage} />
-          )}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={favorite ? "Quitar favorito" : "Guardar favorito"}
-            onPress={(event) => {
-              event.stopPropagation();
-              toggleDish(restaurant, dish);
-            }}
-            style={[
-              styles.exploreDishFavorite,
-              { backgroundColor: theme.surfaceElevated, borderColor: theme.border },
-            ]}
-          >
-            <MaterialCommunityIcons
-              name={favorite ? "heart" : "heart-outline"}
-              size={20}
-              color={theme.primary}
-            />
-          </Pressable>
+          <FadeInImage
+            source={getDishImageSource(dish, restaurant)}
+            style={styles.resultImage}
+          />
+          <View style={styles.dishImageShade} />
+          <FavoriteScaleButton
+            favorite={favorite}
+            style={styles.exploreDishFavorite}
+            onPress={() => toggleDish(restaurant, dish)}
+          />
         </View>
         <View style={styles.exploreDishBody}>
+          <OptionalRating data={ratingData} variant="light" />
           <Text
             style={[styles.resultName, { color: theme.textPrimary }]}
             numberOfLines={2}
             ellipsizeMode="tail"
           >
-            {dish.name}
+            {formatNaturalName(dish.name)}
           </Text>
           <Text
             style={[styles.resultRestaurant, { color: theme.textSecondary }]}
             numberOfLines={1}
             ellipsizeMode="tail"
           >
-            {restaurant.name}
+            {formatNaturalName(restaurant.name)}
           </Text>
           <Text
             style={[styles.resultPrice, styles.exploreDishPrice, { color: theme.primary }]}
@@ -1435,26 +1628,168 @@ function ExploreDishCard({
   );
 }
 
+function FadeInImage({
+  source,
+  style,
+}: {
+  source: ImageSourcePropType;
+  style: StyleProp<ImageStyle>;
+}) {
+  const reduceMotion = useReduceMotion();
+  const opacity = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
+
+  const handleLoad = () => {
+    if (reduceMotion) {
+      opacity.setValue(1);
+      return;
+    }
+
+    Animated.timing(opacity, {
+      toValue: 1,
+      duration: designSystem.animation.fast,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  return (
+    <Animated.Image
+      source={source}
+      style={[style, { opacity }]}
+      resizeMode="cover"
+      onLoad={handleLoad}
+    />
+  );
+}
+
+function FavoriteScaleButton({
+  favorite,
+  onPress,
+  style,
+}: {
+  favorite: boolean;
+  onPress: () => void;
+  style?: StyleProp<ViewStyle>;
+}) {
+  const theme = useThemeColors();
+  const reduceMotion = useReduceMotion();
+  const scale = useRef(new Animated.Value(1)).current;
+
+  const animatePress = () => {
+    if (reduceMotion) return;
+
+    Animated.sequence([
+      Animated.timing(scale, {
+        toValue: 0.94,
+        duration: 65,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.timing(scale, {
+        toValue: 1.05,
+        duration: 85,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.timing(scale, {
+        toValue: 1,
+        duration: 95,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  return (
+    <Animated.View style={[{ transform: [{ scale }] }, style]}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={favorite ? "Quitar favorito" : "Guardar favorito"}
+        onPress={(event) => {
+          event.stopPropagation();
+          animatePress();
+          void triggerFeedback("selection");
+          onPress();
+        }}
+        style={({ pressed }) => [
+          styles.favoriteButton,
+          { backgroundColor: theme.surfaceElevated, borderColor: theme.border },
+          pressed && styles.pressed,
+        ]}
+      >
+        <MaterialCommunityIcons
+          name={favorite ? "heart" : "heart-outline"}
+          size={20}
+          color={theme.primary}
+        />
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+function StatusPill({ active }: { active: boolean }) {
+  const theme = useThemeColors();
+
+  return (
+    <View
+      style={[
+        styles.statusPill,
+        { backgroundColor: active ? "rgba(25, 135, 84, 0.92)" : "rgba(86, 83, 78, 0.9)" },
+      ]}
+    >
+      <View style={[styles.statusDot, { backgroundColor: active ? "#BFF2D2" : theme.border }]} />
+      <Text style={styles.statusPillText}>{active ? "Abierto" : "Cerrado"}</Text>
+    </View>
+  );
+}
+
+function OptionalRating({
+  data,
+  variant = "dark",
+}: {
+  data: ReturnType<typeof getRatingData>;
+  variant?: "dark" | "light";
+}) {
+  const theme = useThemeColors();
+  if (!data) return null;
+
+  return (
+    <View
+      style={[
+        styles.ratingPill,
+        variant === "dark"
+          ? styles.ratingPillDark
+          : { backgroundColor: theme.primaryFaint },
+      ]}
+    >
+      <MaterialCommunityIcons name="star" size={12} color="#F7B731" />
+      <Text
+        style={[
+          styles.ratingText,
+          { color: variant === "dark" ? "#FFFFFF" : theme.textPrimary },
+        ]}
+      >
+        {data.rating.toFixed(1)} ({data.count})
+      </Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   explore: {
     gap: spacing.sm,
   },
   exploreContent: {
-    gap: spacing.sm,
+    gap: 10,
   },
   exploreHeader: {
-    gap: 2,
-  },
-  headerAccent: {
-    width: 24,
-    height: 2,
-    borderRadius: 999,
-    marginBottom: 2,
+    gap: 0,
+    paddingTop: 2,
+    paddingBottom: 0,
   },
   exploreTitle: {
     fontSize: 28,
-    lineHeight: 34,
-    fontWeight: typography.weights.extraBold,
+    lineHeight: 32,
+    fontWeight: typography.weights.bold,
   },
   exploreSubtitle: {
     fontSize: 14,
@@ -1465,14 +1800,14 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   searchRow: {
-    minHeight: 50,
+    minHeight: 48,
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
   },
   searchBar: {
     flex: 1,
-    minHeight: 50,
+    minHeight: 48,
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
@@ -1494,8 +1829,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   searchFilterButton: {
-    width: 50,
-    height: 50,
+    width: 48,
+    height: 48,
     borderRadius: 17,
     alignItems: "center",
     justifyContent: "center",
@@ -1554,37 +1889,56 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.semiBold,
   },
   typeSelector: {
-    minHeight: 39,
+    minHeight: 42,
     flexDirection: "row",
     alignItems: "center",
-    gap: 3,
     padding: 3,
     borderRadius: 16,
     borderWidth: 1,
+    overflow: "hidden",
+    position: "relative",
+  },
+  typeActiveIndicator: {
+    position: "absolute",
+    top: 3,
+    bottom: 3,
+    left: 3,
+    borderRadius: 13,
   },
   typeOption: {
     flex: 1,
-    minHeight: 34,
+    minHeight: 35,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: 4,
     borderRadius: 13,
   },
   typeOptionText: {
-    fontSize: 13,
-    lineHeight: 16,
-    fontWeight: typography.weights.bold,
+    fontSize: 12,
+    lineHeight: 15,
+    fontWeight: typography.weights.semiBold,
+  },
+  discoveryControls: {
+    minHeight: 64,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    justifyContent: "space-between",
+    columnGap: spacing.sm,
+    rowGap: 6,
   },
   quickFilterRow: {
-    minHeight: 44,
+    minHeight: 36,
     flexDirection: "row",
     alignItems: "center",
   },
   quickFilterChip: {
-    minHeight: 44,
+    minHeight: 36,
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.sm,
     borderRadius: designSystem.radii.pill,
     borderWidth: 1,
   },
@@ -1632,29 +1986,31 @@ const styles = StyleSheet.create({
   },
   resultsSummaryRow: {
     minHeight: 24,
+    flex: 1,
+    minWidth: 210,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
   resultsSummaryText: {
     flex: 1,
     minWidth: 0,
-    fontSize: 13,
-    lineHeight: 17,
+    fontSize: 12,
+    lineHeight: 16,
     fontWeight: typography.weights.semiBold,
   },
   sortButton: {
-    minHeight: 30,
+    minHeight: 28,
     flexDirection: "row",
     alignItems: "center",
     gap: 2,
     justifyContent: "center",
-    maxWidth: 178,
+    maxWidth: 150,
   },
   sortButtonText: {
-    fontSize: 12,
-    lineHeight: 15,
+    fontSize: 13,
+    lineHeight: 16,
     fontWeight: typography.weights.bold,
   },
   sortModalBackdrop: {
@@ -1823,7 +2179,7 @@ const styles = StyleSheet.create({
   },
   exploreSection: {
     gap: 10,
-    marginTop: spacing.xs,
+    marginTop: spacing.md,
   },
   exploreSectionHeader: {
     minHeight: 26,
@@ -1833,9 +2189,111 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   exploreSectionTitle: {
-    fontSize: 20,
-    lineHeight: 25,
+    fontSize: 19,
+    lineHeight: 24,
     fontWeight: typography.weights.extraBold,
+  },
+  restaurantCarousel: {
+    gap: 11,
+    paddingRight: spacing.xxxl,
+  },
+  restaurantCard: {
+    width: 168,
+    height: 202,
+    position: "relative",
+    overflow: "hidden",
+    borderRadius: 18,
+    borderWidth: 1,
+    ...designSystem.shadows.medium,
+  },
+  restaurantCardImage: {
+    ...StyleSheet.absoluteFillObject,
+    width: "100%",
+    height: "100%",
+  },
+  restaurantGradientSoft: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: "58%",
+    backgroundColor: "rgba(0, 0, 0, 0.26)",
+    borderRadius: 18,
+  },
+  restaurantGradientDeep: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: "34%",
+    backgroundColor: "rgba(0, 0, 0, 0.34)",
+    borderRadius: 18,
+  },
+  restaurantCardCopy: {
+    position: "absolute",
+    left: 13,
+    right: 13,
+    bottom: 13,
+    gap: 4,
+  },
+  restaurantCardTitle: {
+    color: "#FFFFFF",
+    fontSize: 19,
+    lineHeight: 22,
+    fontWeight: typography.weights.extraBold,
+    textShadowColor: "rgba(0, 0, 0, 0.28)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  restaurantCardMeta: {
+    color: "rgba(255, 245, 232, 0.88)",
+    fontSize: 13,
+    lineHeight: 16,
+    fontWeight: typography.weights.bold,
+    textShadowColor: "rgba(0, 0, 0, 0.22)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
+  },
+  restaurantTopRow: {
+    position: "absolute",
+    top: spacing.sm,
+    left: spacing.sm,
+    right: spacing.sm,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.xs,
+  },
+  statusPill: {
+    minHeight: 30,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: spacing.sm,
+    borderRadius: designSystem.radii.pill,
+  },
+  statusPillText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    lineHeight: 15,
+    fontWeight: typography.weights.bold,
+  },
+  ratingPill: {
+    alignSelf: "flex-start",
+    minHeight: 24,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    paddingHorizontal: spacing.xs,
+    borderRadius: designSystem.radii.pill,
+  },
+  ratingPillDark: {
+    backgroundColor: "rgba(0, 0, 0, 0.46)",
+  },
+  ratingText: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: typography.weights.bold,
   },
   restaurantRow: {
     minHeight: 88,
@@ -1898,39 +2356,37 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   dishCarousel: {
-    gap: spacing.sm,
+    gap: 11,
     paddingRight: spacing.xxxl,
   },
   exploreDishCard: {
     width: 148,
-    height: 180,
+    height: 192,
     borderRadius: 16,
     borderWidth: 1,
     overflow: "hidden",
     ...designSystem.shadows.low,
   },
   exploreDishMedia: {
-    height: 100,
+    height: 102,
     margin: spacing.xs,
     marginBottom: 0,
     borderRadius: 14,
     overflow: "hidden",
   },
+  dishImageShade: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.04)",
+  },
   exploreDishFavorite: {
     position: "absolute",
     top: 5,
     right: 5,
-    width: 42,
-    height: 42,
-    borderRadius: designSystem.radii.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
   },
   exploreDishBody: {
     flex: 1,
     justifyContent: "flex-start",
-    gap: 2,
+    gap: 4,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
   },

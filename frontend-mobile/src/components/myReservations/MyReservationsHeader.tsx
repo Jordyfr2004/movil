@@ -5,100 +5,70 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { spacing } from "../../constants/spacing";
 import { typography } from "../../theme";
 import { studentPalette } from "../../theme/studentPalette";
-import { Card } from "../Card";
-import { StudentStatusPill } from "../StudentStatusPill";
 
 type MyReservationsHeaderProps = {
-  activeCount: number;
   hasError: boolean;
   loading: boolean;
 };
 
 export function MyReservationsHeader({
-  activeCount,
   hasError,
   loading,
 }: MyReservationsHeaderProps) {
   return (
-    <Card style={styles.header}>
-      <View style={styles.headingRow}>
-        <View style={styles.titleGroup}>
-          <View style={styles.icon}>
-            <MaterialCommunityIcons
-              name="calendar-check-outline"
-              size={20}
-              color={studentPalette.primary}
-            />
-          </View>
-          <Text style={styles.title}>Mis reservas</Text>
-        </View>
-
-        {!loading && !hasError ? (
-          <StudentStatusPill
-            label={`${activeCount} activa${activeCount === 1 ? "" : "s"}`}
-            tone={activeCount > 0 ? "warning" : "neutral"}
+    <View style={styles.header}>
+      <View style={styles.titleRow}>
+        <View style={styles.icon}>
+          <MaterialCommunityIcons
+            name="calendar-check-outline"
+            size={18}
+            color={studentPalette.primary}
           />
-        ) : null}
+        </View>
+        <Text style={styles.title} numberOfLines={1}>Mis reservas</Text>
       </View>
-
       <Text style={styles.subtitle}>
         {loading || hasError
-          ? "Estamos actualizando tu historial."
-          : "Reservas activas e historial en un solo lugar."}
+          ? "Actualizando tus pedidos."
+          : "Gestiona tus pedidos e historial."}
       </Text>
-    </Card>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   header: {
-    position: "relative",
-    marginBottom: spacing.sm,
-    padding: spacing.md,
-    borderRadius: 24,
-    borderColor: studentPalette.border,
-    backgroundColor: studentPalette.cardElevated,
-    shadowColor: studentPalette.shadow,
-    shadowOpacity: 1,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 7 },
-    elevation: 2,
-    overflow: "hidden",
+    paddingTop: 1,
+    paddingBottom: 4,
+    gap: 1,
   },
-  headingRow: {
+  titleRow: {
+    minHeight: 32,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-  },
-  titleGroup: {
-    flex: 1,
-    minWidth: 0,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
   icon: {
-    width: 32,
-    height: 32,
-    borderRadius: 11,
+    width: 28,
+    height: 28,
+    borderRadius: 9,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: studentPalette.card,
+    backgroundColor: studentPalette.primaryFaint,
     borderWidth: 1,
-    borderColor: studentPalette.border,
+    borderColor: studentPalette.primarySoft,
   },
   title: {
     flex: 1,
-    fontSize: typography.roles.screenTitle.fontSize,
-    fontWeight: typography.roles.screenTitle.fontWeight,
     color: studentPalette.textPrimary,
-    lineHeight: typography.lineHeights.xl,
+    fontSize: 28,
+    lineHeight: 32,
+    fontWeight: typography.weights.bold,
   },
   subtitle: {
-    marginTop: spacing.sm,
-    fontSize: typography.sizes.xs,
     color: studentPalette.textSecondary,
-    lineHeight: typography.lineHeights.xs,
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: typography.weights.semiBold,
   },
 });

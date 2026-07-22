@@ -1,12 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNetworkStatus } from "../context/NetworkContext";
+import { getPublicDishesByRestaurant } from "../services/dishService";
 import { isSessionExpiryInProgress } from "../services/sessionExpiryService";
 import { getMyReservations } from "../services/reservationService";
 import { getRestaurants } from "../services/restaurantService";
-import { Reservation } from "../types/models";
+import { Reservation, ReservationItem } from "../types/models";
 
-export type ReservationListItem = Reservation & {
+export type EnrichedReservationItem = ReservationItem & {
+  dishImageUrl?: string | null;
+};
+
+export type ReservationListItem = Omit<Reservation, "items"> & {
+  items: EnrichedReservationItem[];
   restaurantName: string;
+  restaurantImageUrl?: string | null;
   title: string;
   reservationDate: string;
 };
@@ -68,7 +75,7 @@ export function useReservations(accessToken: string | null) {
     setError(null);
 
     const request = Promise.allSettled([getMyReservations(accessToken), getRestaurants()])
-      .then((results) => {
+      .then(async (results) => {
         const reservationsResult = results[0];
         const restaurantsResult = results[1];
 
@@ -83,6 +90,39 @@ export function useReservations(accessToken: string | null) {
             .filter((r) => r?.id && r?.name)
             .map((r) => [String(r.id), r.name] as const)
         );
+        const restaurantImageById = new Map(
+          restaurants
+            .filter((r) => r?.id)
+            .map((r) => [String(r.id), r.imageUrl ?? null] as const)
+        );
+        const restaurantIds = Array.from(
+          new Set(
+            reservationList
+              .flatMap((reservation) =>
+                reservation.items.map((item) => item.restaurantId)
+              )
+              .filter(Boolean)
+              .map(String)
+          )
+        );
+        const dishResults = await Promise.allSettled(
+          restaurantIds.map(async (restaurantId) => {
+            const dishes = await getPublicDishesByRestaurant(restaurantId);
+            return dishes.map((dish) => ({
+              id: String(dish.id),
+              imageUrl: dish.imageUrl ?? null,
+            }));
+          })
+        );
+        const dishImageById = new Map(
+          dishResults.flatMap((result) =>
+            result.status === "fulfilled"
+              ? result.value
+                  .filter((dish) => dish.imageUrl)
+                  .map((dish) => [dish.id, dish.imageUrl] as const)
+              : []
+          )
+        );
 
         const enriched = reservationList.map((reservation) => {
           const restaurantId = reservation.items?.[0]?.restaurantId;
@@ -92,8 +132,16 @@ export function useReservations(accessToken: string | null) {
 
           return {
             ...reservation,
+            items: reservation.items.map((item) => ({
+              ...item,
+              dishImageUrl:
+                item.dishImageUrl ?? dishImageById.get(String(item.dishId)) ?? null,
+            })),
             title: buildReservationTitle(reservation),
             reservationDate: reservation.createdAt,
+            restaurantImageUrl: restaurantId
+              ? restaurantImageById.get(String(restaurantId)) ?? null
+              : null,
             restaurantName: resolvedRestaurantName ?? "Restaurante no disponible",
           };
         });

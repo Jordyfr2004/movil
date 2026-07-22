@@ -38,6 +38,7 @@ export type ReservationItem = {
   dishId: string;
   dishName: string;
   dishDescription?: string | null;
+  dishImageUrl?: string | null;
   restaurantId: string;
   unitPrice: number;
   quantity?: number;

@@ -35,6 +35,8 @@ import { useThemeColors } from "../hooks/useThemeColors";
 import { ROUTES } from "../navigation/routes";
 import { RootStackParamList } from "../navigation/types";
 import { Dish, getPublicDishesByRestaurant } from "../services/dishService";
+import { getUserProfile } from "../services/authStorage";
+import { UserProfile } from "../services/userService";
 import { designSystem, typography } from "../theme";
 import { Restaurant } from "../types/models";
 
@@ -69,6 +71,30 @@ type HomeDishItem = {
   dish: Dish;
 };
 
+const KNOWN_FIRST_NAME_PREFIXES = [
+  "jeremy",
+  "jose",
+  "juan",
+  "maria",
+  "ana",
+  "luis",
+  "carlos",
+  "daniel",
+  "david",
+  "diego",
+  "andres",
+  "andrea",
+  "gabriel",
+  "gabriela",
+  "kevin",
+  "mateo",
+  "miguel",
+  "paul",
+  "pedro",
+  "sofia",
+  "valeria",
+];
+
 function getGreeting(date = new Date()) {
   const hour = date.getHours();
 
@@ -77,19 +103,86 @@ function getGreeting(date = new Date()) {
   return "Buenas noches";
 }
 
-function formatDisplayName(value?: string | null) {
-  const fallback = "estudiante";
+function normalizeDisplayWord(value?: string | null) {
   const raw = value?.trim();
-  const base = raw ? raw.split("@")[0] || fallback : fallback;
+  if (!raw) return "";
 
-  const formatted = base
-    .replace(/[._-]+/g, " ")
-    .split(" ")
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+  if (/^[A-ZÁÉÍÓÚÜÑ]{2,}$/.test(raw) && raw.length <= 4) {
+    return raw;
+  }
+
+  return raw
+    .toLocaleLowerCase("es-EC")
+    .replace(/(^|['’ -])([\p{L}])/gu, (match, separator: string, letter: string) =>
+      `${separator}${letter.toLocaleUpperCase("es-EC")}`
+    );
+}
+
+function formatNaturalName(value?: string | null) {
+  const raw = value?.trim();
+  if (!raw) return "";
+
+  return raw
+    .split(/\s+/)
+    .map((part) => {
+      if (/\p{Ll}/u.test(part) && /\p{Lu}/u.test(part)) {
+        return part;
+      }
+
+      if (/^[A-ZÁÉÍÓÚÜÑ0-9&.-]{2,}$/.test(part) && /[A-ZÁÉÍÓÚÜÑ]/.test(part)) {
+        return part.length <= 4 ? part : normalizeDisplayWord(part);
+      }
+
+      return normalizeDisplayWord(part);
+    })
     .join(" ");
+}
 
-  return formatted.split(" ")[0] || fallback;
+function extractFirstName(value?: string | null) {
+  const formatted = formatNaturalName(value);
+  return formatted.split(/\s+/).find(Boolean) || "";
+}
+
+function deriveReadableFallback(value?: string | null) {
+  const raw = value?.trim();
+  if (!raw) return "Estudiante";
+
+  const withoutDomain = raw.split("@")[0] ?? raw;
+  const firstSeparatedPart = withoutDomain
+    .replace(/[._-]+/g, " ")
+    .split(/\s+/)
+    .find(Boolean);
+  const compactPart = (firstSeparatedPart || withoutDomain)
+    .replace(/\d.*$/g, "")
+    .replace(/[^\p{L}'’-]/gu, "");
+  const lowerCompact = compactPart.toLocaleLowerCase("es-EC");
+  const knownPrefix = KNOWN_FIRST_NAME_PREFIXES.find(
+    (prefix) => lowerCompact === prefix || lowerCompact.startsWith(prefix)
+  );
+  const readablePart = knownPrefix || lowerCompact;
+
+  return normalizeDisplayWord(readablePart) || "Estudiante";
+}
+
+function getHomeDisplayName(profile: UserProfile | null, accountName?: string | null) {
+  const profileRecord = profile as (UserProfile & Record<string, unknown>) | null;
+  const firstNameCandidate =
+    profileRecord?.firstName ??
+    profileRecord?.first_name ??
+    profileRecord?.givenName ??
+    profileRecord?.given_name;
+
+  if (typeof firstNameCandidate === "string" && firstNameCandidate.trim()) {
+    return extractFirstName(firstNameCandidate);
+  }
+
+  const fullNameCandidate = profile?.fullName;
+  const firstFromFullName = extractFirstName(fullNameCandidate);
+  if (firstFromFullName) {
+    return firstFromFullName;
+  }
+
+  return deriveReadableFallback(accountName ?? profile?.email);
 }
 
 function useLocalGreeting() {
@@ -254,11 +347,29 @@ export function HomeContent({
   const { unreadCount } = useLocalNotifications();
   const [refreshing, setRefreshing] = useState(false);
   const [dishItems, setDishItems] = useState<HomeDishItem[]>([]);
+  const [storedProfile, setStoredProfile] = useState<UserProfile | null>(null);
 
   const displayName = useMemo(
-    () => formatDisplayName(user?.email),
-    [user?.email]
+    () => getHomeDisplayName(storedProfile, user?.email),
+    [storedProfile, user?.email]
   );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadStoredProfile = async () => {
+      const profile = await getUserProfile();
+      if (!cancelled) {
+        setStoredProfile(profile);
+      }
+    };
+
+    void loadStoredProfile();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.user_id]);
 
   const activeReservation = useMemo(
     () => findActiveReservation(reservations),
@@ -530,7 +641,7 @@ function HomeHeader({
     <View style={styles.headerRow}>
       <View style={styles.greetingBlock}>
         <Text style={[styles.displayName, { color: theme.textPrimary }]}>
-          {greeting}, {displayName}
+          {greeting}, {displayName} <Text style={styles.greetingEmoji}>👋</Text>
         </Text>
         <Text style={[styles.greeting, { color: theme.textSecondary }]}>
           ¿Qué vas a comer hoy?
@@ -743,7 +854,7 @@ function HomeHero({
                 </Text>
 
                 <Text style={styles.heroTitle} numberOfLines={1}>
-                  {item.name}
+                  {formatNaturalName(item.name)}
                 </Text>
 
                 <Text style={styles.heroSubtitle} numberOfLines={2}>
@@ -821,20 +932,20 @@ function ActiveOrderCard({
             )}
         </View>
         <View style={styles.activeOrderText}>
-          <Text style={[styles.activeOrderStatus, { color: theme.primary }]} numberOfLines={1}>
+          <Text style={[styles.activeOrderStatus, { color: theme.primary }]}>
             {statusLabel}
           </Text>
           <Text
             style={[styles.activeOrderTitle, { color: theme.textPrimary }]}
-            numberOfLines={1}
+            numberOfLines={2}
           >
-            {reservation.restaurantName}
+            {formatNaturalName(reservation.restaurantName)}
           </Text>
           <Text
             style={[styles.activeOrderMeta, { color: theme.textSecondary }]}
-            numberOfLines={1}
+            numberOfLines={2}
           >
-            {reservation.title}
+            {formatNaturalName(reservation.title)}
             {reservationTime ? ` · ${reservationTime}` : ""}
           </Text>
         </View>
@@ -1017,7 +1128,7 @@ function FeaturedRestaurantCard({
             numberOfLines={2}
             ellipsizeMode="tail"
           >
-            {restaurant.name}
+            {formatNaturalName(restaurant.name)}
           </Text>
           {getRestaurantMeta(restaurant) ? (
             <Text style={[styles.restaurantMeta, { color: theme.textSecondary }]} numberOfLines={1}>
@@ -1082,10 +1193,10 @@ function HomeDishCard({
           numberOfLines={2}
           ellipsizeMode="tail"
         >
-          {item.dish.name}
+          {formatNaturalName(item.dish.name)}
         </Text>
         <Text style={[styles.restaurantMeta, { color: theme.textSecondary }]} numberOfLines={1}>
-          {item.restaurant.name}
+          {formatNaturalName(item.restaurant.name)}
         </Text>
         <Text style={[styles.dishPrice, { color: theme.primary }]} numberOfLines={1}>
           ${item.dish.price}
@@ -1136,7 +1247,7 @@ function CompactRestaurantRow({
           style={[styles.compactName, { color: theme.textPrimary }]}
           numberOfLines={1}
         >
-          {restaurant.name}
+          {formatNaturalName(restaurant.name)}
         </Text>
         {getRestaurantMeta(restaurant) ? (
           <Text style={[styles.restaurantMeta, { color: theme.textSecondary }]} numberOfLines={1}>
@@ -1250,27 +1361,33 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   headerContent: {
-    gap: spacing.md,
+    gap: spacing.sm,
   },
   headerRow: {
-    minHeight: 50,
+    minHeight: 58,
     flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
+    alignItems: "flex-start",
+    gap: spacing.sm,
   },
   greetingBlock: {
     flex: 1,
     minWidth: 0,
+    paddingRight: spacing.xs,
   },
   displayName: {
-    fontSize: 25,
-    lineHeight: 31,
+    fontSize: 27,
+    lineHeight: 32,
     fontWeight: typography.weights.extraBold,
+    flexShrink: 1,
+  },
+  greetingEmoji: {
+    fontSize: 27,
+    lineHeight: 32,
   },
   greeting: {
-    marginTop: 1,
-    fontSize: 15,
-    lineHeight: 20,
+    marginTop: 0,
+    fontSize: 16,
+    lineHeight: 21,
     fontWeight: typography.weights.semiBold,
   },
   headerActions: {
@@ -1370,7 +1487,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   activeOrder: {
-    minHeight: 78,
+    minHeight: 82,
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
@@ -1416,6 +1533,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     borderRadius: designSystem.radii.pill,
     borderWidth: 1,
+    flexShrink: 0,
   },
   trackingText: {
     fontSize: typography.sizes.xs,
@@ -1511,7 +1629,6 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     height: 34,
     fontWeight: typography.weights.extraBold,
-    textTransform: "capitalize",
   },
   restaurantMeta: {
     fontSize: 11,
@@ -1624,7 +1741,6 @@ const styles = StyleSheet.create({
     fontSize: typography.roles.cardTitle.fontSize,
     lineHeight: typography.roles.cardTitle.lineHeight,
     fontWeight: typography.weights.extraBold,
-    textTransform: "capitalize",
   },
   skeletonGroup: {
     gap: spacing.md,
